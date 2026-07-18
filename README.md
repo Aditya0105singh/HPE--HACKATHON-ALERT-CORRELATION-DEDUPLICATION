@@ -30,6 +30,8 @@ Our solution is built on a scalable, modern architecture decoupling data generat
 ```mermaid
 graph TD
     subgraph Data Sources
+        Loghub[Loghub HDFS_v1 — real dataset, PS10 source]
+        AIOps[AIOps Challenge 2020 — real dataset, PS10 source]
         Prometheus[Prometheus]
         Datadog[Datadog]
         CustomApp[Custom App]
@@ -73,15 +75,15 @@ graph TD
 
 ### ⚙️ Core Pipeline Stages
 
-| Stage                          | Implementation Details                                                                                                                                          | Location                            |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| **1. Ingestion & Generation**  | Multi-source synthetic alert generator simulating cascading incident scenarios + background noise. Every alert is ground-truth labeled for evaluation.          | `data/synthetic_alert_generator.py` |
-| **2. Deduplication**           | Fingerprint hashing of `(service, alertname, 5-min window)` to filter redundant spikes (Alertmanager-style).                                                    | `backend/app/dedup.py`              |
-| **3. Embedding & Correlation** | Utilizes HuggingFace `all-MiniLM-L6-v2` for semantic embeddings + quadratic time penalty. Clustered via DBSCAN (parameters grid-searched against ground truth). | `backend/app/clustering.py`         |
-| **4. Root Cause Analysis**     | Identifies the earliest alert in a cluster, operating on the principle that failures propagate forward in time.                                                 | `backend/app/clustering.py`         |
-| **5. Escalation Risk Score**   | Heuristic formula: `0.40·growth + 0.35·severity + 0.25·spread`. Fully normalized (0-1) and explainable.                                                         | `backend/app/risk_score.py`         |
-| **6. Alert DNA Matching**      | Computes cosine similarity between cluster centroids and past incident embeddings to surface resolutions for novel-but-similar issues.                          | `backend/app/alert_dna.py`          |
-| **7. LLM Summarization**       | Translates complex, multi-service clusters into plain English incident summaries (stubbed for easy LLM integration).                                            | `backend/app/summarizer.py`         |
+| Stage | Implementation Details | Location |
+|---|---|---|
+| **1. Ingestion & Generation** | Three switchable sources feed the same pipeline: (a) **Loghub HDFS_v1** — ~450 alerts built from real log lines whose block-level Normal/Anomaly label is the dataset's own human annotation; (b) **AIOps Challenge 2020** — 81 alerts built from the dataset's real fault-injection log (service, fault type, and timestamp are all real; severity is a disclosed rule keyed on the real fault category, since the source has no severity column); both are PS10's named data sources, neither is invented. (c) a multi-source synthetic alert generator simulating cascading incident scenarios + background noise, kept as an optional demo mode. Switch between them via TopBar → Inject Failure. | `data/loghub_hdfs_loader.py`, `data/aiops_challenge_loader.py`, `backend/app/real_data.py`, `backend/app/real_data_aiops.py`, `data/synthetic_alert_generator.py` |
+| **2. Deduplication** | Fingerprint hashing of `(service, alertname, 5-min window)` to filter redundant spikes (Alertmanager-style). | `backend/app/dedup.py` |
+| **3. Embedding & Correlation** | Utilizes HuggingFace `all-MiniLM-L6-v2` for semantic embeddings + quadratic time penalty. Clustered via DBSCAN (parameters grid-searched against ground truth). | `backend/app/clustering.py` |
+| **4. Root Cause Analysis** | Identifies the earliest alert in a cluster, operating on the principle that failures propagate forward in time. | `backend/app/clustering.py` |
+| **5. Escalation Risk Score** | Heuristic formula: `0.40·growth + 0.35·severity + 0.25·spread`. Fully normalized (0-1) and explainable. | `backend/app/risk_score.py` |
+| **6. Alert DNA Matching** | Computes cosine similarity between cluster centroids and past incident embeddings to surface resolutions for novel-but-similar issues. | `backend/app/alert_dna.py` |
+| **7. LLM Summarization** | Translates complex, multi-service clusters into plain English incident summaries (stubbed for easy LLM integration). | `backend/app/summarizer.py` |
 
 ---
 
@@ -133,6 +135,17 @@ _(Reproduce these exact numbers by running `notebooks/poc_clustering.ipynb` top 
 # Install backend dependencies
 pip install -r backend/requirements.txt
 
+# One-time: build the real Loghub HDFS_v1 alert batch (downloads + caches
+# HDFS_v1.zip from Zenodo, ~187MB, then writes data/loghub_hdfs_alerts.json)
+python data/loghub_hdfs_loader.py
+
+# One-time: build the real AIOps Challenge 2020 alert batch (reads only the
+# real fault-injection CSV out of a 2.9GB archive via HTTP range requests —
+# never downloads the full archive — writes data/aiops_challenge_alerts.json)
+python data/aiops_challenge_loader.py
+
+# Optional: run the synthetic alert flood generator too
+python data/synthetic_alert_generator.py --incidents 3 --noise 20 --seed 42 --out data/alerts.json
 # Start the FastAPI server
 uvicorn app.main:app --app-dir backend --reload
 ```
@@ -184,7 +197,7 @@ jupyter notebook notebooks/poc_clustering.ipynb
 - [ ] **Frontend:** Full integration of the React Dashboard (Feed, Deduplication, Correlations, Incidents)
 - [ ] **Live Animation:** Chaos→order correlation animation + real-time reduction counter
 - [ ] **LLM Integration:** Swap the stub in `summarizer.py` with an OpenAI/Anthropic API call
-- [ ] **AIOps Datasets:** Further validate against public datasets (e.g., Loghub, AIOps Challenge)
+- [x] **Real AIOps Datasets:** Both of PS10's named data sources wired end-to-end through the same pipeline, switchable live: **Loghub HDFS_v1** (`data/loghub_hdfs_loader.py`, real block-level Normal/Anomaly ground truth, Xu et al. SOSP 2009) and **AIOps Challenge 2020** (`data/aiops_challenge_loader.py`, real fault-injection log — service, fault type, and timestamp are all real; the archive is 2.9GB but only the small fault CSV is ever fetched, via HTTP range requests). Severity is always a disclosed rule over a real label, never fabricated. Trigger via TopBar → Inject Failure → "Load Loghub HDFS_v1" / "Load AIOps Challenge 2020".
 - [ ] **MTTR Estimation:** Feature to estimate "triage time saved" per resolved incident
 
 <br/>
