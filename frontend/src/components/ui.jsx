@@ -222,7 +222,7 @@ export function Sparkline({ seed, color = "var(--accent)", w = 96, h = 28, up = 
 
 export function StatCard({ icon, label, value, delta, deltaDir, color = "var(--accent)", sub, spark = true, info }) {
   return (
-    <div className="stat-card p-4 min-w-0" style={{ "--sc": color }}>
+    <div className="stat-card p-5 min-w-0" style={{ "--sc": color }}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2 mb-2">

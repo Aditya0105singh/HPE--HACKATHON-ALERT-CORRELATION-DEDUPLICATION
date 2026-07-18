@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
-import { CircleCheckBig, CloudLightning, Dna, Zap } from "lucide-react";
-import { fetchPipeline, loadDemoBatch } from "./api";
+import { CircleCheckBig, CloudLightning, Dna, Sparkles, Zap } from "lucide-react";
+import { fetchPipeline, loadAiopsBatch, loadDemoBatch, loadRealBatch } from "./api";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import { StormToasts, StormControls, SCENARIOS } from "./components/storm";
@@ -12,6 +12,7 @@ import Correlations from "./pages/Correlations";
 import Incidents from "./pages/Incidents";
 import Evaluation from "./pages/Evaluation";
 import Pipeline from "./pages/Pipeline";
+import Topology from "./pages/Topology";
 import Placeholder from "./pages/Placeholder";
 
 const STORM_SECONDS = 25; // replay length at 1× speed
@@ -164,6 +165,55 @@ export default function App() {
     }
   };
 
+  const loadRealData = async () => {
+    setBusy(true);
+    try {
+      await loadRealBatch();
+      const fresh = await fetchPipeline();
+      setData(fresh);
+      setError(null);
+      setLastUpdated(Date.now());
+      const anomaly = fresh.raw_alerts.filter((a) => a.ground_truth === "Anomaly").length;
+      const normal = fresh.raw_alerts.length - anomaly;
+      pushToast({
+        icon: Sparkles,
+        title: `Loaded ${fresh.raw_alerts.length} real alerts from Loghub HDFS_v1`,
+        body: `${anomaly} from Anomaly-labeled blocks · ${normal} from Normal-labeled blocks (real dataset ground truth)`,
+        color: "var(--accent)",
+        sticky: true,
+      });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadAiopsData = async () => {
+    setBusy(true);
+    try {
+      await loadAiopsBatch();
+      const fresh = await fetchPipeline();
+      setData(fresh);
+      setError(null);
+      setLastUpdated(Date.now());
+      const byFault = {};
+      for (const a of fresh.raw_alerts) byFault[a.ground_truth] = (byFault[a.ground_truth] || 0) + 1;
+      const summary = Object.entries(byFault).map(([k, v]) => `${v} ${k}`).join(" · ");
+      pushToast({
+        icon: Sparkles,
+        title: `Loaded ${fresh.raw_alerts.length} real alerts from AIOps Challenge 2020`,
+        body: `Real fault-injection log: ${summary}`,
+        color: "var(--accent)",
+        sticky: true,
+      });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const finishStorm = useCallback((s) => {
     setData(s.full);
     setStorm(null);
@@ -261,6 +311,8 @@ export default function App() {
           onBellSeen={() => setUnread(0)}
           onStorm={startStorm}
           onInstant={instantLoad}
+          onRealData={loadRealData}
+          onAiopsData={loadAiopsData}
           busy={busy}
           stormRate={stormRate}
         />
@@ -278,7 +330,7 @@ export default function App() {
             <Route path="/evaluation" element={<Evaluation />} />
             <Route path="/pipeline" element={<Pipeline data={viewData} />} />
             <Route path="/workflows" element={<Placeholder title="Workflows" />} />
-            <Route path="/topology" element={<Placeholder title="Service Topology" note="Blast-radius view — stretch goal after Round 1." />} />
+            <Route path="/topology" element={<Topology data={viewData} />} />
             <Route path="/providers" element={<Placeholder title="Providers" note="Synthetic sources today (prometheus · datadog · gcp-monitoring · grafana · custom-app); live integrations out of hackathon scope." />} />
           </Routes>
         </main>
