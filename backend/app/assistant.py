@@ -178,14 +178,19 @@ def _build_messages(context: dict[str, Any], question: str, conversation: list[C
     return messages
 
 
-def _resolve_provider() -> tuple[str, str, str] | None:
-    """Returns (api_key, url, model) for the first provider with a real key
-    set, or None if neither CEREBRAS_API_KEY nor GROQ_API_KEY is configured."""
+def _configured_providers() -> list[tuple[str, str, str, str]]:
+    """Returns (provider_name, api_key, url, model) for every provider that
+    has a real key set, in priority order. Checked at request time — not
+    just once at startup — so if one provider's network path is blocked
+    (e.g. a host's outbound IP range flagged by a provider's WAF) the next
+    configured provider is tried automatically instead of failing outright."""
+    out = []
     for env_var, url, model in PROVIDERS:
         key = os.getenv(env_var, "").strip()
         if key:
-            return key, url, model
-    return None
+            name = "cerebras" if "cerebras" in url else "groq"
+            out.append((name, key, url, model))
+    return out
 
 
 def _call_chat_api(api_key: str, url: str, model: str, messages: list[dict[str, str]]) -> str:
@@ -216,48 +221,45 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
             "error": "Incident not found in the current pipeline state.",
         }
 
-    resolved = _resolve_provider()
-    if resolved is None:
+    providers = _configured_providers()
+    if not providers:
         return {
             "status": "unavailable",
             "available": False,
             "incident_id": payload.incident_id,
             "error": "No AI provider key configured — set CEREBRAS_API_KEY or GROQ_API_KEY.",
         }
-    api_key, url, model = resolved
-    provider = "cerebras" if "cerebras" in url else "groq"
 
     context = build_incident_context(state, incident)
     messages = _build_messages(context, payload.question, payload.conversation)
 
-    try:
-        answer = _call_chat_api(api_key, url, model, messages)
-    except urllib.error.HTTPError as exc:
-        if exc.code == 429:
-            return {
-                "status": "error",
-                "available": True,
-                "retryable": True,
-                "incident_id": payload.incident_id,
-                "error": RATE_LIMIT_MESSAGE,
-            }
+    answer = None
+    used_provider = used_model = None
+    last_error = None
+    rate_limited = False
+
+    for provider, api_key, url, model in providers:
+        try:
+            answer = _call_chat_api(api_key, url, model, messages)
+            used_provider, used_model = provider, model
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                rate_limited = True
+            last_error = f"{provider} request failed: HTTP {exc.code}"
+        except Exception as exc:
+            last_error = f"{provider} request failed: {exc}"
+
+    if answer is None:
         return {
             "status": "error",
             "available": True,
             "retryable": True,
             "incident_id": payload.incident_id,
-            "error": f"{provider} request failed: HTTP {exc.code}",
-        }
-    except Exception as exc:
-        return {
-            "status": "error",
-            "available": True,
-            "retryable": True,
-            "incident_id": payload.incident_id,
-            "error": f"{provider} request failed: {exc}",
+            "error": RATE_LIMIT_MESSAGE if rate_limited and len(providers) == 1 else last_error,
         }
 
-    if not answer:
+    if not answer.strip():
         return {
             "status": "error",
             "available": True,
@@ -270,8 +272,8 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
         "status": "ok",
         "available": True,
         "incident_id": payload.incident_id,
-        "model": model,
-        "provider": provider,
+        "model": used_model,
+        "provider": used_provider,
         "answer": answer,
         "context": {
             "incident_id": context.get("incident_id"),

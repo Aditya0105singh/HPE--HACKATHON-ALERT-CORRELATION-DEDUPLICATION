@@ -228,23 +228,29 @@ def evaluation_state() -> dict:
 
 @app.get("/debug/summarizer-check")
 def debug_summarizer_check() -> dict:
-    """One-click check for whether the Cerebras LLM summarizer is actually
-    reachable from wherever the backend is running — hit this in a browser
-    tab and read the JSON. Distinguishes 'no key configured' / 'network or
-    auth error' (with the raw error) / 'working' so a Cloudflare-level block
-    in one environment doesn't look like a code bug."""
+    """One-click check for whether the LLM summarizer is actually reachable
+    from wherever the backend is running — hit this in a browser tab and
+    read the JSON. Tries every configured provider (Cerebras, then Groq) and
+    reports which one actually worked, so a WAF/network block on one
+    provider from one host doesn't look like a code bug."""
     from . import summarizer
 
-    if not summarizer._API_KEY:
-        return {"status": "no_key", "detail": "CEREBRAS_API_KEY not found in backend/.env or environment"}
+    providers = summarizer._configured_providers()
+    if not providers:
+        return {"status": "no_key", "detail": "Neither CEREBRAS_API_KEY nor GROQ_API_KEY is set"}
 
     fake_alerts = [{"service": "test-service", "alertname": "TestAlert",
                      "message": "Synthetic check message", "severity": "high"}]
     fake_root = fake_alerts[0]
-    result = summarizer._cerebras_summary(fake_alerts, fake_root, None)
-    if result is None:
-        return {"status": "failed", "detail": "Call failed — check backend terminal log printed just above this response for the exact error (network block, bad key, or bad model name)."}
-    return {"status": "working", "sample_output": result}
+    prompt = summarizer._build_prompt(fake_alerts, fake_root, None)
+    attempts = []
+    for provider, api_key, url, model in providers:
+        try:
+            text = summarizer._call_chat_api(api_key, url, model, prompt)
+            return {"status": "working", "provider": provider, "sample_output": text}
+        except Exception as e:
+            attempts.append(f"{provider}: {e}")
+    return {"status": "failed", "detail": "All configured providers failed: " + " | ".join(attempts)}
 
 @app.post("/assistant")
 def assistant(payload: IncidentAssistantRequest) -> dict:
