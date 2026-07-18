@@ -11,16 +11,16 @@ function GroupRow({ a }) {
         className="border-t cursor-pointer hover:brightness-125 transition-all"
         style={{ borderColor: "var(--border)" }}
       >
-        <td className="px-4 py-2.5"><SeverityDot severity={a.severity} /></td>
-        <td className="px-2 py-2.5">
+        <td className="px-4 py-3.5"><SeverityDot severity={a.severity} /></td>
+        <td className="px-2 py-3.5">
           <div className="flex items-center gap-2.5">
             <AlertIcon alertname={a.alertname} severity={a.severity} service={a.service} />
             <span className="font-medium">{a.alertname}</span>
           </div>
         </td>
-        <td className="px-2 py-2.5" style={{ color: "var(--muted)" }}>{a.service}</td>
-        <td className="px-2 py-2.5 font-mono text-[13px]" style={{ color: "var(--muted)" }}>{a.fingerprint}</td>
-        <td className="px-2 py-2.5 text-right">
+        <td className="px-2 py-3.5" style={{ color: "var(--muted)" }}>{a.service}</td>
+        <td className="px-2 py-3.5 font-mono text-[13px]" style={{ color: "var(--muted)" }}>{a.fingerprint}</td>
+        <td className="px-2 py-3.5 text-right">
           <span
             className="px-2 py-0.5 rounded-md text-xs font-bold"
             style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)", color: "var(--purple)" }}
@@ -28,7 +28,7 @@ function GroupRow({ a }) {
             ×{a.duplicate_count}
           </span>
         </td>
-        <td className="px-3 py-2.5 text-right pr-4" style={{ color: "var(--muted)" }}>
+        <td className="px-3 py-3.5 text-right pr-4" style={{ color: "var(--muted)" }}>
           <span className="inline-flex transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}><ChevronDown size={14} strokeWidth={2} /></span>
         </td>
       </tr>

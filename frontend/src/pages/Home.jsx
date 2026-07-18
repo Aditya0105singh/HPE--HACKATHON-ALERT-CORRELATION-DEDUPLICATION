@@ -213,6 +213,9 @@ export default function Home({ data }) {
   const [copiedId, setCopiedId] = useState(null);
   const [ackedIds, setAckedIds] = useState(new Set());
   const [mutedIds, setMutedIds] = useState(new Set());
+  const [resolvedIds, setResolvedIds] = useState(new Set());
+  const [escalatedIds, setEscalatedIds] = useState(new Set());
+  const [assigneeMap, setAssigneeMap] = useState(new Map());
 
   // alert id -> owning cluster (for the Root Cause column)
   const clusterOf = useMemo(() => {
@@ -619,7 +622,7 @@ export default function Home({ data }) {
                             opacity: ackedIds.has(a.id) ? 0.6 : 1,
                           }}
                         >
-                          <td className="pl-4 pr-2 py-2.5">
+                          <td className="pl-4 pr-2 py-3.5">
                             <div className="flex items-center gap-2">
                               <SeverityDot severity={a.severity} />
                               <div className="min-w-0">
@@ -635,18 +638,10 @@ export default function Home({ data }) {
                               </div>
                             </div>
                           </td>
-                          {cols.has("severity") && (
-                            <td className="px-2 py-2.5">
-                              <SeverityBadge severity={a.severity} />
-                            </td>
-                          )}
-                          {cols.has("status") && (
-                            <td className="px-2 py-2.5">
-                              <StatusBadge status={status} />
-                            </td>
-                          )}
+                          {cols.has("severity") && <td className="px-2 py-3.5"><SeverityBadge severity={a.severity} /></td>}
+                          {cols.has("status") && <td className="px-2 py-3.5"><StatusBadge status={status} /></td>}
                           {cols.has("rootcause") && (
-                            <td className="px-2 py-2.5">
+                            <td className="px-2 py-3.5">
                               {c ? (
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5 text-[14px] truncate">
@@ -678,39 +673,11 @@ export default function Home({ data }) {
                               )}
                             </td>
                           )}
-                          {cols.has("service") && (
-                            <td
-                              className="px-2 py-2.5"
-                              style={{ color: "var(--muted)" }}
-                            >
-                              {a.service}
-                            </td>
-                          )}
-                          {cols.has("source") && (
-                            <td className="px-2 py-2.5">
-                              <SourceTag source={a.source} />
-                            </td>
-                          )}
-                          {cols.has("started") && (
-                            <td
-                              className="px-2 py-2.5 whitespace-nowrap"
-                              style={{ color: "var(--muted)" }}
-                            >
-                              {timeAgo(a.timestamp)}
-                            </td>
-                          )}
-                          {cols.has("updated") && (
-                            <td
-                              className="px-2 py-2.5 whitespace-nowrap"
-                              style={{ color: "var(--muted)" }}
-                            >
-                              {timeAgo(a.timestamp)}
-                            </td>
-                          )}
-                          <td
-                            className="px-2 py-2.5 text-right pr-3"
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          {cols.has("service") && <td className="px-2 py-3.5" style={{ color: "var(--muted)" }}>{a.service}</td>}
+                          {cols.has("source") && <td className="px-2 py-3.5"><SourceTag source={a.source} /></td>}
+                          {cols.has("started") && <td className="px-2 py-3.5 whitespace-nowrap" style={{ color: "var(--muted)" }}>{timeAgo(a.timestamp)}</td>}
+                          {cols.has("updated") && <td className="px-2 py-3.5 whitespace-nowrap" style={{ color: "var(--muted)" }}>{timeAgo(a.timestamp)}</td>}
+                          <td className="px-2 py-3.5 text-right pr-3" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-0.5 justify-end">
                               <button
                                 title="Open history"
@@ -981,6 +948,23 @@ export default function Home({ data }) {
           alert={drawerAlert}
           data={data}
           onClose={() => setDrawerAlert(null)}
+          isAcked={ackedIds.has(drawerAlert.id)}
+          onAck={() => setAckedIds((p) => new Set(p).add(drawerAlert.id))}
+          status={mutedIds.has(drawerAlert.id) ? "suppressed" : resolvedIds.has(drawerAlert.id) ? "resolved" : drawerAlert.status}
+          onSuppress={() => setMutedIds((p) => new Set(p).add(drawerAlert.id))}
+          onResolve={() => setResolvedIds((p) => new Set(p).add(drawerAlert.id))}
+          isEscalated={escalatedIds.has(drawerAlert.id)}
+          onEscalate={() => setEscalatedIds((p) => {
+            const next = new Set(p);
+            next.has(drawerAlert.id) ? next.delete(drawerAlert.id) : next.add(drawerAlert.id);
+            return next;
+          })}
+          assignee={assigneeMap.get(drawerAlert.id)}
+          onAssign={() => setAssigneeMap((p) => {
+            const next = new Map(p);
+            next.get(drawerAlert.id) === "Aditya" ? next.delete(drawerAlert.id) : next.set(drawerAlert.id, "Aditya");
+            return next;
+          })}
         />
       )}
     </div>
