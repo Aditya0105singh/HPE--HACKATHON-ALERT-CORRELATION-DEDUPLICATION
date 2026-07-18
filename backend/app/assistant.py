@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from typing import Any, Literal
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +18,29 @@ UNAVAILABLE_MESSAGE = "AI Assistant unavailable."
 RATE_LIMIT_MESSAGE = "AI Assistant is temporarily rate limited. Please try again in a moment."
 MAX_CONTEXT_ALERTS = 8
 MAX_CONVERSATION_TURNS = 8
+
+
+def _load_env_file() -> None:
+    env_path = Path(__file__).resolve().parents[2] / ".env"
+    if not env_path.exists():
+        return
+
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and not os.getenv(key):
+                os.environ[key] = value
+    except Exception:
+        # If the .env cannot be read, fall back to whatever is already in the environment.
+        return
+
+
+_load_env_file()
 
 
 class ConversationTurn(BaseModel):
@@ -158,17 +182,17 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
             "status": "unavailable",
             "available": False,
             "incident_id": payload.incident_id,
-            "error": UNAVAILABLE_MESSAGE,
+            "error": "GROQ_API_KEY is missing. Check the repo-root .env loading.",
         }
 
     try:
         from groq import Groq
-    except Exception:
+    except Exception as exc:
         return {
             "status": "unavailable",
             "available": False,
             "incident_id": payload.incident_id,
-            "error": UNAVAILABLE_MESSAGE,
+            "error": f"Groq SDK import failed: {exc}",
         }
 
     context = build_incident_context(state, incident)
@@ -197,7 +221,7 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
             "available": True,
             "retryable": True,
             "incident_id": payload.incident_id,
-            "error": "AI Assistant temporarily unavailable. Please retry.",
+            "error": f"Groq request failed: {exc}",
         }
 
     if not answer:

@@ -48,6 +48,7 @@ export default function AssistantChat({ cluster, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [unavailable, setUnavailable] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState(null);
   const [lastPrompt, setLastPrompt] = useState("");
   const [retryConversation, setRetryConversation] = useState([]);
 
@@ -61,6 +62,7 @@ export default function AssistantChat({ cluster, onClose }) {
     setLoading(false);
     setError(null);
     setUnavailable(false);
+    setAvailabilityError(null);
     setLastPrompt("");
     setRetryConversation([]);
   }, [cluster?.cluster_id]);
@@ -94,6 +96,7 @@ export default function AssistantChat({ cluster, onClose }) {
 
       if (response.status === "unavailable") {
         setUnavailable(true);
+        setAvailabilityError(response.error || "AI Assistant unavailable.");
         setMessages((prev) => [
           ...prev,
           {
@@ -133,9 +136,9 @@ export default function AssistantChat({ cluster, onClose }) {
   };
 
   return (
-    <div className="w-75 shrink-0 hidden min-[1360px]:flex flex-col gap-4 overflow-y-auto">
+    <div className="w-75 h-full shrink-0 hidden min-[1360px]:flex flex-col gap-4 overflow-hidden">
       <div
-        className="rounded-xl border p-4"
+        className="rounded-xl border p-4 shrink-0"
         style={{ borderColor: "var(--border)", background: "var(--panel)" }}
       >
         <div className="flex items-start gap-2 mb-3">
@@ -192,7 +195,7 @@ export default function AssistantChat({ cluster, onClose }) {
               color: "var(--muted)",
             }}
           >
-            AI Assistant unavailable.
+            {availabilityError || "AI Assistant unavailable."}
           </div>
         ) : (
           <>
@@ -212,7 +215,7 @@ export default function AssistantChat({ cluster, onClose }) {
       </div>
 
       <div
-        className="rounded-xl border p-4 flex-1 min-h-80 flex flex-col"
+        className="rounded-xl border p-4 flex-1 min-h-0 flex flex-col overflow-hidden"
         style={{ borderColor: "var(--border)", background: "var(--panel)" }}
       >
         <div className="flex items-center justify-between mb-3">
@@ -240,7 +243,10 @@ export default function AssistantChat({ cluster, onClose }) {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3"
+          style={{ scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent" }}
+        >
           {messages.length === 0 && !loading && !error && !unavailable ? (
             <div
               className="rounded-lg border border-dashed p-3 text-[13px]"
@@ -284,7 +290,7 @@ export default function AssistantChat({ cluster, onClose }) {
           </div>
         )}
 
-        <form onSubmit={onSubmit} className="mt-3">
+        <form onSubmit={onSubmit} className="mt-3 shrink-0">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
