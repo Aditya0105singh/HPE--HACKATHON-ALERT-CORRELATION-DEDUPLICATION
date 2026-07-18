@@ -18,6 +18,7 @@ This engine doesn't just silence alerts; it collapses the flood into a handful o
 
 1. 📈 **Escalation Risk Score:** A real-time, explainable signal identifying which incident cluster is trending toward a larger failure based on alert growth rate, severity trend, and service spread. Correlation tells you what broke; this tells you what to look at _first_.
 2. 🧬 **Alert DNA:** Every new incident cluster is fingerprint-matched against a library of past incidents. If it resembles something seen before, the previous resolution is surfaced automatically: _"87% similar to INC-0412 — restarting the connection pool fixed it in 12 min."_
+3. 🤖 **AI Copilot (Cerebras):** Each incident is automatically summarized in plain English by an LLM, and an interactive chat copilot allows engineers to query the incident graph directly.
 
 > **TL;DR:** Correlation tells you what broke. We tell you what's about to break worse — and how it was fixed last time.
 
@@ -40,7 +41,7 @@ graph TD
 
     subgraph Backend Engine [FastAPI Alert Engine]
         Dedup[Deduplication Layer]
-        Embed[LLM Embedding all-MiniLM]
+        Embed[TF-IDF Vectorization]
         Cluster[Time-Windowed DBSCAN Clustering]
         RootCause[Root Cause Identifier]
 
@@ -77,13 +78,13 @@ graph TD
 
 | Stage | Implementation Details | Location |
 |---|---|---|
-| **1. Ingestion & Generation** | Three switchable sources feed the same pipeline: (a) **Loghub HDFS_v1** — ~450 alerts built from real log lines whose block-level Normal/Anomaly label is the dataset's own human annotation; (b) **AIOps Challenge 2020** — 81 alerts built from the dataset's real fault-injection log (service, fault type, and timestamp are all real; severity is a disclosed rule keyed on the real fault category, since the source has no severity column); both are PS10's named data sources, neither is invented. (c) a multi-source synthetic alert generator simulating cascading incident scenarios + background noise, kept as an optional demo mode. Switch between them via TopBar → Inject Failure. | `data/loghub_hdfs_loader.py`, `data/aiops_challenge_loader.py`, `backend/app/real_data.py`, `backend/app/real_data_aiops.py`, `data/synthetic_alert_generator.py` |
+| **1. Ingestion & Generation** | Three switchable sources feed the same pipeline: (a) **Loghub HDFS_v1** — real alerts built from actual log lines whose block-level Normal/Anomaly label is the dataset's own human annotation; (b) **AIOps Challenge 2020** — real alerts built from the dataset's fault-injection log; (c) a multi-source synthetic alert generator simulating cascading incident scenarios + background noise. Switch between them via the **Dataset** dropdown in the TopBar. | `data/loghub_hdfs_loader.py`, `data/aiops_challenge_loader.py`, `backend/app/real_data.py`, `backend/app/real_data_aiops.py`, `data/synthetic_alert_generator.py` |
 | **2. Deduplication** | Fingerprint hashing of `(service, alertname, 5-min window)` to filter redundant spikes (Alertmanager-style). | `backend/app/dedup.py` |
-| **3. Embedding & Correlation** | Utilizes HuggingFace `all-MiniLM-L6-v2` for semantic embeddings + quadratic time penalty. Clustered via DBSCAN (parameters grid-searched against ground truth). | `backend/app/clustering.py` |
+| **3. Embedding & Correlation** | Utilizes **TF-IDF vectorization + cosine similarity** for semantic matching. Clustered via DBSCAN (parameters grid-searched against ground truth). This lightweight approach replaces heavy transformer models, ensuring blazingly fast execution and low memory footprint. | `backend/app/clustering.py` |
 | **4. Root Cause Analysis** | Identifies the earliest alert in a cluster, operating on the principle that failures propagate forward in time. | `backend/app/clustering.py` |
 | **5. Escalation Risk Score** | Heuristic formula: `0.40·growth + 0.35·severity + 0.25·spread`. Fully normalized (0-1) and explainable. | `backend/app/risk_score.py` |
-| **6. Alert DNA Matching** | Computes cosine similarity between cluster centroids and past incident embeddings to surface resolutions for novel-but-similar issues. | `backend/app/alert_dna.py` |
-| **7. LLM Summarization** | Translates complex, multi-service clusters into plain English incident summaries (stubbed for easy LLM integration). | `backend/app/summarizer.py` |
+| **6. Alert DNA Matching** | Computes cosine similarity between cluster centroids and past incident TF-IDF vectors to surface resolutions for novel-but-similar issues. | `backend/app/alert_dna.py` |
+| **7. LLM Summarization** | Translates complex, multi-service clusters into plain English incident summaries and powers the interactive AI Copilot (using **Cerebras / Llama-3.3-70b**). | `backend/app/summarizer.py`, `backend/app/assistant.py` |
 
 ---
 
@@ -92,33 +93,16 @@ graph TD
 **Backend & Data Science**
 
 - **Python 3 & FastAPI:** High-performance async API server.
-- **Sentence Transformers (HuggingFace):** `all-MiniLM-L6-v2` for lightweight, fast text embeddings.
-- **Scikit-Learn:** DBSCAN clustering algorithm.
+- **Scikit-Learn:** TF-IDF Vectorization and DBSCAN clustering algorithm.
 - **Pandas & NumPy:** Fast vector operations and data manipulation.
-- **Jupyter:** Interactive PoC and algorithm evaluation notebooks.
+- **Cerebras API:** Blazing fast Llama-3.3-70b inference for the AI Copilot and Incident Summarizer.
 
 **Frontend UI**
 
 - **React 19 & Vite:** Blazing fast modern frontend framework.
 - **TailwindCSS 4:** Utility-first styling for a sleek, dark-mode focused UI.
-- **Lucide React:** Beautiful, consistent iconography.
-- **React Router:** Client-side routing for the Single Pane of Glass dashboard.
-
----
-
-## 📊 Measured Results (Evaluation Metrics)
-
-We don't just make claims; we measure them. The data generator labels every alert with the incident that produced it (the pipeline never reads this field).
-
-Across **8 random seeds** simulating **24 synthetic incidents**:
-
-- 🎯 **Incident detection:** 92% (22/24 incidents successfully caught)
-- 💎 **Cluster purity:** 95.5% (Alerts in a cluster actually belong together)
-- 🛡️ **Noise filtration:** 91.6% (Unrelated background noise kept out of incident clusters)
-- 🧬 **Alert DNA accuracy:** 96% (22/23 incidents correctly matched to past historical resolutions)
-- 📉 **Noise reduction:** ~50 raw alerts condensed into just **3 actionable incidents** per batch.
-
-_(Reproduce these exact numbers by running `notebooks/poc_clustering.ipynb` top to bottom)._
+- **React Flow / Dagre:** Interactive, dynamic Service Topology incident graphs.
+- **Framer Motion:** Micro-animations and layout transitions.
 
 ---
 
@@ -128,6 +112,7 @@ _(Reproduce these exact numbers by running `notebooks/poc_clustering.ipynb` top 
 
 - Python 3.9+
 - Node.js 18+ & npm/pnpm
+- Cerebras API Key (optional, for AI features)
 
 ### 1. Backend Setup
 
@@ -135,24 +120,22 @@ _(Reproduce these exact numbers by running `notebooks/poc_clustering.ipynb` top 
 # Install backend dependencies
 pip install -r backend/requirements.txt
 
+# Create a .env file and add your Cerebras API key (Optional but recommended)
+echo "CEREBRAS_API_KEY=your_key_here" > .env
+
 # One-time: build the real Loghub HDFS_v1 alert batch (downloads + caches
 # HDFS_v1.zip from Zenodo, ~187MB, then writes data/loghub_hdfs_alerts.json)
 python data/loghub_hdfs_loader.py
 
 # One-time: build the real AIOps Challenge 2020 alert batch (reads only the
-# real fault-injection CSV out of a 2.9GB archive via HTTP range requests —
-# never downloads the full archive — writes data/aiops_challenge_alerts.json)
+# real fault-injection CSV out of a 2.9GB archive via HTTP range requests)
 python data/aiops_challenge_loader.py
 
-# Optional: run the synthetic alert flood generator too
-python data/synthetic_alert_generator.py --incidents 3 --noise 20 --seed 42 --out data/alerts.json
 # Start the FastAPI server
 uvicorn app.main:app --app-dir backend --reload
 ```
 
 _API will be available at http://localhost:8000_
-_The backend loads a synthetic batch on startup, so running the generator manually is optional._
-_(Windows note: if imports crash inside `transformers`/TensorFlow, set `USE_TF=0` in your environment first)._
 
 ### 2. Frontend Setup
 
@@ -169,19 +152,12 @@ npm run dev
 
 _Dashboard will be available at http://localhost:5180_
 
-### How It Fits Together
+### 3. Production Deployment
 
-- Backend API: `http://localhost:8000`
-- Frontend dashboard: `http://localhost:5180`
-- Frontend API calls are proxied through `/api` to the backend in `frontend/vite.config.js`
+The application is architected for zero-cost deployment on modern PaaS platforms:
 
-### Notebook Evaluation (Optional)
-
-To see the step-by-step pipeline data flow, visualizations, and evaluation metrics:
-
-```bash
-jupyter notebook notebooks/poc_clustering.ipynb
-```
+- **Frontend (Vercel):** Connect the GitHub repository and deploy the `frontend/` directory using the Vite preset. API requests are automatically proxied to the backend via `vercel.json` rewrites to avoid CORS issues.
+- **Backend (Render):** Deploy the repository as a Python Web Service on Render's Free Tier. The pipeline's use of TF-IDF (instead of heavy neural networks) ensures the entire backend runs comfortably within Render's 512MB memory limit. Set the `CEREBRAS_API_KEY` environment variable in Render's dashboard.
 
 ---
 
@@ -189,15 +165,13 @@ jupyter notebook notebooks/poc_clustering.ipynb
 
 - [x] Synthetic multi-source alert generator with ground-truth labels
 - [x] Fingerprint deduplication layer
-- [x] Embedding + time-windowed DBSCAN correlation (grid-search tuned)
+- [x] Embedding + time-windowed DBSCAN correlation (TF-IDF tuned)
 - [x] Escalation Risk Score (explainable heuristic)
 - [x] Alert DNA past-incident matching
-- [x] Measured evaluation harness + PoC notebook
 - [x] FastAPI ingestion & pipeline endpoints
-- [ ] **Frontend:** Full integration of the React Dashboard (Feed, Deduplication, Correlations, Incidents)
-- [ ] **Live Animation:** Chaos→order correlation animation + real-time reduction counter
-- [ ] **LLM Integration:** Swap the stub in `summarizer.py` with an OpenAI/Anthropic API call
-- [x] **Real AIOps Datasets:** Both of PS10's named data sources wired end-to-end through the same pipeline, switchable live: **Loghub HDFS_v1** (`data/loghub_hdfs_loader.py`, real block-level Normal/Anomaly ground truth, Xu et al. SOSP 2009) and **AIOps Challenge 2020** (`data/aiops_challenge_loader.py`, real fault-injection log — service, fault type, and timestamp are all real; the archive is 2.9GB but only the small fault CSV is ever fetched, via HTTP range requests). Severity is always a disclosed rule over a real label, never fabricated. Trigger via TopBar → Inject Failure → "Load Loghub HDFS_v1" / "Load AIOps Challenge 2020".
+- [x] **Frontend:** Full integration of the React Dashboard (Feed, Deduplication, Correlations, Incidents, Service Topology)
+- [x] **LLM Integration:** AI Copilot and Incident Summaries powered by Cerebras (Llama-3.3-70b).
+- [x] **Real AIOps Datasets:** Both of PS10's named data sources wired end-to-end through the same pipeline, switchable live via the top-bar Dataset selector.
 - [ ] **MTTR Estimation:** Feature to estimate "triage time saved" per resolved incident
 
 <br/>
