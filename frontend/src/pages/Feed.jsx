@@ -55,6 +55,8 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
   const [selected, setSelected] = useState(new Set());
   const [acked, setAcked] = useState(new Set());
   const [dismissedLocal, setDismissedLocal] = useState(new Map()); // id -> overridden status
+  const [escalated, setEscalated] = useState(new Set());
+  const [assignee, setAssignee] = useState(new Map());
   const [drawerAlert, setDrawerAlert] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [shareState, setShareState] = useState("Share");
@@ -172,6 +174,23 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
   const dismissOne = (id) =>
     setDismissedLocal((prev) => new Map(prev).set(id, "suppressed"));
 
+  const resolveOne = (id) =>
+    setDismissedLocal((prev) => new Map(prev).set(id, "resolved"));
+
+  const toggleEscalate = (id) =>
+    setEscalated((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const toggleAssign = (id) =>
+    setAssignee((prev) => {
+      const next = new Map(prev);
+      next.get(id) === "Aditya" ? next.delete(id) : next.set(id, "Aditya");
+      return next;
+    });
+
   const ackSelected = () =>
     setAcked((prev) => {
       const next = new Set(prev);
@@ -197,9 +216,9 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
       />
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <div>
-            <h1 className="text-lg font-semibold">{criticalOnly ? "5xx Alerts" : firingOnly ? "Firing Alerts" : "Feed"}</h1>
+            <h1 className="text-lg font-semibold mb-1">{criticalOnly ? "5xx Alerts" : firingOnly ? "Firing Alerts" : "Feed"}</h1>
             <div className="text-[13px]" style={{ color: "var(--muted)" }}>
               {criticalOnly
                 ? "Only critical-severity alerts — the ones that page someone."
@@ -405,7 +424,7 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
                     className="row-hover border-t border-l-[3px] cursor-pointer"
                     style={{ borderColor: "var(--border)", borderLeftColor: SEV_BORDER[a.severity] || "transparent" }}
                   >
-                    <td className="pl-5 pr-2 py-2.5" onClick={(e) => e.stopPropagation()}>
+                    <td className="pl-5 pr-2 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         className="accent-orange-500"
@@ -413,7 +432,7 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
                         onChange={() => toggleOne(a.id)}
                       />
                     </td>
-                    <td className="px-2 py-2.5">
+                    <td className="px-2 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <AlertIcon alertname={a.alertname} severity={a.severity} service={a.service} />
                         <div className="min-w-0">
@@ -426,18 +445,18 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
                       </div>
                     </td>
                     {cols.has("desc") && (
-                      <td className="px-2 py-2.5 max-w-md truncate" style={{ color: "var(--muted)" }} title={a.message}>
+                      <td className="px-2 py-3.5 max-w-md truncate" style={{ color: "var(--muted)" }} title={a.message}>
                         {a.message}
                       </td>
                     )}
-                    {cols.has("status") && <td className="px-2 py-2.5"><StatusBadge status={status} /></td>}
+                    {cols.has("status") && <td className="px-2 py-3.5"><StatusBadge status={status} /></td>}
                     {cols.has("received") && (
-                      <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: "var(--muted)" }}>
+                      <td className="px-2 py-3.5 whitespace-nowrap" style={{ color: "var(--muted)" }}>
                         {timeAgo(a.timestamp)}
                       </td>
                     )}
-                    {cols.has("source") && <td className="px-2 py-2.5"><SourceTag source={a.source} /></td>}
-                    <td className="px-2 py-2.5 text-right pr-3">
+                    {cols.has("source") && <td className="px-2 py-3.5"><SourceTag source={a.source} /></td>}
+                    <td className="px-2 py-3.5 text-right pr-3">
                       <ActionChips
                         alert={a}
                         onAck={toggleAck}
@@ -462,7 +481,20 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
       </div>
 
       {drawerAlert && (
-        <AlertDrawer alert={drawerAlert} data={data} onClose={() => setDrawerAlert(null)} />
+        <AlertDrawer
+          alert={drawerAlert}
+          data={data}
+          onClose={() => setDrawerAlert(null)}
+          isAcked={acked.has(drawerAlert.id)}
+          onAck={() => toggleAck(drawerAlert.id)}
+          status={dismissedLocal.get(drawerAlert.id) || drawerAlert.status}
+          onSuppress={() => dismissOne(drawerAlert.id)}
+          onResolve={() => resolveOne(drawerAlert.id)}
+          isEscalated={escalated.has(drawerAlert.id)}
+          onEscalate={() => toggleEscalate(drawerAlert.id)}
+          assignee={assignee.get(drawerAlert.id)}
+          onAssign={() => toggleAssign(drawerAlert.id)}
+        />
       )}
     </div>
   );
