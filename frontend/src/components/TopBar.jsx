@@ -5,6 +5,7 @@ import {
   CircleQuestionMark, Clock, Moon, Search, Sun,
 } from "lucide-react";
 import { StormMenu } from "./storm";
+import { DataSourceMenu } from "./DataSourceMenu";
 import { Dropdown, MenuItem, timeAgo, useClickOutside } from "./ui";
 
 export const PAGES = [
@@ -203,7 +204,8 @@ function LastUpdated({ ts }) {
 
 export default function TopBar({
   collapsed, onToggleSidebar, error, lastUpdated, dark, onTheme,
-  notifications, unread, onBellSeen, onStorm, onInstant, onRealData, onAiopsData, busy, stormRate,
+  notifications, unread, onBellSeen, onStorm, onInstant, busy, stormRate,
+  dataSource, onSwitchDataSource,
 }) {
   const iconBtn = "w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer hover:bg-[color-mix(in_srgb,var(--text)_7%,transparent)] transition-colors relative shrink-0";
 
@@ -224,6 +226,8 @@ export default function TopBar({
       <Breadcrumb />
 
       <GlobalSearch />
+
+      <DataSourceMenu current={dataSource} onSelect={onSwitchDataSource} busy={busy} />
 
       {error && (
         <span className="hidden min-[900px]:inline text-[12px] truncate shrink-0" style={{ color: "var(--critical)" }}>
@@ -307,7 +311,7 @@ export default function TopBar({
           {dark ? <Moon size={16} strokeWidth={2} /> : <Sun size={16} strokeWidth={2} />}
         </button>
 
-        <StormMenu onStorm={onStorm} onInstant={onInstant} onRealData={onRealData} onAiopsData={onAiopsData} busy={busy} />
+        <StormMenu onStorm={onStorm} onInstant={onInstant} busy={busy} />
 
         <Dropdown
           chrome={false}
