@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Brain, Database, FastForward, HardDrive, Lock, Pause, Play, Shuffle,
-  SkipForward, Wifi, X, Zap,
+  Brain, Database, FastForward, FlaskConical, HardDrive, Lock, Pause, Play,
+  Shuffle, SkipForward, Sparkles, Wifi, X, Zap,
 } from "lucide-react";
 
 export const SCENARIOS = [
@@ -12,7 +12,7 @@ export const SCENARIOS = [
   { key: "redis_memory_pressure", icon: Brain, label: "Cache memory pressure" },
 ];
 
-export function StormMenu({ onStorm, onInstant, busy }) {
+export function StormMenu({ onStorm, onInstant, onRealData, onAiopsData, busy }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -47,7 +47,25 @@ export function StormMenu({ onStorm, onInstant, busy }) {
           style={{ background: "var(--panel)", borderColor: "var(--border)" }}
         >
           <div className="px-3 py-2 text-[13px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-            Pick a failure to inject live
+            Real dataset (PS10)
+          </div>
+          <button
+            onClick={() => pick(onRealData)}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] cursor-pointer text-left hover:brightness-150"
+            style={{ color: "var(--text)", background: "transparent" }}
+          >
+            <Sparkles size={15} strokeWidth={2} style={{ color: "var(--accent)" }} /> Load Loghub HDFS_v1
+          </button>
+          <button
+            onClick={() => pick(onAiopsData)}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] cursor-pointer text-left hover:brightness-150"
+            style={{ color: "var(--text)", background: "transparent" }}
+          >
+            <FlaskConical size={15} strokeWidth={2} style={{ color: "var(--accent)" }} /> Load AIOps Challenge 2020
+          </button>
+          <div className="border-t" style={{ borderColor: "var(--border)" }} />
+          <div className="px-3 py-2 text-[13px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+            Synthetic failure scenarios (optional)
           </div>
           {SCENARIOS.map((s) => (
             <button

@@ -180,7 +180,7 @@ function CommandSearch() {
             else if (e.key === "Escape") setOpen(false);
           }}
           placeholder="Search or jump to…"
-          className="flex-1 bg-transparent outline-none min-w-0 text-[13.5px]"
+          className="flex-1 bg-transparent outline-none min-w-0 text-[13.5px] placeholder:text-[color-mix(in_srgb,var(--text)_45%,var(--muted))]"
           style={{ color: "var(--text)" }}
         />
         <span

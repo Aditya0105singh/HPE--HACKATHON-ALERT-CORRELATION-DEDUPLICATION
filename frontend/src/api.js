@@ -14,6 +14,18 @@ export async function loadDemoBatch({ seed = null, scenario = null } = {}) {
   return res.json();
 }
 
+export async function loadRealBatch() {
+  const res = await fetch("/api/demo/load-real", { method: "POST" });
+  if (!res.ok) throw new Error(`real data load failed: ${res.status}`);
+  return res.json();
+}
+
+export async function loadAiopsBatch() {
+  const res = await fetch("/api/demo/load-aiops", { method: "POST" });
+  if (!res.ok) throw new Error(`aiops data load failed: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchEvaluation() {
   const res = await fetch("/api/evaluation");
   if (!res.ok) throw new Error(`evaluation fetch failed: ${res.status}`);
