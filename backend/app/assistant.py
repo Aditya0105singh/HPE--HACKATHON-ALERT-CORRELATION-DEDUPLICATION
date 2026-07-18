@@ -1,23 +1,35 @@
-"""Groq-powered incident copilot.
+"""Incident copilot — Cerebras or Groq, whichever key is actually configured.
 
 This module is intentionally isolated from the ML pipeline. It only explains
 the current incident state using structured data already produced by the
-pipeline.
+pipeline. Both providers speak the same OpenAI-compatible chat completions
+API, so this calls it directly over HTTP (stdlib only, no provider SDK) and
+picks whichever provider has a real key set — Cerebras first, since that's
+the key this project actually has deployed; Groq as a fallback if its key is
+ever added too.
 """
 
 from __future__ import annotations
 
+import json
 import os
+import urllib.error
+import urllib.request
 from typing import Any, Literal
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-MODEL_NAME = "llama-3.3-70b-versatile"
 UNAVAILABLE_MESSAGE = "AI Assistant unavailable."
 RATE_LIMIT_MESSAGE = "AI Assistant is temporarily rate limited. Please try again in a moment."
 MAX_CONTEXT_ALERTS = 8
 MAX_CONVERSATION_TURNS = 8
+
+PROVIDERS = [
+    # (env var, chat completions URL, model)
+    ("CEREBRAS_API_KEY", "https://api.cerebras.ai/v1/chat/completions", "llama-3.3-70b"),
+    ("GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", "llama-3.3-70b-versatile"),
+]
 
 
 def _load_env_file() -> None:
@@ -166,6 +178,34 @@ def _build_messages(context: dict[str, Any], question: str, conversation: list[C
     return messages
 
 
+def _resolve_provider() -> tuple[str, str, str] | None:
+    """Returns (api_key, url, model) for the first provider with a real key
+    set, or None if neither CEREBRAS_API_KEY nor GROQ_API_KEY is configured."""
+    for env_var, url, model in PROVIDERS:
+        key = os.getenv(env_var, "").strip()
+        if key:
+            return key, url, model
+    return None
+
+
+def _call_chat_api(api_key: str, url: str, model: str, messages: list[dict[str, str]]) -> str:
+    body = json.dumps({
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": 600,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    return (data["choices"][0]["message"]["content"] or "").strip()
+
+
 def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequest) -> dict[str, Any]:
     incident = find_incident(state, payload.incident_id)
     if incident is None:
@@ -176,39 +216,24 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
             "error": "Incident not found in the current pipeline state.",
         }
 
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if not api_key:
+    resolved = _resolve_provider()
+    if resolved is None:
         return {
             "status": "unavailable",
             "available": False,
             "incident_id": payload.incident_id,
-            "error": "GROQ_API_KEY is missing. Check the repo-root .env loading.",
+            "error": "No AI provider key configured — set CEREBRAS_API_KEY or GROQ_API_KEY.",
         }
-
-    try:
-        from groq import Groq
-    except Exception as exc:
-        return {
-            "status": "unavailable",
-            "available": False,
-            "incident_id": payload.incident_id,
-            "error": f"Groq SDK import failed: {exc}",
-        }
+    api_key, url, model = resolved
+    provider = "cerebras" if "cerebras" in url else "groq"
 
     context = build_incident_context(state, incident)
     messages = _build_messages(context, payload.question, payload.conversation)
 
     try:
-        client = Groq(api_key=api_key)
-        completion = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=messages,
-            temperature=0.2,
-        )
-        answer = (completion.choices[0].message.content or "").strip()
-    except Exception as exc:
-        error_text = str(exc).lower()
-        if "429" in error_text or "rate" in error_text:
+        answer = _call_chat_api(api_key, url, model, messages)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 429:
             return {
                 "status": "error",
                 "available": True,
@@ -221,7 +246,15 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
             "available": True,
             "retryable": True,
             "incident_id": payload.incident_id,
-            "error": f"Groq request failed: {exc}",
+            "error": f"{provider} request failed: HTTP {exc.code}",
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "available": True,
+            "retryable": True,
+            "incident_id": payload.incident_id,
+            "error": f"{provider} request failed: {exc}",
         }
 
     if not answer:
@@ -237,8 +270,8 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
         "status": "ok",
         "available": True,
         "incident_id": payload.incident_id,
-        "model": MODEL_NAME,
-        "provider": "groq",
+        "model": model,
+        "provider": provider,
         "answer": answer,
         "context": {
             "incident_id": context.get("incident_id"),
