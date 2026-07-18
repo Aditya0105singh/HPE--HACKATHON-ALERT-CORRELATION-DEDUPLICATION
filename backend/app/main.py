@@ -23,6 +23,7 @@ from sentence_transformers import SentenceTransformer
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "data"))
 from synthetic_alert_generator import generate_batch  # noqa: E402
 
+from .assistant import IncidentAssistantRequest, ask_incident_assistant
 from .alert_dna import AlertDNA
 from .clustering import MODEL_NAME, cluster_alerts, group_by_label, pick_root_cause
 from .dedup import deduplicate
@@ -192,3 +193,8 @@ def evaluation_state() -> dict:
         get_model()
         _state["evaluation"] = compute_evaluation()
     return _state["evaluation"]
+
+
+@app.post("/assistant")
+def assistant(payload: IncidentAssistantRequest) -> dict:
+    return ask_incident_assistant(_state, payload)
