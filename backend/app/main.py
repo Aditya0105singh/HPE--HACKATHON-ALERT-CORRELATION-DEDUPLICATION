@@ -1,8 +1,9 @@
 """FastAPI app — pipeline API for the dashboard.
 
-POST /ingest      run the full chain on a JSON list of alerts
-GET  /pipeline    latest processed state (clusters, dedup stats, noise)
-POST /demo/load   generate a fresh synthetic batch and run it (demo/dev)
+POST /ingest        run the full chain on a JSON list of alerts
+GET  /pipeline      latest processed state (clusters, dedup stats, noise)
+POST /demo/load     generate a fresh synthetic batch and run it (demo/dev)
+POST /demo/load-real load the real Loghub HDFS_v1 batch (PS10 data source)
 
 On startup the app loads one synthetic batch so the dashboard always has data.
 """
@@ -27,6 +28,8 @@ from .assistant import IncidentAssistantRequest, ask_incident_assistant
 from .alert_dna import AlertDNA
 from .clustering import MODEL_NAME, cluster_alerts, group_by_label, pick_root_cause
 from .dedup import deduplicate
+from .real_data import load_loghub_alerts
+from .real_data_aiops import load_aiops_alerts
 from .risk_score import escalation_risk
 from .summarizer import summarize
 
@@ -182,6 +185,24 @@ def demo_load(incidents: int = 4, noise: int = 80, seed: int | None = None,
                                        noise_window_hours=48, force_scenario=scenario))
 
 
+@app.post("/demo/load-real")
+def demo_load_real() -> dict:
+    """Loads the real Loghub HDFS_v1 batch (PS10's named data source) through
+    the same pipeline as the synthetic path. See data/loghub_hdfs_loader.py
+    and app/real_data.py for how these alerts are derived from the dataset's
+    own log content and human-annotated Normal/Anomaly block labels."""
+    return run_pipeline(load_loghub_alerts())
+
+
+@app.post("/demo/load-aiops")
+def demo_load_aiops() -> dict:
+    """Loads the real AIOps Challenge 2020 batch (PS10's other named data
+    source) through the same pipeline. See data/aiops_challenge_loader.py and
+    app/real_data_aiops.py for how these alerts are derived from the
+    dataset's own real fault-injection log."""
+    return run_pipeline(load_aiops_alerts())
+
+
 @app.get("/pipeline")
 def pipeline_state() -> dict:
     return _state
@@ -194,6 +215,26 @@ def evaluation_state() -> dict:
         _state["evaluation"] = compute_evaluation()
     return _state["evaluation"]
 
+
+@app.get("/debug/summarizer-check")
+def debug_summarizer_check() -> dict:
+    """One-click check for whether the Cerebras LLM summarizer is actually
+    reachable from wherever the backend is running — hit this in a browser
+    tab and read the JSON. Distinguishes 'no key configured' / 'network or
+    auth error' (with the raw error) / 'working' so a Cloudflare-level block
+    in one environment doesn't look like a code bug."""
+    from . import summarizer
+
+    if not summarizer._API_KEY:
+        return {"status": "no_key", "detail": "CEREBRAS_API_KEY not found in backend/.env or environment"}
+
+    fake_alerts = [{"service": "test-service", "alertname": "TestAlert",
+                     "message": "Synthetic check message", "severity": "high"}]
+    fake_root = fake_alerts[0]
+    result = summarizer._cerebras_summary(fake_alerts, fake_root, None)
+    if result is None:
+        return {"status": "failed", "detail": "Call failed — check backend terminal log printed just above this response for the exact error (network block, bad key, or bad model name)."}
+    return {"status": "working", "sample_output": result}
 
 @app.post("/assistant")
 def assistant(payload: IncidentAssistantRequest) -> dict:
