@@ -65,7 +65,10 @@ COMPONENT_SERVICE_MAP = {
     "dfs.NameSystem": "hdfs-namenode",
 }
 
-TARGET_ALERTS = 450
+TARGET_ALERTS = 180  # kept small deliberately — the deployed backend runs on a
+# memory-constrained free-tier host; a smaller real sample avoids OOM-crashing
+# the whole process during embedding+clustering, while still being a real,
+# honest subset (not padded/fabricated) of the same public dataset.
 MAX_LINES_PER_BLOCK = 6
 ANOMALY_BLOCK_CAP = 40
 
@@ -201,12 +204,25 @@ def group_lines_by_block(log_path: Path, labels: dict[str, str]) -> dict[str, li
 def build_alerts(grouped: dict[str, dict[str, list[dict]]], seed: int) -> list[dict]:
     rng = random.Random(seed)
 
+    # Fixed split of the alert budget (not the block cap) so a smaller
+    # TARGET_ALERTS still keeps real background noise alongside real
+    # incidents — otherwise capped anomaly blocks alone can consume the
+    # whole budget and leave nothing to demonstrate noise reduction against.
+    anomaly_budget = round(TARGET_ALERTS * 0.4)
+    normal_budget = TARGET_ALERTS - anomaly_budget
+
     anomaly_block_ids = sorted(grouped["Anomaly"])
     rng.shuffle(anomaly_block_ids)
     anomaly_block_ids = anomaly_block_ids[:ANOMALY_BLOCK_CAP]
 
-    anomaly_line_count = sum(len(grouped["Anomaly"][b]) for b in anomaly_block_ids)
-    remaining_budget = max(TARGET_ALERTS - anomaly_line_count, 0)
+    anomaly_selected: list[str] = []
+    running = 0
+    for block_id in anomaly_block_ids:
+        if running >= anomaly_budget:
+            break
+        anomaly_selected.append(block_id)
+        running += len(grouped["Anomaly"][block_id])
+    anomaly_block_ids = anomaly_selected
 
     normal_block_ids = sorted(grouped["Normal"])
     rng.shuffle(normal_block_ids)
@@ -214,7 +230,7 @@ def build_alerts(grouped: dict[str, dict[str, list[dict]]], seed: int) -> list[d
     normal_selected: list[str] = []
     running = 0
     for block_id in normal_block_ids:
-        if running >= remaining_budget:
+        if running >= normal_budget:
             break
         normal_selected.append(block_id)
         running += len(grouped["Normal"][block_id])
