@@ -10,6 +10,7 @@ On startup the app loads one synthetic batch so the dashboard always has data.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from contextlib import asynccontextmanager
@@ -160,14 +161,23 @@ def compute_evaluation() -> dict:
     }
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+def _initial_load() -> None:
     run_pipeline(generate_batch(n_incidents=4, n_noise=80, window_minutes=45,
                                 seed=7, noise_window_hours=48))
-    # compute_evaluation() re-runs the full pipeline across 8 seeds — real
-    # work, but it doesn't need to block server startup (and on a low-CPU
-    # host it can blow past the platform's port-bind timeout). It already
-    # has a lazy-compute path via GET /evaluation; just don't force it here.
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Loading sentence-transformers/torch is real, unavoidable work — on a
+    # low-CPU/low-RAM free-tier host it can take minutes. Running it inline
+    # here blocks uvicorn from ever binding its port, which reads as a
+    # failed deploy on platforms that health-check via port scan (Render).
+    # Push it to a background thread instead: the server comes up and
+    # responds immediately; GET /pipeline just returns the empty initial
+    # state until this finishes, same as it would for any first-ever visit
+    # before the frontend calls a /demo/load* route.
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, _initial_load)
     yield
 
 
