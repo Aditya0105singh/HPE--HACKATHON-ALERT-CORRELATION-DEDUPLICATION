@@ -20,21 +20,19 @@ os.environ.setdefault("USE_TF", "0")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sentence_transformers import SentenceTransformer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "data"))
 from synthetic_alert_generator import generate_batch  # noqa: E402
 
 from .assistant import IncidentAssistantRequest, ask_incident_assistant
 from .alert_dna import AlertDNA
-from .clustering import MODEL_NAME, cluster_alerts, group_by_label, pick_root_cause
+from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .dedup import deduplicate
 from .real_data import load_loghub_alerts
 from .real_data_aiops import load_aiops_alerts
 from .risk_score import escalation_risk
 from .summarizer import summarize
 
-_model: SentenceTransformer | None = None
 _dna: AlertDNA | None = None
 _state: dict = {"dedup_stats": None, "clusters": [], "noise": [], "raw_alerts": [], "evaluation": None}
 
@@ -56,19 +54,18 @@ EXPECTED_DNA_MATCH = {
 EVAL_SEEDS = [42, 7, 123, 2026, 555, 9, 77, 314]
 
 
-def get_model() -> SentenceTransformer:
-    global _model, _dna
-    if _model is None:
-        _model = SentenceTransformer(MODEL_NAME)
-        _dna = AlertDNA(_model)
-    return _model
+def get_dna() -> AlertDNA:
+    global _dna
+    if _dna is None:
+        _dna = AlertDNA()
+    return _dna
 
 
 def run_pipeline(alerts: list[dict]) -> dict:
-    model = get_model()
+    get_dna()
 
     unique, dedup_stats = deduplicate(alerts)
-    labels, _ = cluster_alerts(unique, model)
+    labels, _ = cluster_alerts(unique)
     groups = group_by_label(unique, labels)
 
     clusters = []
@@ -111,13 +108,13 @@ def compute_evaluation() -> dict:
     """Measures the pipeline against the generator's hidden ground truth,
     across a fixed seed set — same methodology as notebooks/poc_clustering.ipynb.
     The pipeline never reads ground_truth; this is an external measurement."""
-    model = get_model()
+    get_dna()
     tp_n = tp_d = dna_ok = dna_t = frag = missed = inc_total = noise_cl = noise_total = 0
 
     for seed in EVAL_SEEDS:
         raw = generate_batch(3, 20, 45, seed=seed)
         unique, _ = deduplicate(raw)
-        labels, _ = cluster_alerts(unique, model)
+        labels, _ = cluster_alerts(unique)
         groups = group_by_label(unique, labels)
 
         incidents = {a["ground_truth"] for a in unique if a["ground_truth"] != "noise"}
@@ -224,7 +221,7 @@ def pipeline_state() -> dict:
 @app.get("/evaluation")
 def evaluation_state() -> dict:
     if _state["evaluation"] is None:
-        get_model()
+        get_dna()
         _state["evaluation"] = compute_evaluation()
     return _state["evaluation"]
 

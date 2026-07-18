@@ -8,11 +8,10 @@ import {
 // ---- real algorithm parameters, pulled straight from the backend source --
 // (backend/app/dedup.py, clustering.py, risk_score.py, alert_dna.py)
 const DEDUP_WINDOW_SEC = 300;
-const EMBED_MODEL = "all-MiniLM-L6-v2";
-const EMBED_DIM = 384;
-const DBSCAN_EPS = 0.70;
+const EMBED_METHOD = "TF-IDF (1-2 word n-grams)";
+const DBSCAN_EPS = 1.00;
 const DBSCAN_MIN_SAMPLES = 3;
-const DNA_THRESHOLD = 60;
+const DNA_THRESHOLD = 25;
 
 function useCountUp(target, active, duration = 700) {
   const [value, setValue] = useState(active ? 0 : target);
@@ -76,13 +75,13 @@ function buildStages(data) {
     {
       id: "embed", label: "Embedding", icon: BrainCircuit, color: "var(--accent)",
       metric: stats.unique_count, metricLabel: "vectors generated",
-      logLine: `Generated ${stats.unique_count} embeddings via ${EMBED_MODEL}`,
+      logLine: `Vectorized ${stats.unique_count} alerts via ${EMBED_METHOD}`,
       detail: {
-        purpose: "Convert each alert's text into a numeric vector so semantic similarity can be measured.",
-        algorithm: `Sentence-Transformer — ${EMBED_MODEL}`,
-        parameters: `${EMBED_DIM} dimensions per alert`,
+        purpose: "Convert each alert's text into a numeric vector so textual similarity can be measured.",
+        algorithm: `scikit-learn TfidfVectorizer — ${EMBED_METHOD}`,
+        parameters: "L2-normalized, vocabulary sized to this batch",
         inputs: `${stats.unique_count} unique alerts`,
-        outputs: `${stats.unique_count} × ${EMBED_DIM}-dim embeddings`,
+        outputs: `${stats.unique_count} TF-IDF vectors`,
       },
     },
     {
