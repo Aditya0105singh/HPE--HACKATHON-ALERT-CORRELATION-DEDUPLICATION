@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Brain, Database, FastForward, FlaskConical, HardDrive, Lock, Pause, Play,
-  Shuffle, SkipForward, Sparkles, Wifi, X, Zap,
+  Brain, Database, FastForward, HardDrive, Lock, Pause, Play,
+  Shuffle, SkipForward, Wifi, X, Zap,
 } from "lucide-react";
 
 export const SCENARIOS = [
@@ -12,7 +12,7 @@ export const SCENARIOS = [
   { key: "redis_memory_pressure", icon: Brain, label: "Cache memory pressure" },
 ];
 
-export function StormMenu({ onStorm, onInstant, onRealData, onAiopsData, busy }) {
+export function StormMenu({ onStorm, onInstant, busy }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -47,25 +47,7 @@ export function StormMenu({ onStorm, onInstant, onRealData, onAiopsData, busy })
           style={{ background: "var(--panel)", borderColor: "var(--border)" }}
         >
           <div className="px-3 py-2 text-[13px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-            Real dataset (PS10)
-          </div>
-          <button
-            onClick={() => pick(onRealData)}
-            className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] cursor-pointer text-left hover:brightness-150"
-            style={{ color: "var(--text)", background: "transparent" }}
-          >
-            <Sparkles size={15} strokeWidth={2} style={{ color: "var(--accent)" }} /> Load Loghub HDFS_v1
-          </button>
-          <button
-            onClick={() => pick(onAiopsData)}
-            className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] cursor-pointer text-left hover:brightness-150"
-            style={{ color: "var(--text)", background: "transparent" }}
-          >
-            <FlaskConical size={15} strokeWidth={2} style={{ color: "var(--accent)" }} /> Load AIOps Challenge 2020
-          </button>
-          <div className="border-t" style={{ borderColor: "var(--border)" }} />
-          <div className="px-3 py-2 text-[13px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-            Synthetic failure scenarios (optional)
+            Pick a failure to inject live
           </div>
           {SCENARIOS.map((s) => (
             <button
@@ -108,22 +90,32 @@ function ChevronCaret() {
 
 export function StormToasts({ toasts, onDismiss, onView }) {
   return (
-    <div className="fixed top-14 right-4 z-50 flex flex-col gap-2 w-80">
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-96 items-center">
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="rounded-lg border p-3 shadow-xl animate-[fadein-plain_.3s_ease]"
-          style={{ background: "var(--panel)", borderColor: t.color || "var(--border)" }}
+          className="w-full rounded-lg border p-3 shadow-xl animate-[fadein-plain_.3s_ease]"
+          style={{
+            background: "var(--panel)",
+            borderColor: "var(--border)",
+            borderLeftColor: t.color || "var(--accent)",
+            borderLeftWidth: 4,
+          }}
         >
           <div className="flex items-start gap-2.5">
             <span
               className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: `color-mix(in srgb, ${t.color || "var(--accent)"} 18%, transparent)`, color: t.color || "var(--accent)" }}
+              style={{ background: `color-mix(in srgb, ${t.color || "var(--accent)"} 30%, transparent)`, color: t.color || "var(--accent)" }}
             >
               {t.icon && <t.icon size={15} strokeWidth={2.25} />}
             </span>
             <div className="flex-1 min-w-0">
-              <div className="text-[15px] font-semibold" style={{ color: t.color || "var(--text)" }}>{t.title}</div>
+              {t.kind && (
+                <div className="text-[10.5px] font-bold uppercase tracking-wider mb-0.5" style={{ color: t.color || "var(--accent)" }}>
+                  {t.kind}
+                </div>
+              )}
+              <div className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>{t.title}</div>
               {t.body && <div className="text-[14px] mt-0.5" style={{ color: "var(--muted)" }}>{t.body}</div>}
               {t.sticky && (
                 <div className="flex gap-2 mt-2">

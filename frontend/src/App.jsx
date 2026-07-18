@@ -94,6 +94,7 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [dataSource, setDataSource] = useState("synthetic");
 
   // storm = { full, schedule, elapsed, speed, paused }
   const [storm, setStorm] = useState(null);
@@ -108,9 +109,17 @@ export default function App() {
 
   const refresh = useCallback(async () => {
     try {
-      setData(await fetchPipeline());
+      const fresh = await fetchPipeline();
+      setData(fresh);
       setError(null);
       setLastUpdated(Date.now());
+      // Infer the badge from what's actually loaded rather than assuming —
+      // the backend may already have a real dataset loaded from an earlier
+      // session (e.g. a page reload mid-demo).
+      const src = fresh.raw_alerts?.[0]?.source;
+      if (src === "loghub-hdfs") setDataSource("loghub");
+      else if (src === "aiops-challenge-2020") setDataSource("aiops");
+      else if (fresh.raw_alerts?.length) setDataSource("synthetic");
     } catch (e) {
       setError(e.message);
     }
@@ -141,10 +150,11 @@ export default function App() {
     try {
       await loadDemoBatch({ scenario });
       const full = await fetchPipeline();
+      setDataSource("synthetic");
       firedRef.current = { formed: new Set(), dna: new Set(), summary: false };
       setToasts([]);
       const label = SCENARIOS.find((s) => s.key === scenario)?.label || "Random failure mix";
-      pushToast({ icon: CloudLightning, title: `Injecting: ${label}`, body: "Raw alerts flooding into the feed…", color: "var(--accent)" });
+      pushToast({ kind: "Injecting", icon: CloudLightning, title: label, body: "Raw alerts flooding into the feed…", color: "var(--accent)" });
       setStorm({ full, schedule: buildSchedule(full.raw_alerts), elapsed: 0, speed: 1, paused: false });
     } catch (e) {
       setError(e.message);
@@ -158,6 +168,7 @@ export default function App() {
     try {
       await loadDemoBatch({});
       await refresh();
+      setDataSource("synthetic");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -173,13 +184,15 @@ export default function App() {
       setData(fresh);
       setError(null);
       setLastUpdated(Date.now());
+      setDataSource("loghub");
       const anomaly = fresh.raw_alerts.filter((a) => a.ground_truth === "Anomaly").length;
       const normal = fresh.raw_alerts.length - anomaly;
       pushToast({
+        kind: "Dataset loaded",
         icon: Sparkles,
-        title: `Loaded ${fresh.raw_alerts.length} real alerts from Loghub HDFS_v1`,
+        title: `${fresh.raw_alerts.length} real alerts from Loghub HDFS_v1`,
         body: `${anomaly} from Anomaly-labeled blocks · ${normal} from Normal-labeled blocks (real dataset ground truth)`,
-        color: "var(--accent)",
+        color: "var(--info)",
         sticky: true,
       });
     } catch (e) {
@@ -197,14 +210,16 @@ export default function App() {
       setData(fresh);
       setError(null);
       setLastUpdated(Date.now());
+      setDataSource("aiops");
       const byFault = {};
       for (const a of fresh.raw_alerts) byFault[a.ground_truth] = (byFault[a.ground_truth] || 0) + 1;
       const summary = Object.entries(byFault).map(([k, v]) => `${v} ${k}`).join(" · ");
       pushToast({
+        kind: "Dataset loaded",
         icon: Sparkles,
-        title: `Loaded ${fresh.raw_alerts.length} real alerts from AIOps Challenge 2020`,
+        title: `${fresh.raw_alerts.length} real alerts from AIOps Challenge 2020`,
         body: `Real fault-injection log: ${summary}`,
-        color: "var(--accent)",
+        color: "var(--info)",
         sticky: true,
       });
     } catch (e) {
@@ -212,6 +227,12 @@ export default function App() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const switchDataSource = (key) => {
+    if (key === "loghub") return loadRealData();
+    if (key === "aiops") return loadAiopsData();
+    return instantLoad();
   };
 
   const finishStorm = useCallback((s) => {
@@ -222,8 +243,9 @@ export default function App() {
       const st = s.full.dedup_stats;
       const saved = s.full.clusters.reduce((sum, c) => sum + (c.est_triage_minutes_saved || 0), 0);
       pushToast({
+        kind: "Complete",
         icon: CircleCheckBig,
-        title: `Storm handled: ${st.raw_count} alerts → ${s.full.clusters.length} incidents`,
+        title: `${st.raw_count} alerts → ${s.full.clusters.length} incidents`,
         body: `${(100 * (1 - s.full.clusters.length / st.raw_count)).toFixed(1)}% noise removed · est. ${saved} min triage saved`,
         color: "var(--ok)",
         sticky: true,
@@ -256,8 +278,9 @@ export default function App() {
         if (!firedRef.current.formed.has(c.cluster_id) && n >= Math.max(2, Math.ceil(c.alerts.length / 2))) {
           firedRef.current.formed.add(c.cluster_id);
           pushToast({
+            kind: "Correlating",
             icon: Zap,
-            title: `Incident forming: ${c.root_cause.service}`,
+            title: c.root_cause.service,
             body: `${n} alerts correlated — ${c.root_cause.alertname}`,
             color: c.risk.level === "high" ? "var(--critical)" : "var(--high)",
           });
@@ -265,10 +288,11 @@ export default function App() {
         if (!firedRef.current.dna.has(c.cluster_id) && n === c.alerts.length && c.dna_match) {
           firedRef.current.dna.add(c.cluster_id);
           pushToast({
+            kind: "Alert DNA",
             icon: Dna,
-            title: `Alert DNA: ${c.dna_match.similarity_pct}% match to ${c.dna_match.incident_id}`,
+            title: `${c.dna_match.similarity_pct}% match to ${c.dna_match.incident_id}`,
             body: `Known fix: ${c.dna_match.resolution.slice(0, 70)}… (${c.dna_match.resolution_minutes} min last time)`,
-            color: "var(--accent)",
+            color: "var(--purple)",
           });
         }
       }
@@ -311,8 +335,8 @@ export default function App() {
           onBellSeen={() => setUnread(0)}
           onStorm={startStorm}
           onInstant={instantLoad}
-          onRealData={loadRealData}
-          onAiopsData={loadAiopsData}
+          dataSource={dataSource}
+          onSwitchDataSource={switchDataSource}
           busy={busy}
           stormRate={stormRate}
         />
