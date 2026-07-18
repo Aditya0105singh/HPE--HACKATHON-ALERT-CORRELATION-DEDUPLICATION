@@ -1,0 +1,254 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07080d;
+  --panel: #0e1017;
+  --panel-2: #171a24;
+  --border: #262b3a;
+  --text: #f0f1f5;
+  --muted: #9aa2b8;
+  --accent: #8b5cf6;
+  --accent-2: #6366f1;
+  --grad: linear-gradient(135deg, #7c3aed, #4f46e5);
+  --critical: #fb5273;
+  --high: #f5a623;
+  --info: #4cc3fc;
+  --ok: #3ddc9c;
+  --purple: #b295fb;
+  --card-glow: 0 0 0 1px rgba(139, 92, 246, 0.05);
+  --radius-card: 14px;
+  --radius-ctrl: 10px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] {
+  --bg: #f3f4f8;
+  --panel: #ffffff;
+  --panel-2: #eef0f5;
+  --border: #dde1e9;
+  --text: #101218;
+  --muted: #565f74;
+  --accent: #7c3aed;
+  --accent-2: #4f46e5;
+  --grad: linear-gradient(135deg, #7c3aed, #4f46e5);
+  --critical: #d81e4c;
+  --high: #b5680a;
+  --info: #0369a1;
+  --ok: #04815a;
+  --purple: #6d28d9;
+  --card-glow: none;
+  --shadow-card: 0 1px 2px rgba(16, 18, 24, 0.06);
+  --shadow-pop: 0 16px 32px rgba(16, 18, 24, 0.14);
+}
+
+* { border-color: var(--border); }
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.006em;
+}
+
+h1, h2, h3, .font-semibold, .font-bold { letter-spacing: -0.012em; }
+
+button, input, select, textarea { font-family: inherit; }
+
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: var(--panel-2); border-radius: 5px; border: 2px solid var(--panel); }
+::-webkit-scrollbar-thumb:hover { background: var(--border); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Gradient-tinted stat card */
+.stat-card {
+  position: relative;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(140deg, color-mix(in srgb, var(--sc, var(--accent)) 13%, transparent), transparent 55%),
+    var(--panel);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.stat-card:hover {
+  border-color: color-mix(in srgb, var(--sc, var(--accent)) 45%, var(--border));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--sc, var(--accent)) 12%, transparent);
+}
+
+.grad-btn {
+  background: var(--grad);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35);
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.grad-btn:hover { filter: brightness(1.12); }
+.grad-btn:active { transform: scale(0.98); }
+
+@keyframes pulse-risk {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.risk-pulse { animation: pulse-risk 1.6s ease-in-out infinite; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.live-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+
+@keyframes dot-shake {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(3px, -2px); }
+  40%  { transform: translate(-3px, 2px); }
+  60%  { transform: translate(2px, 3px); }
+  80%  { transform: translate(-2px, -3px); }
+  100% { transform: translate(0, 0); }
+}
+.dot-shake { animation: dot-shake 0.28s linear infinite; }
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes fadein-plain {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes flow-dot {
+  from { left: -30%; }
+  to   { left: 100%; }
+}
+.flow-dot { animation: flow-dot 1.4s linear infinite; }
+
+@keyframes slidein {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* Sidebar surface — barely-visible top-to-bottom gradient, not a flat fill */
+.sidebar-surface {
+  background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 90%, black));
+}
+
+/* Nav item hover/active */
+.nav-link {
+  position: relative;
+  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+.nav-link:not(.nav-link--active):hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.nav-link--active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 3%, transparent) 85%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.nav-link__accent {
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--grad);
+  transform: translateY(-50%) scaleY(0);
+  transform-origin: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.nav-link--active .nav-link__accent {
+  transform: translateY(-50%) scaleY(1);
+  box-shadow: 0 0 9px color-mix(in srgb, var(--accent) 85%, transparent);
+}
+.nav-link__icon {
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+.nav-link:hover .nav-link__icon { transform: translateX(2px); }
+
+/* Collapsible sidebar sections — smooth grid-rows height animation */
+.collapse-rows {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+.collapse-rows.is-open { grid-template-rows: 1fr; }
+.collapse-rows > div { overflow: hidden; }
+
+/* Search bar focus glow */
+.search-shell {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.search-shell:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* Inject Failure hero button — idle breathing glow */
+@keyframes hero-pulse {
+  0%, 100% { box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35), 0 0 0 0 rgba(139, 92, 246, 0.32); }
+  50%      { box-shadow: 0 2px 18px rgba(124, 58, 237, 0.55), 0 0 0 7px rgba(139, 92, 246, 0); }
+}
+.hero-glow { animation: hero-pulse 2.6s ease-in-out infinite; }
+.hero-glow:hover { animation-play-state: paused; }
+
+/* Top header — translucent + purple-tinted bottom glow */
+.header-surface {
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 16%, var(--border)), 0 12px 24px -18px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Custom checkbox — filter panel */
+.ck {
+  width: 16px; height: 16px; border-radius: 5px; shrink: 0;
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+  background: transparent;
+}
+.ck svg { opacity: 0; transform: scale(0.5); transition: opacity 0.14s ease, transform 0.14s ease; }
+.ck.on { border-color: var(--sc, var(--accent)); background: var(--sc, var(--accent)); }
+.ck.on svg { opacity: 1; transform: scale(1); }
+.ck-row:hover .ck:not(.on) { border-color: color-mix(in srgb, var(--sc, var(--accent)) 60%, var(--border)); }
+.ck-row:active .ck { transform: scale(0.9); }
+
+.filter-row {
+  transition: background-color 0.15s ease, padding-left 0.15s ease;
+}
+.filter-row:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+
+/* Table rows */
+.row-hover {
+  transition: background-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+.row-hover:hover {
+  background: color-mix(in srgb, var(--text) 3.5%, transparent);
+  box-shadow: 0 4px 14px -8px rgba(0, 0, 0, 0.4);
+}
+.action-icon { transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease; }
+.action-icon:hover {
+  transform: translateY(-1px);
+  color: var(--hc, var(--accent));
+  background: color-mix(in srgb, var(--hc, var(--accent)) 15%, transparent);
+}
+
+@keyframes count-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-in { animation: count-in 0.25s ease; }
