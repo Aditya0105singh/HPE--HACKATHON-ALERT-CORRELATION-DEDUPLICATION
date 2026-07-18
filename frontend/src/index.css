@@ -16,7 +16,7 @@
   --ok: #3ddc9c;
   --purple: #b295fb;
   --card-glow: 0 0 0 1px rgba(139, 92, 246, 0.05);
-  --radius-card: 14px;
+  --radius-card: 16px;
   --radius-ctrl: 10px;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -86,14 +86,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .stat-card:hover {
   border-color: color-mix(in srgb, var(--sc, var(--accent)) 45%, var(--border));
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--sc, var(--accent)) 12%, transparent);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--sc, var(--accent)) 10%, transparent);
 }
 
 .grad-btn {
   background: var(--grad);
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.30);
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 .grad-btn:hover { filter: brightness(1.12); }
@@ -156,8 +156,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 .nav-link--active {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 3%, transparent) 85%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 18%, transparent), color-mix(in srgb, var(--accent) 3%, transparent) 85%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 19%, transparent);
 }
 .nav-link__accent {
   position: absolute;
@@ -172,7 +172,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .nav-link--active .nav-link__accent {
   transform: translateY(-50%) scaleY(1);
-  box-shadow: 0 0 9px color-mix(in srgb, var(--accent) 85%, transparent);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 72%, transparent);
 }
 .nav-link__icon {
   transition: transform 0.18s ease, color 0.18s ease;
@@ -194,13 +194,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .search-shell:focus-within {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border)) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 /* Inject Failure hero button — idle breathing glow */
 @keyframes hero-pulse {
-  0%, 100% { box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35), 0 0 0 0 rgba(139, 92, 246, 0.32); }
-  50%      { box-shadow: 0 2px 18px rgba(124, 58, 237, 0.55), 0 0 0 7px rgba(139, 92, 246, 0); }
+  0%, 100% { box-shadow: 0 2px 10px rgba(124, 58, 237, 0.30), 0 0 0 0 rgba(139, 92, 246, 0.27); }
+  50%      { box-shadow: 0 2px 15px rgba(124, 58, 237, 0.47), 0 0 0 6px rgba(139, 92, 246, 0); }
 }
 .hero-glow { animation: hero-pulse 2.6s ease-in-out infinite; }
 .hero-glow:hover { animation-play-state: paused; }
@@ -210,7 +210,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: color-mix(in srgb, var(--panel) 82%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 16%, var(--border)), 0 12px 24px -18px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 14%, var(--border)), 0 12px 24px -18px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 /* Custom checkbox — filter panel */
@@ -247,8 +247,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: color-mix(in srgb, var(--hc, var(--accent)) 15%, transparent);
 }
 
+/* Topology: critical-node breathing glow (blast-radius storytelling) */
+@keyframes risk-pulse-border {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--pulse-color, var(--critical)) 35%, transparent), 0 0 6px color-mix(in srgb, var(--pulse-color, var(--critical)) 20%, transparent); }
+  50%      { box-shadow: 0 0 0 1px color-mix(in srgb, var(--pulse-color, var(--critical)) 55%, transparent), 0 0 22px color-mix(in srgb, var(--pulse-color, var(--critical)) 45%, transparent); }
+}
+.risk-pulse-border { animation: risk-pulse-border 2s ease-in-out infinite; }
+
 @keyframes count-in {
   from { opacity: 0; transform: translateY(3px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .count-in { animation: count-in 0.25s ease; }
+
+/* Service Topology — React Flow chrome restyled to look like part of the
+   design system instead of the library's unstyled default black boxes. */
+.topology-controls.react-flow__controls {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  bottom: 12px;
+  left: 12px;
+}
+.topology-controls.react-flow__controls button {
+  border-bottom: 1px solid var(--border) !important;
+}
+.topology-controls.react-flow__controls button:hover {
+  background: color-mix(in srgb, var(--text) 8%, var(--panel)) !important;
+}
+.react-flow__attribution { display: none; }
