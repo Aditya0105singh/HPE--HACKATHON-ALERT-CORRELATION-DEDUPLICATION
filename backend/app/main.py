@@ -164,7 +164,10 @@ def compute_evaluation() -> dict:
 async def lifespan(app: FastAPI):
     run_pipeline(generate_batch(n_incidents=4, n_noise=80, window_minutes=45,
                                 seed=7, noise_window_hours=48))
-    _state["evaluation"] = compute_evaluation()
+    # compute_evaluation() re-runs the full pipeline across 8 seeds — real
+    # work, but it doesn't need to block server startup (and on a low-CPU
+    # host it can blow past the platform's port-bind timeout). It already
+    # has a lazy-compute path via GET /evaluation; just don't force it here.
     yield
 
 
