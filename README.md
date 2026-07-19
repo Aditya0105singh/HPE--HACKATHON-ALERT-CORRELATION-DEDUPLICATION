@@ -30,39 +30,44 @@ Our solution is built on a scalable, modern architecture decoupling data generat
 
 ```mermaid
 graph TD
-    subgraph Data Sources
-        Loghub[Loghub HDFS_v1 — real dataset, PS10 source]
-        AIOps[AIOps Challenge 2020 — real dataset, PS10 source]
-        Prometheus[Prometheus]
-        Datadog[Datadog]
-        CustomApp[Custom App]
-        Gen[Synthetic Alert Generator]
+    %% Hollow Neon Styling Definitions
+    classDef frontend fill:none,stroke:#f97316,stroke-width:2px,color:#f97316,rx:5,ry:5
+    classDef backend fill:none,stroke:#10b981,stroke-width:2px,color:#10b981,rx:5,ry:5
+    classDef ml fill:none,stroke:#c084fc,stroke-width:2px,color:#c084fc,rx:5,ry:5
+    classDef ai fill:none,stroke:#f87171,stroke-width:2px,color:#f87171,rx:5,ry:5
+    classDef external fill:#f3f4f6,stroke:none,color:#111827,rx:5,ry:5
+
+    subgraph Data [External Data Ecosystem]
+        Loghub[Loghub HDFS_v1<br>Real Dataset]:::external
+        AIOps[AIOps Challenge 2020<br>Real Dataset]:::external
+        Prometheus[Prometheus & Datadog<br>Live Streams]:::external
+        Gen[Synthetic Alert<br>Generator]:::external
     end
 
-    subgraph Backend Engine [FastAPI Alert Engine]
-        Dedup[Deduplication Layer]
-        Embed[TF-IDF Vectorization]
-        Cluster[Time-Windowed DBSCAN Clustering]
-        RootCause[Root Cause Identifier]
+    subgraph Backend [FastAPI Alert Engine]
+        Dedup[Deduplication Layer]:::backend
+        Embed[TF-IDF Vectorization]:::ml
+        Cluster[Time-Windowed DBSCAN]:::ml
+        RootCause[Root Cause Identifier]:::backend
 
         Dedup --> Embed
         Embed --> Cluster
         Cluster --> RootCause
     end
 
-    subgraph Intelligence
-        RiskScore[Escalation Risk Score]
-        DNA[Alert DNA Matching]
-        Summarizer[LLM Incident Summarizer]
+    subgraph Intelligence [AI & ML Pipeline]
+        RiskScore[Escalation Risk Score<br>Heuristics]:::ml
+        DNA[Alert DNA Matching<br>Cosine Similarity]:::ml
+        Summarizer[LLM Summarizer & Copilot<br>Cerebras / Groq Llama 3]:::ai
     end
 
-    subgraph Frontend Client
-        Dashboard[React / Vite Dashboard]
+    subgraph Frontend [Frontend Client]
+        Dashboard[React / Vite Dashboard<br>Vercel Edge Network]:::frontend
     end
 
+    Loghub --> Dedup
+    AIOps --> Dedup
     Prometheus --> Dedup
-    Datadog --> Dedup
-    CustomApp --> Dedup
     Gen --> Dedup
 
     RootCause --> RiskScore
@@ -72,6 +77,12 @@ graph TD
     RiskScore --> Dashboard
     DNA --> Dashboard
     Summarizer --> Dashboard
+
+    %% Subgraph Styling
+    style Data fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
+    style Backend fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
+    style Intelligence fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
+    style Frontend fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
 ```
 
 ### ⚙️ Core Pipeline Stages
