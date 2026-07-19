@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "data"))
 from synthetic_alert_generator import generate_batch  # noqa: E402
 
-from .assistant import IncidentAssistantRequest, ask_incident_assistant
+from .assistant import IncidentAssistantRequest, WorkspaceAssistantRequest, ask_incident_assistant, ask_workspace_assistant
 from .alert_dna import AlertDNA
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .dedup import deduplicate
@@ -255,3 +255,10 @@ def debug_summarizer_check() -> dict:
 @app.post("/assistant")
 def assistant(payload: IncidentAssistantRequest) -> dict:
     return ask_incident_assistant(_state, payload)
+
+
+@app.post("/assistant/workspace")
+def assistant_workspace(payload: WorkspaceAssistantRequest) -> dict:
+    """Global chat widget endpoint — incident-specific when incident_id is set,
+    workspace-mode (live pipeline snapshot) otherwise."""
+    return ask_workspace_assistant(_state, payload)

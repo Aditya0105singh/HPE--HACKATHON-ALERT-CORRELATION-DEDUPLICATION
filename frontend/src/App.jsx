@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Route, Routes, useNavigate } from "react-router-dom";
-import { CircleCheckBig, CloudLightning, Dna, Sparkles, Zap } from "lucide-react";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Bot, CircleCheckBig, CloudLightning, Dna, Sparkles, Zap } from "lucide-react";
 import { fetchPipeline, loadAiopsBatch, loadDemoBatch, loadRealBatch } from "./api";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import { StormToasts, StormControls, SCENARIOS } from "./components/storm";
+import GlobalAssistantChat from "./components/GlobalAssistantChat";
 import Home from "./pages/Home";
 import Feed from "./pages/Feed";
 import Deduplication from "./pages/Deduplication";
@@ -99,9 +100,11 @@ export default function App() {
   // storm = { full, schedule, elapsed, speed, paused }
   const [storm, setStorm] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [aiOpen, setAiOpen] = useState(false);
   const firedRef = useRef({ formed: new Set(), dna: new Set(), summary: false });
   const toastId = useRef(0);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -318,6 +321,19 @@ export default function App() {
     ? Math.max(1, Math.round((storm.schedule.size / STORM_SECONDS) * storm.speed))
     : 0;
 
+  // Derived straight from the URL rather than useParams(): App sits above
+  // <Routes>, so useParams() here would never see route params — it only
+  // works inside the element a route actually matched.
+  const incidentId = useMemo(() => {
+    const m = location.pathname.match(/^\/incidents\/([^/]+)/);
+    return m ? m[1] : null;
+  }, [location.pathname]);
+
+  const incidentCluster = useMemo(() => {
+    if (!incidentId || !viewData?.clusters) return null;
+    return viewData.clusters.find((c) => String(c.cluster_id) === String(incidentId)) ?? null;
+  }, [incidentId, viewData]);
+
   return (
     <div className="h-full flex">
       <Sidebar data={viewData} collapsed={collapsed} lastUpdated={lastUpdated} />
@@ -357,6 +373,32 @@ export default function App() {
             <Route path="/topology" element={<Topology data={viewData} />} />
             <Route path="/providers" element={<Placeholder title="Providers" note="Synthetic sources today (prometheus · datadog · gcp-monitoring · grafana · custom-app); live integrations out of hackathon scope." />} />
           </Routes>
+
+          {/* Global floating AI chat — persists across every route */}
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            {aiOpen && (
+              <div className="mb-4 origin-bottom-right animate-in fade-in zoom-in duration-200">
+                <GlobalAssistantChat
+                  data={viewData}
+                  pathname={location.pathname}
+                  incidentId={incidentId}
+                  incidentCluster={incidentCluster}
+                  onClose={() => setAiOpen(false)}
+                />
+              </div>
+            )}
+            {!aiOpen && (
+              <button
+                id="global-ai-chat-toggle"
+                onClick={() => setAiOpen(true)}
+                title="Open AI Assistant"
+                className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                <Bot size={28} strokeWidth={2.25} />
+              </button>
+            )}
+          </div>
         </main>
       </div>
 

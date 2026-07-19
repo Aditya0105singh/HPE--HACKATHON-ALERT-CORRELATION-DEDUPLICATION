@@ -112,7 +112,14 @@ def _call_chat_api(api_key: str, url: str, model: str, prompt: str) -> str:
     req = urllib.request.Request(
         url,
         data=body,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            # Cloudflare (fronting both providers) blocks the bare
+            # "Python-urllib/x.y" default User-Agent as a bot signature
+            # (error code 1010) — a normal-looking one sails through.
+            "User-Agent": "Mozilla/5.0 (compatible; AlertLens-Backend/1.0)",
+        },
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=6) as resp:
