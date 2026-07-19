@@ -18,10 +18,8 @@ import {
   Users,
   X,
   Zap,
-  Bot,
 } from "lucide-react";
 import AlertDrawer from "../components/AlertDrawer";
-import AssistantChat from "../components/AssistantChat";
 import { ClusterCard } from "./Correlations";
 import {
   AlertIcon,
@@ -176,9 +174,6 @@ function IncidentCard({ cluster }) {
   );
 }
 
-function AiPanel({ cluster, onClose }) {
-  return <AssistantChat cluster={cluster} onClose={onClose} />;
-}
 
 const COLS = [
   ["severity", "Severity"],
@@ -198,7 +193,6 @@ export default function Home({ data }) {
   const [tab, setTab] = useState("feed");
   const [groupBy, setGroupBy] = useState("Root Cause");
   const [riskFilter, setRiskFilter] = useState(new Set());
-  const [aiOpen, setAiOpen] = useState(true);
   const [tblFilters, setTblFilters] = useState({
     severity: new Set(),
     status: new Set(),
@@ -919,32 +913,6 @@ export default function Home({ data }) {
               </div>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Floating AI Chatbot Widget */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        {aiOpen && (
-          <div className="mb-4 origin-bottom-right animate-in fade-in zoom-in duration-200">
-            <AiPanel
-              cluster={cards[0] || clusters[0]}
-              onClose={() => setAiOpen(false)}
-            />
-          </div>
-        )}
-        
-        {!aiOpen && (
-          <button
-            onClick={() => setAiOpen(true)}
-            title="Open AI Assistant"
-            className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-transform hover:scale-110 active:scale-95 cursor-pointer"
-            style={{
-              background: "var(--accent)",
-              color: "#fff",
-            }}
-          >
-            <Bot size={28} strokeWidth={2.25} />
-          </button>
         )}
       </div>
 

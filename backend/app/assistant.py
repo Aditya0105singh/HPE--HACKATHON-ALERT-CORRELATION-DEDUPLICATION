@@ -23,7 +23,20 @@ from pydantic import BaseModel, Field
 UNAVAILABLE_MESSAGE = "AI Assistant unavailable."
 RATE_LIMIT_MESSAGE = "AI Assistant is temporarily rate limited. Please try again in a moment."
 MAX_CONTEXT_ALERTS = 8
+MAX_CONTEXT_CLUSTERS = 6
 MAX_CONVERSATION_TURNS = 8
+
+# Always injected as a system message, regardless of context mode, so the
+# assistant can answer generic "what is this project" questions even with
+# zero pipeline data loaded (e.g. backend just started, no dataset yet).
+PROJECT_BRIEF = (
+    "AlertLens is an AI-powered alert correlation and deduplication engine for SRE teams "
+    "(HPE hackathon project, Team Synergy 2026, Problem Statement #10). Pipeline stages: "
+    "dedup (fingerprint duplicate alerts) -> embed -> cluster (correlate related alerts into "
+    "incidents) -> risk scoring -> Alert DNA (match against historical incidents for known "
+    "fixes). It ingests alerts from sources like prometheus, datadog, gcp-monitoring, grafana, "
+    "and custom apps, plus real datasets (Loghub HDFS_v1, AIOps Challenge 2020)."
+)
 
 PROVIDERS = [
     # (env var, chat completions URL, model)
@@ -64,6 +77,20 @@ class IncidentAssistantRequest(BaseModel):
     incident_id: str
     question: str
     conversation: list[ConversationTurn] = Field(default_factory=list)
+
+
+class WorkspaceAssistantRequest(BaseModel):
+    """Flexible request for the global chat widget.
+
+    When incident_id is set the handler delegates to the existing
+    incident-specific path.  Otherwise it builds a workspace snapshot
+    from the live pipeline state, optionally enriched by any extra
+    workspace_context dict the frontend passes in.
+    """
+    incident_id: str | None = None
+    question: str
+    conversation: list[ConversationTurn] = Field(default_factory=list)
+    workspace_context: dict | None = None   # live page snapshot from frontend
 
 
 def find_incident(state: dict[str, Any], incident_id: str) -> dict[str, Any] | None:
@@ -268,7 +295,14 @@ def _call_chat_api(api_key: str, url: str, model: str, messages: list[dict[str, 
     req = urllib.request.Request(
         url,
         data=body,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            # Cloudflare (fronting both providers) blocks the bare
+            # "Python-urllib/x.y" default User-Agent as a bot signature
+            # (error code 1010) — a normal-looking one sails through.
+            "User-Agent": "Mozilla/5.0 (compatible; AlertLens-Backend/1.0)",
+        },
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=20) as resp:
@@ -302,6 +336,7 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
                 break
             except urllib.error.HTTPError as exc:
                 last_error = f"{provider}: HTTP {exc.code}"
+                print(f"[assistant] {provider} HTTPError {exc.code}: {exc.read()[:300]}")
             except Exception as exc:
                 last_error = f"{provider}: {exc}"
     else:
@@ -334,4 +369,225 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
             "risk_level": context.get("risk_level"),
             "risk_score": context.get("risk_score"),
         },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Workspace-mode helpers
+# ---------------------------------------------------------------------------
+
+def build_workspace_snapshot(state: dict[str, Any]) -> dict[str, Any]:
+    """Compact snapshot of the full pipeline state for the global chat widget."""
+    clusters = state.get("clusters") or []
+    raw_alerts = state.get("raw_alerts") or []
+    noise = state.get("noise") or []
+    dedup = state.get("dedup_stats") or {}
+
+    top_risks = [
+        {
+            "incident_id": c.get("cluster_id"),
+            "service": (c.get("root_cause") or {}).get("service"),
+            "alertname": (c.get("root_cause") or {}).get("alertname"),
+            "risk_level": (c.get("risk") or {}).get("level"),
+            "risk_score": (c.get("risk") or {}).get("score"),
+            "alert_count": c.get("raw_alert_count", 0),
+            "summary": c.get("summary"),
+        }
+        for c in clusters[:MAX_CONTEXT_CLUSTERS]
+    ]
+
+    firing = sum(1 for a in raw_alerts if a.get("status") == "firing")
+    services = sorted({a.get("service") for a in raw_alerts if a.get("service")})
+
+    return {
+        "total_raw_alerts": len(raw_alerts),
+        "firing_alerts": firing,
+        "active_incidents": len(clusters),
+        "noise_alerts": len(noise),
+        "noise_reduction_pct": dedup.get("reduction_pct"),
+        "unique_alert_count": dedup.get("unique_count"),
+        "affected_services": services[:12],
+        "top_incidents": top_risks,
+        "data_loaded": bool(raw_alerts),
+    }
+
+
+def _format_workspace_snapshot(snap: dict[str, Any], page: str | None = None) -> str:
+    top = snap.get("top_incidents") or []
+    lines = [
+        f"Current page: {page or 'unknown'}",
+        f"Total raw alerts: {snap.get('total_raw_alerts', 0)}",
+        f"Firing alerts: {snap.get('firing_alerts', 0)}",
+        f"Active incidents (correlated): {snap.get('active_incidents', 0)}",
+        f"Noise alerts filtered: {snap.get('noise_alerts', 0)}",
+        f"Noise reduction: {snap.get('noise_reduction_pct', 'unavailable')}%",
+        f"Unique alerts after dedup: {snap.get('unique_alert_count', 'unavailable')}",
+        f"Affected services: {', '.join(snap.get('affected_services') or []) or 'none'}",
+        "Top incidents by risk:",
+    ]
+    if top:
+        for inc in top:
+            lines.append(
+                f"  - INC {inc.get('incident_id')}: {inc.get('service')} / "
+                f"{inc.get('alertname')} | {inc.get('risk_level')} risk "
+                f"({round((inc.get('risk_score') or 0) * 100)}%) | "
+                f"{inc.get('alert_count')} alerts"
+            )
+            if inc.get("summary"):
+                lines.append(f"    Summary: {inc['summary']}")
+    else:
+        lines.append("  - No incidents active (no data loaded yet, or all noise)")
+    return "\n".join(lines)
+
+
+def _template_workspace_answer(question: str, snap: dict[str, Any]) -> str:
+    """Keyword-routing fallback for workspace mode when no LLM is reachable."""
+    top = snap.get("top_incidents") or []
+    q = question.lower()
+
+    if not snap.get("data_loaded"):
+        return (
+            "_AI provider unreachable and no pipeline data is loaded yet._\n\n"
+            + PROJECT_BRIEF
+        )
+
+    if any(k in q for k in ("top", "highest", "worst", "most critical", "priority")):
+        if not top:
+            return "No active incidents right now."
+        lines = [f"{i + 1}. INC {inc['incident_id']}: {inc['service']} / {inc['alertname']} — "
+                 f"{inc['risk_level']} risk ({round((inc.get('risk_score') or 0) * 100)}%), "
+                 f"{inc['alert_count']} alerts."
+                 for i, inc in enumerate(top[:3])]
+        return "_Answering directly from real pipeline data:_\n\n" + "\n".join(lines)
+
+    if any(k in q for k in ("noise", "dedup", "duplicate", "reduction")):
+        return (
+            f"_Answering from real pipeline data:_\n\n"
+            f"Noise reduction this window: {snap.get('noise_reduction_pct', 'unavailable')}%. "
+            f"{snap.get('noise_alerts', 0)} noise alerts filtered, "
+            f"{snap.get('unique_alert_count', 'unavailable')} unique alerts after dedup."
+        )
+
+    if any(k in q for k in ("service", "affected", "impact")):
+        svcs = snap.get("affected_services") or []
+        return (
+            f"_Answering from real pipeline data:_\n\n"
+            f"{len(svcs)} services currently affected: {', '.join(svcs) or 'none'}."
+        )
+
+    if any(k in q for k in ("alert", "firing", "count", "how many")):
+        return (
+            f"_Answering from real pipeline data:_\n\n"
+            f"{snap.get('total_raw_alerts', 0)} total raw alerts, "
+            f"{snap.get('firing_alerts', 0)} currently firing, "
+            f"{snap.get('active_incidents', 0)} correlated into incidents."
+        )
+
+    # generic fallback: summary
+    inc_count = snap.get("active_incidents", 0)
+    return (
+        f"_AI provider unreachable — answering from real pipeline data:_\n\n"
+        f"{snap.get('total_raw_alerts', 0)} raw alerts → "
+        f"{snap.get('unique_alert_count', '?')} after dedup → "
+        f"{inc_count} active incident{'s' if inc_count != 1 else ''}. "
+        f"Noise reduction: {snap.get('noise_reduction_pct', 'unavailable')}%. "
+        + (f"Top risk: {top[0]['service']} / {top[0]['alertname']} ({top[0]['risk_level']})." if top else "")
+    )
+
+
+def _build_workspace_messages(
+    snap: dict[str, Any],
+    page: str | None,
+    question: str,
+    conversation: list[ConversationTurn],
+) -> list[dict[str, str]]:
+    system_prompt = (
+        "You are an SRE Workspace Assistant for AlertLens — an AI-powered alert "
+        "correlation and deduplication engine. "
+        "Use only the supplied workspace snapshot and project context. "
+        "Never hallucinate metrics, services, or incidents. "
+        "If information is missing, say so. Be concise and technical."
+    )
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "system", "content": "Project context:\n" + PROJECT_BRIEF},
+    ]
+    if snap.get("data_loaded"):
+        messages.append(
+            {"role": "system", "content": "Live workspace snapshot:\n" + _format_workspace_snapshot(snap, page)}
+        )
+    for turn in conversation[-MAX_CONVERSATION_TURNS:]:
+        messages.append({"role": turn.role, "content": turn.content.strip()})
+    messages.append({"role": "user", "content": question.strip()})
+    return messages
+
+
+def ask_workspace_assistant(state: dict[str, Any], payload: WorkspaceAssistantRequest) -> dict[str, Any]:
+    """Unified handler for the global chat widget.
+
+    - If incident_id is set → delegates to ask_incident_assistant (incident mode).
+    - Otherwise → workspace mode: builds a live snapshot of the pipeline state,
+      calls the LLM (or template fallback), returns an answer.
+    """
+    if payload.incident_id:
+        # Re-use the existing incident-specific path wholesale.
+        return ask_incident_assistant(
+            state,
+            IncidentAssistantRequest(
+                incident_id=payload.incident_id,
+                question=payload.question,
+                conversation=payload.conversation,
+            ),
+        )
+
+    # Workspace mode: build a live snapshot from pipeline state.
+    snap = build_workspace_snapshot(state)
+    # Merge any extra context the frontend sent (e.g. current page name).
+    page: str | None = None
+    if payload.workspace_context:
+        page = payload.workspace_context.get("page")
+        # Let the frontend augment the snap with extra live fields.
+        for key in ("page", "active_incidents", "firing_alerts", "total_alerts",
+                    "noise_reduction_pct", "top_risks"):
+            if key in payload.workspace_context and payload.workspace_context[key] is not None:
+                snap.setdefault(key, payload.workspace_context[key])
+
+    providers = _configured_providers()
+    answer = None
+    used_provider = used_model = None
+    last_error = None
+
+    if providers:
+        messages = _build_workspace_messages(snap, page, payload.question, payload.conversation)
+        for provider, api_key, url, model in providers:
+            try:
+                answer = _call_chat_api(api_key, url, model, messages)
+                used_provider, used_model = provider, model
+                break
+            except urllib.error.HTTPError as exc:
+                last_error = f"{provider}: HTTP {exc.code}"
+                print(f"[assistant] {provider} HTTPError {exc.code}: {exc.read()[:300]}")
+            except Exception as exc:
+                last_error = f"{provider}: {exc}"
+    else:
+        last_error = "no AI provider key configured"
+
+    if not answer or not answer.strip():
+        return {
+            "status": "ok",
+            "available": True,
+            "generated": "template",
+            "mode": "workspace",
+            "provider": "template",
+            "answer": _template_workspace_answer(payload.question, snap),
+            "note": f"AI providers unreachable ({last_error}); answered from real workspace data.",
+        }
+
+    return {
+        "status": "ok",
+        "available": True,
+        "mode": "workspace",
+        "model": used_model,
+        "provider": used_provider,
+        "answer": answer,
     }
