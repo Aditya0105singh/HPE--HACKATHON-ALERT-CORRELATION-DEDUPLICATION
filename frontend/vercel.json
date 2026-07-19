@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://hpe-hackathon-alert-correlation.onrender.com/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
