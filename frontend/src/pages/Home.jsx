@@ -18,6 +18,7 @@ import {
   Users,
   X,
   Zap,
+  Bot,
 } from "lucide-react";
 import AlertDrawer from "../components/AlertDrawer";
 import AssistantChat from "../components/AssistantChat";
@@ -921,27 +922,31 @@ export default function Home({ data }) {
         )}
       </div>
 
-      {aiOpen ? (
-        <div className="p-5 pl-0 h-full overflow-hidden hidden min-[1360px]:block shrink-0">
-          <AiPanel
-            cluster={cards[0] || clusters[0]}
-            onClose={() => setAiOpen(false)}
-          />
-        </div>
-      ) : (
-        <button
-          onClick={() => setAiOpen(true)}
-          title="Open AI Assistant"
-          className="fixed right-0 top-1/2 -translate-y-1/2 px-1.5 py-3 rounded-l-lg border cursor-pointer text-[15px] hidden min-[1360px]:block"
-          style={{
-            background: "var(--panel)",
-            borderColor: "var(--border)",
-            color: "var(--muted)",
-          }}
-        >
-          ‹
-        </button>
-      )}
+      {/* Floating AI Chatbot Widget */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        {aiOpen && (
+          <div className="mb-4 origin-bottom-right animate-in fade-in zoom-in duration-200">
+            <AiPanel
+              cluster={cards[0] || clusters[0]}
+              onClose={() => setAiOpen(false)}
+            />
+          </div>
+        )}
+        
+        {!aiOpen && (
+          <button
+            onClick={() => setAiOpen(true)}
+            title="Open AI Assistant"
+            className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            style={{
+              background: "var(--accent)",
+              color: "#fff",
+            }}
+          >
+            <Bot size={28} strokeWidth={2.25} />
+          </button>
+        )}
+      </div>
 
       {drawerAlert && (
         <AlertDrawer
