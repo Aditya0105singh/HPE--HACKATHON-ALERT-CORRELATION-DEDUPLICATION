@@ -158,6 +158,71 @@ def _format_context(context: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _template_answer(question: str, context: dict[str, Any]) -> str:
+    """A real, computed answer built directly from the structured incident
+    context — used when no LLM provider is reachable. Keyword-routes the
+    question to the most relevant section rather than always dumping
+    everything, but never invents anything beyond what build_incident_context
+    already computed from the real pipeline output."""
+    root = context.get("root_cause") or {}
+    risk_factors = context.get("risk_factors") or {}
+    historical_match = context.get("historical_match")
+    services = context.get("affected_services") or []
+    q = question.lower()
+
+    def risk_section() -> str:
+        f = risk_factors
+        return (
+            f"Risk score is {context.get('risk_score')} ({context.get('risk_level')}), "
+            f"driven by growth rate {f.get('growth_rate', 'n/a')}, severity trend {f.get('severity_trend', 'n/a')}, "
+            f"and service spread {f.get('service_spread', 'n/a')} across {len(services)} service(s)."
+        )
+
+    def dna_section() -> str:
+        if not historical_match:
+            return "No Alert DNA match — this doesn't resemble anything in the known incident library, so it's a novel pattern."
+        return (
+            f"{historical_match.get('similarity_pct')}% similar to {historical_match.get('incident_id')} "
+            f"({historical_match.get('title') or 'past incident'}). Last fix: {context.get('historical_resolution') or 'unrecorded'}."
+        )
+
+    def fix_section() -> str:
+        if historical_match and context.get("historical_resolution"):
+            return f"Closest known fix (from {historical_match.get('incident_id')}, {historical_match.get('similarity_pct')}% similar): {context.get('historical_resolution')}."
+        return (
+            f"No matching past incident to base a fix on. Start with the root cause: "
+            f"{root.get('alertname') or 'unknown alert'} on {root.get('service') or 'unknown service'}."
+        )
+
+    def impact_section() -> str:
+        dup = context.get("duplicate_count")
+        noise = context.get("noise_reduction_pct")
+        return (
+            f"{context.get('alert_count')} alerts across {len(services)} service(s)"
+            + (f", {dup} were duplicate re-fires collapsed by dedup" if dup else "")
+            + (f". Noise reduction this window: {noise}%." if noise is not None else ".")
+        )
+
+    def summary_section() -> str:
+        return context.get("summary") or "No summary available."
+
+    if any(k in q for k in ("risk", "escalat", "why")):
+        body = risk_section()
+    elif any(k in q for k in ("dna", "similar", "resembl", "seen before", "past incident")):
+        body = dna_section()
+    elif any(k in q for k in ("fix", "resolve", "remediat", "next step", "should i do")):
+        body = fix_section()
+    elif any(k in q for k in ("business", "impact", "cost", "customer")):
+        body = impact_section()
+    else:
+        # summary_section() already covers root cause + DNA (it's the same
+        # template the cluster card shows) — just add the risk breakdown,
+        # which isn't part of that summary.
+        body = f"{summary_section()} {risk_section()}"
+
+    return "_AI provider unreachable right now — answering directly from the real incident data instead:_\n\n" + body
+
+
 def _build_messages(context: dict[str, Any], question: str, conversation: list[ConversationTurn]) -> list[dict[str, str]]:
     system_prompt = (
         "You are an SRE Incident Response Assistant for AlertLens. "
@@ -221,51 +286,40 @@ def ask_incident_assistant(state: dict[str, Any], payload: IncidentAssistantRequ
             "error": "Incident not found in the current pipeline state.",
         }
 
-    providers = _configured_providers()
-    if not providers:
-        return {
-            "status": "unavailable",
-            "available": False,
-            "incident_id": payload.incident_id,
-            "error": "No AI provider key configured — set CEREBRAS_API_KEY or GROQ_API_KEY.",
-        }
-
     context = build_incident_context(state, incident)
-    messages = _build_messages(context, payload.question, payload.conversation)
+    providers = _configured_providers()
 
     answer = None
     used_provider = used_model = None
     last_error = None
-    rate_limited = False
 
-    for provider, api_key, url, model in providers:
-        try:
-            answer = _call_chat_api(api_key, url, model, messages)
-            used_provider, used_model = provider, model
-            break
-        except urllib.error.HTTPError as exc:
-            if exc.code == 429:
-                rate_limited = True
-            last_error = f"{provider} request failed: HTTP {exc.code}"
-        except Exception as exc:
-            last_error = f"{provider} request failed: {exc}"
+    if providers:
+        messages = _build_messages(context, payload.question, payload.conversation)
+        for provider, api_key, url, model in providers:
+            try:
+                answer = _call_chat_api(api_key, url, model, messages)
+                used_provider, used_model = provider, model
+                break
+            except urllib.error.HTTPError as exc:
+                last_error = f"{provider}: HTTP {exc.code}"
+            except Exception as exc:
+                last_error = f"{provider}: {exc}"
+    else:
+        last_error = "no AI provider key configured"
 
-    if answer is None:
+    # No LLM reachable (no key configured, or every configured provider's
+    # network path failed) — answer directly from the real structured
+    # incident data instead of erroring out. Still a real, honest answer,
+    # just not LLM-generated prose.
+    if not answer or not answer.strip():
         return {
-            "status": "error",
+            "status": "ok",
             "available": True,
-            "retryable": True,
+            "generated": "template",
             "incident_id": payload.incident_id,
-            "error": RATE_LIMIT_MESSAGE if rate_limited and len(providers) == 1 else last_error,
-        }
-
-    if not answer.strip():
-        return {
-            "status": "error",
-            "available": True,
-            "retryable": True,
-            "incident_id": payload.incident_id,
-            "error": "AI Assistant returned an empty response.",
+            "provider": "template",
+            "answer": _template_answer(payload.question, context),
+            "note": f"AI providers unreachable ({last_error}); answered from real incident data instead.",
         }
 
     return {
