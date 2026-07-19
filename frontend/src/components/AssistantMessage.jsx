@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
 function MarkdownCode({ inline, className, children, ...props }) {
@@ -6,7 +7,7 @@ function MarkdownCode({ inline, className, children, ...props }) {
     return (
       <code
         className="px-1.5 py-0.5 rounded text-[12px]"
-        style={{ background: "var(--panel-2)", color: "var(--accent)" }}
+        style={{ background: "var(--bg)", color: "var(--accent)" }}
         {...props}
       >
         {text}
@@ -16,8 +17,8 @@ function MarkdownCode({ inline, className, children, ...props }) {
 
   return (
     <pre
-      className="mt-2 overflow-x-auto rounded-lg border p-3 text-[12.5px] leading-relaxed"
-      style={{ background: "var(--bg)", borderColor: "var(--border)" }}
+      className="mt-2 overflow-x-auto rounded-lg border p-3 text-[12.5px] leading-relaxed shadow-inner"
+      style={{ background: "color-mix(in srgb, var(--bg) 50%, transparent)", borderColor: "var(--border)" }}
       {...props}
     >
       <code className={className} style={{ color: "var(--text)" }}>
@@ -31,15 +32,22 @@ export default function AssistantMessage({ role, content }) {
   const isUser = role === "user";
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 15, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+    >
       <div
-        className="max-w-[92%] rounded-xl border px-3 py-2.5 text-[13.5px] leading-relaxed shadow-sm"
+        className="max-w-[92%] border px-4 py-3 text-[13.5px] leading-relaxed shadow-md"
         style={{
-          background: isUser ? "var(--accent)" : "var(--panel)",
+          background: isUser ? "var(--accent)" : "color-mix(in srgb, var(--panel-2) 60%, transparent)",
           borderColor: isUser
             ? "color-mix(in srgb, var(--accent) 60%, transparent)"
-            : "var(--border)",
+            : "color-mix(in srgb, var(--border) 60%, transparent)",
           color: isUser ? "#fff" : "var(--text)",
+          backdropFilter: "blur(12px)",
+          borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
         }}
       >
         {isUser ? (
@@ -57,9 +65,9 @@ export default function AssistantMessage({ role, content }) {
               li: ({ children }) => <li className="pl-1">{children}</li>,
               blockquote: ({ children }) => (
                 <blockquote
-                  className="my-2 border-l-2 pl-3"
+                  className="my-2 border-l-2 pl-3 italic"
                   style={{
-                    borderColor: "var(--border)",
+                    borderColor: "var(--accent)",
                     color: "var(--muted)",
                   }}
                 >
@@ -72,7 +80,8 @@ export default function AssistantMessage({ role, content }) {
                   href={href}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: "var(--purple)" }}
+                  className="hover:underline transition-all"
+                  style={{ color: "var(--purple)", fontWeight: 500 }}
                 >
                   {children}
                 </a>
@@ -83,6 +92,6 @@ export default function AssistantMessage({ role, content }) {
           </ReactMarkdown>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

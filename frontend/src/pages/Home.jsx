@@ -922,7 +922,7 @@ export default function Home({ data }) {
       </div>
 
       {aiOpen ? (
-        <div className="p-5 pl-0 h-full overflow-hidden hidden min-[1360px]:block">
+        <div className="p-5 pl-0 h-full overflow-hidden hidden min-[1360px]:block shrink-0">
           <AiPanel
             cluster={cards[0] || clusters[0]}
             onClose={() => setAiOpen(false)}
