@@ -31,7 +31,7 @@ export function DataSourceMenu({ current, onSelect, busy }) {
         title="Switch data source"
       >
         <span className="w-1.5 h-1.5 rounded-full live-dot shrink-0" style={{ background: "var(--ok)" }} />
-        <span className="hidden min-[1150px]:inline" style={{ color: "var(--muted)" }}>Dataset:</span>
+        <span className="hidden min-[1450px]:inline" style={{ color: "var(--muted)" }}>Dataset:</span>
         <span className="font-semibold whitespace-nowrap">{active.label}</span>
         <ChevronCaret />
       </button>
