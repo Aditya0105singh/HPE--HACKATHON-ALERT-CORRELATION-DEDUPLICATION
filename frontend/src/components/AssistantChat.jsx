@@ -172,7 +172,7 @@ export default function AssistantChat({ cluster, onClose }) {
     messages.length === 0 && !loading && !error && !unavailable;
 
   return (
-    <div className="w-[380px] h-[600px] max-h-[80vh] shrink-0 flex overflow-hidden">
+    <div className="w-[380px] max-w-[92vw] h-[600px] max-h-[80vh] shrink-0 flex overflow-hidden">
       <div
         className="rounded-2xl border p-4 flex h-full w-full flex-col overflow-hidden shadow-2xl"
         style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--panel) 90%, transparent)", backdropFilter: "blur(20px)" }}

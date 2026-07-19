@@ -96,7 +96,7 @@ function GlobalSearch() {
   };
 
   return (
-    <div className="search-shell-wrap relative flex-1 min-w-[220px] max-w-[560px]" ref={ref}>
+    <div className="search-shell-wrap relative flex-1 min-w-[80px] max-w-[560px]" ref={ref}>
       <div
         className="search-shell flex items-center gap-2.5 px-3.5 py-2.5 rounded-[14px] border"
         style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--bg) 55%, transparent)" }}
@@ -177,7 +177,7 @@ function GlobalSearch() {
 function AutoRefreshBadge() {
   return (
     <span
-      className="hidden min-[1050px]:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium shrink-0"
+      className="hidden min-[1400px]:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium shrink-0"
       style={{ background: "color-mix(in srgb, var(--ok) 14%, transparent)", color: "var(--ok)" }}
     >
       <span className="w-1.5 h-1.5 rounded-full live-dot" style={{ background: "var(--ok)" }} />
@@ -196,7 +196,7 @@ function LastUpdated({ ts }) {
   const sec = Math.max(0, Math.round((Date.now() - ts) / 1000));
   const label = sec < 60 ? `${sec}s ago` : timeAgo(new Date(ts).toISOString());
   return (
-    <span className="hidden min-[1250px]:inline text-[12px] whitespace-nowrap shrink-0" style={{ color: "var(--muted)" }}>
+    <span className="hidden min-[1600px]:inline text-[12px] whitespace-nowrap shrink-0" style={{ color: "var(--muted)" }}>
       Updated {label}
     </span>
   );
@@ -230,7 +230,7 @@ export default function TopBar({
       <DataSourceMenu current={dataSource} onSelect={onSwitchDataSource} busy={busy} />
 
       {error && (
-        <span className="hidden min-[900px]:inline text-[12px] truncate shrink-0" style={{ color: "var(--critical)" }}>
+        <span className="hidden min-[1100px]:inline text-[12px] truncate shrink max-w-[240px]" style={{ color: "var(--critical)" }}>
           backend unreachable: {error}
         </span>
       )}
@@ -322,7 +322,7 @@ export default function TopBar({
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold" style={{ background: "var(--grad)", color: "#fff" }}>
                 A
               </div>
-              <div className="leading-tight hidden lg:block text-left">
+              <div className="leading-tight hidden min-[1350px]:block text-left">
                 <div className="text-[13.5px] font-semibold">Aditya</div>
                 <div className="text-[11.5px]" style={{ color: "var(--muted)" }}>SRE Team</div>
               </div>
