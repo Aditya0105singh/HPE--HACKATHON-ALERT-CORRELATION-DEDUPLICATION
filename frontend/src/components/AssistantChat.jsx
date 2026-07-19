@@ -17,20 +17,24 @@ function TypingIndicator() {
   return (
     <div className="flex justify-start">
       <div
-        className="rounded-xl border px-3 py-2.5"
-        style={{ background: "var(--panel)", borderColor: "var(--border)" }}
+        className="rounded-[16px_16px_16px_4px] border px-4 py-3 shadow-md"
+        style={{ 
+          background: "color-mix(in srgb, var(--panel-2) 60%, transparent)", 
+          borderColor: "color-mix(in srgb, var(--border) 60%, transparent)",
+          backdropFilter: "blur(12px)"
+        }}
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 opacity-75">
           <span
-            className="w-2 h-2 rounded-full animate-pulse"
+            className="w-2 h-2 rounded-full animate-bounce"
             style={{ background: "var(--accent)" }}
           />
           <span
-            className="w-2 h-2 rounded-full animate-pulse [animation-delay:120ms]"
+            className="w-2 h-2 rounded-full animate-bounce [animation-delay:150ms]"
             style={{ background: "var(--accent)" }}
           />
           <span
-            className="w-2 h-2 rounded-full animate-pulse [animation-delay:240ms]"
+            className="w-2 h-2 rounded-full animate-bounce [animation-delay:300ms]"
             style={{ background: "var(--accent)" }}
           />
         </div>
@@ -168,7 +172,7 @@ export default function AssistantChat({ cluster, onClose }) {
     messages.length === 0 && !loading && !error && !unavailable;
 
   return (
-    <div className="w-75 h-full shrink-0 hidden min-[1360px]:flex overflow-hidden">
+    <div className="w-[360px] h-full shrink-0 hidden min-[1360px]:flex overflow-hidden">
       <div
         className="rounded-xl border p-4 flex h-full min-h-0 w-full flex-col overflow-hidden"
         style={{ borderColor: "var(--border)", background: "var(--panel)" }}
