@@ -41,12 +41,11 @@ export default function AssistantMessage({ role, content }) {
       <div
         className="max-w-[92%] border px-4 py-3 text-[13.5px] leading-relaxed shadow-md"
         style={{
-          background: isUser ? "var(--accent)" : "color-mix(in srgb, var(--panel-2) 60%, transparent)",
+          background: isUser ? "var(--accent)" : "var(--panel-2)",
           borderColor: isUser
             ? "color-mix(in srgb, var(--accent) 60%, transparent)"
-            : "color-mix(in srgb, var(--border) 60%, transparent)",
+            : "var(--border)",
           color: isUser ? "#fff" : "var(--text)",
-          backdropFilter: "blur(12px)",
           borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
         }}
       >
