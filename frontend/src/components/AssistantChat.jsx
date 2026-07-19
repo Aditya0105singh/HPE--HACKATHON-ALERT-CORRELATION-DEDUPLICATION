@@ -74,6 +74,9 @@ export default function AssistantChat({ cluster, onClose }) {
   const [availabilityError, setAvailabilityError] = useState(null);
   const [lastPrompt, setLastPrompt] = useState("");
   const [retryConversation, setRetryConversation] = useState([]);
+  // Backend tries Cerebras then Groq at request time — don't hardcode a
+  // provider label, reflect whichever one actually answered last.
+  const [providerLabel, setProviderLabel] = useState("Cerebras / Groq · Llama 3.3 70B");
 
   const root = cluster?.root_cause;
   const risk = cluster?.risk;
@@ -139,6 +142,9 @@ export default function AssistantChat({ cluster, onClose }) {
         ...prev,
         { role: "assistant", content: response.answer },
       ]);
+      if (response.provider && response.model) {
+        setProviderLabel(`${response.provider} · ${response.model}`);
+      }
     } catch (err) {
       setError(err.message || "AI Assistant temporarily unavailable.");
     } finally {
@@ -185,7 +191,7 @@ export default function AssistantChat({ cluster, onClose }) {
                   className="text-[12px] mt-0.5"
                   style={{ color: "var(--muted)" }}
                 >
-                  Groq · llama-3.3-70b-versatile
+                  {providerLabel}
                 </div>
               </div>
 
