@@ -14,13 +14,18 @@ Engineers spend the critical first 15 minutes of a major incident simply sifting
 
 ## 💡 The Solution: Intelligent Alert Correlation
 
-This engine doesn't just silence alerts; it collapses the flood into a handful of **actionable incidents**. We go two steps further than traditional correlation tools:
+This engine doesn't just silence alerts; it collapses the flood into a handful of **actionable incidents**. We go several steps further than traditional correlation tools:
 
 1. 📈 **Escalation Risk Score:** A real-time, explainable signal identifying which incident cluster is trending toward a larger failure based on alert growth rate, severity trend, and service spread. Correlation tells you what broke; this tells you what to look at _first_.
 2. 🧬 **Alert DNA:** Every new incident cluster is fingerprint-matched against a library of past incidents. If it resembles something seen before, the previous resolution is surfaced automatically: _"87% similar to INC-0412 — restarting the connection pool fixed it in 12 min."_
 3. 🤖 **AI Copilot (Cerebras):** Each incident is automatically summarized in plain English by an LLM, and an interactive chat copilot allows engineers to query the incident graph directly.
+4. 🔮 **Predictive Blast Radius Forecast:** Explains *"What is likely to happen NEXT if nobody intervenes?"* with 15-minute horizon step projections (+5m, +10m, +15m) for risk escalation, projected alert volume growth, and downstream service spread.
+5. ⏳ **Incident Time Machine:** Enterprise forensic replay tool to step through the chronological formation of an incident from first raw alert to deduplication, DBSCAN clustering, risk escalation, and DNA match.
+6. 🔍 **Historical Incident Comparator:** Pull-request style visual diff comparing the current cluster with historical institutional memory (similarity factor breakdown, side-by-side timeline alignment, property diffs, and resolution playbooks).
+7. 🎯 **Root Cause Confidence Graph (XAI):** Explainable AI decision-transparency dashboard detailing *WHY* a root cause was selected and why alternative candidate services were ranked lower or rejected across 5 normalized heuristic signals.
+8. 📋 **AI Remediation Playbook:** Step-by-step actionable SRE runbook detailing immediate recovery steps, duration, risk levels, post-fix health validation checklists, rollback contingency procedures, and interactive simulation mode.
 
-> **TL;DR:** Correlation tells you what broke. We tell you what's about to break worse — and how it was fixed last time.
+> **TL;DR:** Correlation tells you what broke. We tell you what's about to break worse, how it was fixed last time, why the root cause was selected, and provide a step-by-step SRE runbook to resolve it.
 
 ---
 
@@ -58,6 +63,9 @@ graph TD
     subgraph Intelligence [AI & ML Pipeline]
         RiskScore[Escalation Risk Score<br>Heuristics]:::ml
         DNA[Alert DNA Matching<br>Cosine Similarity]:::ml
+        Forecast[Predictive Forecast<br>15m Horizon Engine]:::ml
+        RCAConfidence[Root Cause Confidence<br>XAI Decision Model]:::ml
+        Playbook[AI Remediation Playbook<br>SRE Runbook Engine]:::ml
         Summarizer[LLM Summarizer & Copilot<br>Cerebras / Groq Llama 3]:::ai
     end
 
@@ -72,10 +80,16 @@ graph TD
 
     RootCause --> RiskScore
     RootCause --> DNA
+    RootCause --> Forecast
+    RootCause --> RCAConfidence
+    RootCause --> Playbook
     RootCause --> Summarizer
 
     RiskScore --> Dashboard
     DNA --> Dashboard
+    Forecast --> Dashboard
+    RCAConfidence --> Dashboard
+    Playbook --> Dashboard
     Summarizer --> Dashboard
 
     %% Subgraph Styling
@@ -96,6 +110,11 @@ graph TD
 | **5. Escalation Risk Score** | Heuristic formula: `0.40·growth + 0.35·severity + 0.25·spread`. Fully normalized (0-1) and explainable. | `backend/app/risk_score.py` |
 | **6. Alert DNA Matching** | Computes cosine similarity between cluster centroids and past incident TF-IDF vectors to surface resolutions for novel-but-similar issues. | `backend/app/alert_dna.py` |
 | **7. LLM Summarization** | Translates complex, multi-service clusters into plain English incident summaries and powers the interactive AI Copilot (using **Cerebras / Llama-3.3-70b**). | `backend/app/summarizer.py`, `backend/app/assistant.py` |
+| **8. Predictive Blast Radius Forecast** | Heuristic engine generating 15-minute horizon step forecasts (+5m, +10m, +15m) for risk escalation, projected alert volume growth, and downstream service spread. | `backend/app/forecast.py`, `frontend/src/pages/Forecast.jsx` |
+| **9. Incident Time Machine** | Client-side forensic replay engine reconstructing incident formation keyframes from raw alert arrival to deduplication, DBSCAN clustering, risk escalation, and DNA match. | `frontend/src/pages/TimeMachine.jsx` |
+| **10. Historical Incident Comparator** | PR-style visual diff engine comparing current clusters with past institutional memory (similarity factor breakdown, side-by-side timeline alignment, property diffs, and playbook resolutions). | `backend/app/main.py`, `frontend/src/components/HistoricalComparator.jsx` |
+| **11. Root Cause Confidence Graph (XAI)** | Explainable AI decision-transparency dashboard ranking candidate services with normalized confidence scores (0-100%) and candidate rejection explanations. | `backend/app/root_cause_confidence.py`, `frontend/src/components/RootCauseConfidenceGraph.jsx` |
+| **12. AI Remediation Playbook** | Actionable SRE runbook generator with step-by-step response plans, duration/risk badges, post-fix health validation checklists, rollback procedures, and interactive simulation mode. | `backend/app/playbook.py`, `frontend/src/components/RemediationPlaybook.jsx` |
 
 ---
 
@@ -183,7 +202,12 @@ The application is architected for zero-cost deployment on modern PaaS platforms
 - [x] **Frontend:** Full integration of the React Dashboard (Feed, Deduplication, Correlations, Incidents, Service Topology)
 - [x] **LLM Integration:** AI Copilot and Incident Summaries powered by Cerebras (Llama-3.3-70b).
 - [x] **Real AIOps Datasets:** Both of PS10's named data sources wired end-to-end through the same pipeline, switchable live via the top-bar Dataset selector.
-- [ ] **MTTR Estimation:** Feature to estimate "triage time saved" per resolved incident
+- [x] **Predictive Blast Radius Forecast:** 15-min horizon escalation & downstream blast radius prediction
+- [x] **Incident Time Machine:** Interactive forensic timeline replay
+- [x] **Historical Incident Comparator:** PR-style side-by-side visual diff for past incidents
+- [x] **Root Cause Confidence Graph (XAI):** Decision transparency ranking candidate services
+- [x] **AI Remediation Playbook:** Step-by-step SRE runbooks, validation, rollback, and simulation mode
+- [x] **MTTR & Triage Time Saved:** Real-time calculation of triage minutes saved per resolved incident
 
 <br/>
 <div align="center">
