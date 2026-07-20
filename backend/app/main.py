@@ -18,7 +18,7 @@ from pathlib import Path
 
 os.environ.setdefault("USE_TF", "0")
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "data"))
@@ -28,6 +28,7 @@ from .assistant import IncidentAssistantRequest, WorkspaceAssistantRequest, ask_
 from .alert_dna import AlertDNA
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .dedup import deduplicate
+from .forecast import compute_forecast
 from .real_data import load_loghub_alerts
 from .real_data_aiops import load_aiops_alerts
 from .risk_score import escalation_risk
@@ -216,6 +217,19 @@ def demo_load_aiops() -> dict:
 @app.get("/pipeline")
 def pipeline_state() -> dict:
     return _state
+
+
+@app.get("/forecast/{incident_id}")
+def get_forecast(incident_id: str) -> dict:
+    """Predictive Blast Radius Forecast endpoint.
+    Computes an explainable forecast for the specified incident_id (cluster_id)
+    reusing in-memory pipeline state.
+    """
+    clusters = _state.get("clusters", [])
+    cluster = next((c for c in clusters if str(c.get("cluster_id")) == str(incident_id)), None)
+    if not cluster:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found in pipeline state")
+    return compute_forecast(cluster)
 
 
 @app.get("/evaluation")

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CircleCheckBig, ChevronDown, ChevronRight, Dna, Inbox, Magnet, TrendingDown, Zap } from "lucide-react";
+import { CircleCheckBig, ChevronDown, ChevronRight, Compass, Dna, Inbox, Magnet, TrendingDown, Zap } from "lucide-react";
 import ChaosOrder from "../components/ChaosOrder";
 import { AlertIcon, Info, RiskMeter, SeverityDot, SeverityBadge, ServiceChip, SourceTag, StatCard } from "../components/ui";
 
@@ -53,8 +53,14 @@ export function ClusterCard({ cluster }) {
               {cluster.risk.services_affected} services affected
             </div>
             <button
+              onClick={() => navigate(`/forecast/${cluster.cluster_id}`)}
+              className="mt-1 px-3 py-1 rounded-lg text-xs font-semibold grad-btn cursor-pointer text-center flex items-center justify-center gap-1"
+            >
+              <Compass size={13} strokeWidth={2.25} /> Forecast →
+            </button>
+            <button
               onClick={() => navigate(`/incidents/${cluster.cluster_id}`)}
-              className="mt-1 px-3 py-1.5 rounded-lg border text-[14px] font-semibold cursor-pointer text-center hover:brightness-125"
+              className="px-3 py-1.5 rounded-lg border text-[13px] font-semibold cursor-pointer text-center hover:brightness-125"
               style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--panel-2)" }}
             >
               View details →

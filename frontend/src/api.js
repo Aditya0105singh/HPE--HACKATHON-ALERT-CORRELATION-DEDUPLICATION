@@ -31,3 +31,9 @@ export async function fetchEvaluation() {
   if (!res.ok) throw new Error(`evaluation fetch failed: ${res.status}`);
   return res.json();
 }
+
+export async function fetchForecast(incidentId) {
+  const res = await fetch(`/api/forecast/${incidentId}`);
+  if (!res.ok) throw new Error(`forecast fetch failed: ${res.status}`);
+  return res.json();
+}
