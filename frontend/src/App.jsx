@@ -4,6 +4,7 @@ import { Bot, CircleCheckBig, CloudLightning, Dna, Sparkles, Zap } from "lucide-
 import { fetchPipeline, loadAiopsBatch, loadDemoBatch, loadRealBatch } from "./api";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
+import PageErrorBoundary from "./components/PageErrorBoundary";
 import { StormToasts, StormControls, SCENARIOS } from "./components/storm";
 import GlobalAssistantChat from "./components/GlobalAssistantChat";
 import Home from "./pages/Home";
@@ -360,25 +361,27 @@ export default function App() {
         />
 
         <main className="flex-1 min-h-0 min-w-0 overflow-x-hidden">
-          <Routes>
-            <Route path="/" element={<Home data={viewData} />} />
-            <Route path="/feed" element={<Feed data={viewData} />} />
-            <Route path="/firing" element={<Feed data={viewData} firingOnly stormRate={stormRate} />} />
-            <Route path="/5xx" element={<Feed data={viewData} criticalOnly />} />
-            <Route path="/deduplication" element={<Deduplication data={viewData} />} />
-            <Route path="/correlations" element={<Correlations data={viewData} stormActive={!!storm} />} />
-            <Route path="/incidents" element={<Incidents data={viewData} />} />
-            <Route path="/incidents/:clusterId" element={<Incidents data={viewData} />} />
-            <Route path="/forecast" element={<Forecast data={viewData} stormActive={!!storm} />} />
-            <Route path="/forecast/:clusterId" element={<Forecast data={viewData} stormActive={!!storm} />} />
-            <Route path="/timemachine" element={<TimeMachine data={viewData} />} />
-            <Route path="/timemachine/:clusterId" element={<TimeMachine data={viewData} />} />
-            <Route path="/evaluation" element={<Evaluation />} />
-            <Route path="/pipeline" element={<Pipeline data={viewData} />} />
-            <Route path="/workflows" element={<Placeholder title="Workflows" />} />
-            <Route path="/topology" element={<Topology data={viewData} />} />
-            <Route path="/providers" element={<Placeholder title="Providers" note="Synthetic sources today (prometheus · datadog · gcp-monitoring · grafana · custom-app); live integrations out of hackathon scope." />} />
-          </Routes>
+          <PageErrorBoundary resetKey={location.pathname}>
+            <Routes>
+              <Route path="/" element={<Home data={viewData} />} />
+              <Route path="/feed" element={<Feed data={viewData} />} />
+              <Route path="/firing" element={<Feed data={viewData} firingOnly stormRate={stormRate} />} />
+              <Route path="/5xx" element={<Feed data={viewData} criticalOnly />} />
+              <Route path="/deduplication" element={<Deduplication data={viewData} />} />
+              <Route path="/correlations" element={<Correlations data={viewData} stormActive={!!storm} />} />
+              <Route path="/incidents" element={<Incidents data={viewData} />} />
+              <Route path="/incidents/:clusterId" element={<Incidents data={viewData} />} />
+              <Route path="/forecast" element={<Forecast data={viewData} stormActive={!!storm} />} />
+              <Route path="/forecast/:clusterId" element={<Forecast data={viewData} stormActive={!!storm} />} />
+              <Route path="/timemachine" element={<TimeMachine data={viewData} />} />
+              <Route path="/timemachine/:clusterId" element={<TimeMachine data={viewData} />} />
+              <Route path="/evaluation" element={<Evaluation />} />
+              <Route path="/pipeline" element={<Pipeline data={viewData} />} />
+              <Route path="/workflows" element={<Placeholder title="Workflows" />} />
+              <Route path="/topology" element={<Topology data={viewData} />} />
+              <Route path="/providers" element={<Placeholder title="Providers" note="Synthetic sources today (prometheus · datadog · gcp-monitoring · grafana · custom-app); live integrations out of hackathon scope." />} />
+            </Routes>
+          </PageErrorBoundary>
 
           {/* Global floating AI chat — persists across every route */}
           <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

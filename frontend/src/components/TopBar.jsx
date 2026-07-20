@@ -319,8 +319,22 @@ export default function TopBar({
           width="w-60"
           label={
             <div className="flex items-center gap-2 pl-2 ml-1 border-l cursor-pointer" style={{ borderColor: "var(--border)" }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold" style={{ background: "var(--grad)", color: "#fff" }}>
-                A
+              <div className="relative shrink-0">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold"
+                  style={{
+                    background: "var(--grad)",
+                    color: "#fff",
+                    boxShadow: "0 0 0 2px var(--panel), 0 0 0 3.5px color-mix(in srgb, var(--accent) 55%, transparent), 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)",
+                  }}
+                >
+                  A
+                </div>
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full live-dot"
+                  style={{ background: "var(--ok)", boxShadow: "0 0 0 2px var(--panel)" }}
+                  title="Online"
+                />
               </div>
               <div className="leading-tight hidden min-[1350px]:block text-left">
                 <div className="text-[13.5px] font-semibold">Aditya</div>
@@ -331,7 +345,22 @@ export default function TopBar({
         >
           <div className="p-3.5 border-b" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-bold shrink-0" style={{ background: "var(--grad)", color: "#fff" }}>A</div>
+              <div className="relative shrink-0">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-[14.5px] font-bold"
+                  style={{
+                    background: "var(--grad)",
+                    color: "#fff",
+                    boxShadow: "0 0 0 2px var(--panel), 0 0 0 3.5px color-mix(in srgb, var(--accent) 55%, transparent)",
+                  }}
+                >
+                  A
+                </div>
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full live-dot"
+                  style={{ background: "var(--ok)", boxShadow: "0 0 0 2px var(--panel)" }}
+                />
+              </div>
               <div className="min-w-0">
                 <div className="text-[13.5px] font-semibold truncate">Aditya</div>
                 <div className="text-[11.5px] truncate" style={{ color: "var(--muted)" }}>SRE Team</div>
