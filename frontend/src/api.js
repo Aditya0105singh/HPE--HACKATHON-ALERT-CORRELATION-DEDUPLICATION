@@ -37,3 +37,9 @@ export async function fetchForecast(incidentId) {
   if (!res.ok) throw new Error(`forecast fetch failed: ${res.status}`);
   return res.json();
 }
+
+export async function fetchIncidentComparison(incidentId) {
+  const res = await fetch(`/api/incidents/${incidentId}/comparison`);
+  if (!res.ok) throw new Error(`incident comparison fetch failed: ${res.status}`);
+  return res.json();
+}
