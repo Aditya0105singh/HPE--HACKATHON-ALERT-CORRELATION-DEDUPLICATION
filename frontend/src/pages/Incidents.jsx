@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Compass, Dna, GitCompare, History, Shield, Sparkles, TrendingUp, Users, Wrench } from "lucide-react";
+import { ArrowLeft, Clock, Compass, Dna, GitCompare, History, Shield, Sparkles, TrendingUp, Users, Wrench, Zap } from "lucide-react";
 import { PriorityBadge, RiskMeter, SeverityDot, SeverityBadge, ServiceChip, SourceTag, StatCard } from "../components/ui";
 import HistoricalComparator from "../components/HistoricalComparator";
+import RootCauseConfidenceGraph from "../components/RootCauseConfidenceGraph";
 
 const FACTOR_LABEL = {
   growth_rate: "Alert growth rate",
@@ -27,7 +28,7 @@ function FactorBar({ label, value }) {
 }
 
 function IncidentDetail({ cluster, onBack, onForecast }) {
-  const [tab, setTab] = useState("overview"); // overview | comparator
+  const [tab, setTab] = useState("overview"); // overview | rca | comparator
   const root = cluster.root_cause;
   const dna = cluster.dna_match;
   const risk = cluster.risk;
@@ -90,6 +91,17 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
         </button>
 
         <button
+          onClick={() => setTab("rca")}
+          className="px-4 py-2.5 border-b-2 cursor-pointer transition-colors flex items-center gap-2"
+          style={{
+            borderColor: tab === "rca" ? "var(--ok)" : "transparent",
+            color: tab === "rca" ? "var(--ok)" : "var(--muted)",
+          }}
+        >
+          <Zap size={15} /> Root Cause Confidence (92%)
+        </button>
+
+        <button
           onClick={() => setTab("comparator")}
           className="px-4 py-2.5 border-b-2 cursor-pointer transition-colors flex items-center gap-2"
           style={{
@@ -101,7 +113,9 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
         </button>
       </div>
 
-      {tab === "comparator" ? (
+      {tab === "rca" ? (
+        <RootCauseConfidenceGraph cluster={cluster} />
+      ) : tab === "comparator" ? (
         <HistoricalComparator cluster={cluster} />
       ) : (
         <div className="grid grid-cols-2 gap-6">

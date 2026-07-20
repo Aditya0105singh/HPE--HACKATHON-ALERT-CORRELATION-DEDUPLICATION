@@ -29,6 +29,7 @@ from .alert_dna import AlertDNA
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .dedup import deduplicate
 from .forecast import compute_forecast
+from .root_cause_confidence import build_root_cause_confidence
 from .real_data import load_loghub_alerts
 from .real_data_aiops import load_aiops_alerts
 from .risk_score import escalation_risk
@@ -341,6 +342,18 @@ def get_incident_comparison(incident_id: str) -> dict:
             "Monitor downstream consumer service queue depths.",
         ],
     }
+
+
+@app.get("/incidents/{incident_id}/root_cause_confidence")
+def get_root_cause_confidence(incident_id: str) -> dict:
+    """Root Cause Confidence Graph (XAI) endpoint.
+    Computes deterministic confidence scores and candidate explanations for the specified incident_id.
+    """
+    clusters = _state.get("clusters", [])
+    cluster = next((c for c in clusters if str(c.get("cluster_id")) == str(incident_id)), None)
+    if not cluster:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found in pipeline state")
+    return build_root_cause_confidence(cluster)
 
 
 @app.get("/evaluation")
