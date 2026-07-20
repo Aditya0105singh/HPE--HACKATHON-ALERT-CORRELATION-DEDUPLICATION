@@ -3,10 +3,11 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   ArrowLeftRight, BellRing, Bookmark, ChartColumn, ChevronRight, Compass, Database,
   Flame, History, House, Layers, List, Network, OctagonAlert, Radar, Search, Star,
-  Waypoints, Workflow, X, Zap,
+  Waypoints, Workflow, X,
 } from "lucide-react";
 import { matchesCel } from "../lib/cel";
 import { Sparkline } from "./ui";
+import AlertLensMark from "./AlertLensMark";
 
 const NAV_ICON = {
   "/": House,
@@ -289,8 +290,6 @@ export default function Sidebar({ data, collapsed, lastUpdated }) {
   const critical = useMemo(() => rawAlerts.filter((a) => a.severity === "critical").length, [rawAlerts]);
   useTick(5000);
 
-  const syncLabel = lastUpdated ? `${Math.max(0, Math.round((Date.now() - lastUpdated) / 1000))}s ago` : "—";
-
   return (
     <aside
       className={`sidebar-surface ${collapsed ? "w-16" : "w-72"} shrink-0 h-full flex flex-col border-r overflow-y-auto overflow-x-hidden transition-all duration-200`}
@@ -301,7 +300,7 @@ export default function Sidebar({ data, collapsed, lastUpdated }) {
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: "var(--grad)", boxShadow: "0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent)", color: "#fff" }}
         >
-          <Zap size={19} strokeWidth={2.25} fill="currentColor" />
+          <AlertLensMark size={19} />
         </div>
         {!collapsed && (
           <div className="min-w-0">
@@ -373,33 +372,6 @@ export default function Sidebar({ data, collapsed, lastUpdated }) {
             {rawAlerts.length} raw alerts → {clusters.length} incidents
           </div>
           <Sparkline seed={`noise:${clusters.length}:${feedCount}`} color="var(--ok)" w={220} h={28} />
-        </div>
-      )}
-
-      {!collapsed && (
-        <div className="px-5 py-4 border-t shrink-0" style={{ borderColor: "var(--border)" }}>
-          <div className="text-[10px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--muted)" }}>
-            Workspace
-          </div>
-          <div className="flex items-center gap-2.5 mb-3">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0"
-              style={{ background: "var(--panel-2)", color: "var(--accent)" }}
-            >
-              S26
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-medium truncate">Team Synergy 2026</div>
-              <div className="text-[10.5px] truncate" style={{ color: "var(--muted)" }}>HPE Problem Statement #10</div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-[10.5px]" style={{ color: "var(--muted)" }}>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full live-dot" style={{ background: "var(--ok)" }} />
-              Connected
-            </span>
-            <span>Last sync {syncLabel}</span>
-          </div>
         </div>
       )}
     </aside>
