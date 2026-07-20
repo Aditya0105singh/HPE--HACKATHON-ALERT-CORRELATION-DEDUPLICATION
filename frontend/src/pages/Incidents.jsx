@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Dna, Shield, TrendingUp, Users, Wrench } from "lucide-react";
+import { ArrowLeft, Clock, Compass, Dna, Shield, TrendingUp, Users, Wrench } from "lucide-react";
 import { PriorityBadge, RiskMeter, SeverityDot, SeverityBadge, ServiceChip, SourceTag, StatCard } from "../components/ui";
 
 const FACTOR_LABEL = {
@@ -24,7 +24,7 @@ function FactorBar({ label, value }) {
   );
 }
 
-function IncidentDetail({ cluster, onBack }) {
+function IncidentDetail({ cluster, onBack, onForecast }) {
   const root = cluster.root_cause;
   const dna = cluster.dna_match;
   const risk = cluster.risk;
@@ -52,10 +52,16 @@ function IncidentDetail({ cluster, onBack }) {
             {risk.services_affected} services affected · {cluster.raw_alert_count} raw alerts → {cluster.size} unique
           </div>
           {cluster.est_triage_minutes_saved > 0 && (
-            <div className="text-[14px] mt-2" style={{ color: "var(--ok)" }}>
+            <div className="text-[14px] mt-2 mb-3" style={{ color: "var(--ok)" }}>
               ⏱ est. {cluster.est_triage_minutes_saved} min triage saved
             </div>
           )}
+          <button
+            onClick={() => onForecast(cluster.cluster_id)}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold grad-btn cursor-pointer"
+          >
+            <Compass size={14} strokeWidth={2.25} /> Predictive Forecast →
+          </button>
         </div>
       </div>
 
@@ -124,7 +130,13 @@ export default function Incidents({ data }) {
   if (clusterId != null) {
     const cluster = clusters.find((c) => String(c.cluster_id) === clusterId);
     if (cluster) {
-      return <IncidentDetail cluster={cluster} onBack={() => navigate("/incidents")} />;
+      return (
+        <IncidentDetail
+          cluster={cluster}
+          onBack={() => navigate("/incidents")}
+          onForecast={(id) => navigate(`/forecast/${id}`)}
+        />
+      );
     }
   }
 
@@ -163,6 +175,7 @@ export default function Incidents({ data }) {
               <th className="px-2 py-2.5 font-medium">Alerts</th>
               <th className="px-2 py-2.5 font-medium">Services</th>
               <th className="px-2 py-2.5 font-medium">Known fix</th>
+              <th className="px-2 py-2.5 font-medium">Forecast</th>
               <th className="px-2 py-2.5 font-medium text-right pr-4">Triage saved</th>
             </tr>
           </thead>
@@ -207,6 +220,17 @@ export default function Incidents({ data }) {
                   ) : (
                     <span className="text-[14px]" style={{ color: "var(--high)" }}>novel — no match</span>
                   )}
+                </td>
+                <td className="px-2 py-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/forecast/${c.cluster_id}`);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold grad-btn cursor-pointer whitespace-nowrap"
+                  >
+                    <Compass size={12} strokeWidth={2.25} /> Forecast →
+                  </button>
                 </td>
                 <td className="px-2 py-3 text-right pr-4 font-semibold" style={{ color: "var(--ok)" }}>
                   {c.est_triage_minutes_saved > 0 ? `${c.est_triage_minutes_saved} min` : "—"}
