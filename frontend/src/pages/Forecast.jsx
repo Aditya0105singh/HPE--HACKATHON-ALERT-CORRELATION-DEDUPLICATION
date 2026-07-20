@@ -124,9 +124,9 @@ export default function Forecast({ data, stormActive = false }) {
   const allPredicted = [...new Set([...predictedServices5, ...predictedServices10, ...predictedServices15])];
 
   return (
-    <div className="p-6 overflow-auto h-full flex flex-col gap-6">
+    <div className="p-6 overflow-y-auto h-full flex flex-col gap-6">
       {/* Header & Incident Selector */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider grad-btn flex items-center gap-1">
@@ -162,7 +162,7 @@ export default function Forecast({ data, stormActive = false }) {
       </div>
 
       {/* Top Banner KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
         <StatCard
           icon={<ShieldAlert size={16} />}
           label="Target Incident"
@@ -198,7 +198,7 @@ export default function Forecast({ data, stormActive = false }) {
       </div>
 
       {/* Timeline Controls & Horizon Selector */}
-      <div className="rounded-xl border p-5" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
+      <div className="rounded-xl border p-5 shrink-0" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-semibold flex items-center gap-2">
@@ -270,7 +270,7 @@ export default function Forecast({ data, stormActive = false }) {
       </div>
 
       {/* Main Grid: Projected Risk & Blast Radius Expansion */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
         {/* Risk Progression Chart & Metrics */}
         <div className="rounded-xl border p-5 flex flex-col" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
           <div className="flex items-center justify-between mb-4">
@@ -421,32 +421,44 @@ export default function Forecast({ data, stormActive = false }) {
       </div>
 
       {/* Recommended Immediate Action Callout Banner */}
-      <div className="rounded-xl border p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--panel)), var(--panel))", borderColor: "var(--accent)" }}>
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 grad-btn text-white shadow-lg">
-            <Wrench size={22} strokeWidth={2.25} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-                Recommended Immediate Action
-              </span>
-              {dna && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "color-mix(in srgb, var(--purple) 20%, transparent)", color: "var(--purple)" }}>
-                  Verified DNA Playbook Available
+      <div
+        className="rounded-xl border p-5 shrink-0 relative"
+        style={{
+          background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, var(--panel)), var(--panel))",
+          borderColor: "var(--accent)",
+          boxShadow: "0 4px 20px color-mix(in srgb, var(--accent) 12%, transparent)",
+        }}
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5 min-w-0 flex-1">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 grad-btn text-white shadow-md mt-0.5">
+              <Wrench size={20} strokeWidth={2.25} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
+                  Recommended Immediate Action
                 </span>
-              )}
-            </div>
-            <h3 className="text-base font-bold mb-2 leading-snug">{recAction}</h3>
-            <div className="flex items-center gap-3 text-xs" style={{ color: "var(--muted)" }}>
-              <span>Target Service: <b style={{ color: "var(--text)" }}>{root.service}</b></span>
-              <span>•</span>
-              <span>Estimated Resolution: <b style={{ color: "var(--ok)" }}>{dna?.resolution_minutes ?? 15} minutes</b></span>
+                {dna && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "color-mix(in srgb, var(--purple) 20%, transparent)", color: "var(--purple)" }}>
+                    Verified DNA Playbook Available
+                  </span>
+                )}
+              </div>
+              <h3 className="text-sm sm:text-base font-bold mb-2 leading-snug break-words" style={{ color: "var(--text)" }}>
+                {recAction}
+              </h3>
+              <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: "var(--muted)" }}>
+                <span>Target Service: <b style={{ color: "var(--text)" }}>{root.service}</b></span>
+                <span>•</span>
+                <span>Estimated Resolution: <b style={{ color: "var(--ok)" }}>{dna?.resolution_minutes ?? 15} minutes</b></span>
+              </div>
             </div>
           </div>
+
           <button
             onClick={() => navigate(`/incidents/${selectedCluster.cluster_id}`)}
-            className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold grad-btn cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold grad-btn cursor-pointer whitespace-nowrap shrink-0 self-start sm:self-center"
           >
             View Incident Details →
           </button>
@@ -454,7 +466,7 @@ export default function Forecast({ data, stormActive = false }) {
       </div>
 
       {/* Forecast Reasoning (Observable Evidence) */}
-      <div className="rounded-xl border p-5" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
+      <div className="rounded-xl border p-5 shrink-0" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold flex items-center gap-2">
             <Shield size={17} style={{ color: "var(--ok)" }} />
@@ -476,7 +488,7 @@ export default function Forecast({ data, stormActive = false }) {
 
       {/* Demo Mode: Prediction vs Reality Live Comparison (Active during Storm Replay) */}
       {stormActive && (
-        <div className="rounded-xl border p-5" style={{ background: "color-mix(in srgb, var(--purple) 10%, var(--panel))", borderColor: "var(--purple)" }}>
+        <div className="rounded-xl border p-5 shrink-0" style={{ background: "color-mix(in srgb, var(--purple) 10%, var(--panel))", borderColor: "var(--purple)" }}>
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2.5 h-2.5 rounded-full live-dot" style={{ background: "var(--purple)" }} />
             <h3 className="text-base font-bold text-[var(--purple)]">Demo Mode — Prediction vs. Reality Benchmark</h3>
