@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   ArrowLeftRight, BellRing, Bookmark, ChartColumn, ChevronRight, Compass, Database,
-  Flame, House, Layers, List, Network, OctagonAlert, Radar, Search, Star,
+  Flame, History, House, Layers, List, Network, OctagonAlert, Radar, Search, Star,
   Waypoints, Workflow, X, Zap,
 } from "lucide-react";
 import { matchesCel } from "../lib/cel";
@@ -12,6 +12,7 @@ const NAV_ICON = {
   "/": House,
   "/incidents": Flame,
   "/forecast": Compass,
+  "/timemachine": History,
   "/feed": List,
   "/5xx": OctagonAlert,
   "/firing": BellRing,
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Home" },
   { to: "/incidents", label: "Active Incidents" },
   { to: "/forecast", label: "Predictive Forecast" },
+  { to: "/timemachine", label: "Time Machine" },
   { to: "/feed", label: "Alerts Feed" },
   { to: "/5xx", label: "5xx Alerts" },
   { to: "/firing", label: "Firing Alerts" },
@@ -326,6 +328,7 @@ export default function Sidebar({ data, collapsed, lastUpdated }) {
               <Item to="/" label="Home" />
               <Item to="/incidents" label="Active Incidents" count={clusters.length} tone="critical" />
               <Item to="/forecast" label="Forecast" tone="ai" />
+              <Item to="/timemachine" label="Time Machine" tone="warning" />
               <Item to="/feed" label="Alerts Feed" count={feedCount} tone="info" />
               <Item to="/5xx" label="5xx Alerts" count={critical} tone="critical" />
               <Item to="/firing" label="Firing Alerts" count={firing} tone="warning" />

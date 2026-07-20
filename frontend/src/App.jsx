@@ -15,6 +15,7 @@ import Evaluation from "./pages/Evaluation";
 import Pipeline from "./pages/Pipeline";
 import Topology from "./pages/Topology";
 import Forecast from "./pages/Forecast";
+import TimeMachine from "./pages/TimeMachine";
 import Placeholder from "./pages/Placeholder";
 
 const STORM_SECONDS = 25; // replay length at 1× speed
@@ -370,6 +371,8 @@ export default function App() {
             <Route path="/incidents/:clusterId" element={<Incidents data={viewData} />} />
             <Route path="/forecast" element={<Forecast data={viewData} stormActive={!!storm} />} />
             <Route path="/forecast/:clusterId" element={<Forecast data={viewData} stormActive={!!storm} />} />
+            <Route path="/timemachine" element={<TimeMachine data={viewData} />} />
+            <Route path="/timemachine/:clusterId" element={<TimeMachine data={viewData} />} />
             <Route path="/evaluation" element={<Evaluation />} />
             <Route path="/pipeline" element={<Pipeline data={viewData} />} />
             <Route path="/workflows" element={<Placeholder title="Workflows" />} />
