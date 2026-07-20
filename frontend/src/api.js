@@ -43,3 +43,9 @@ export async function fetchIncidentComparison(incidentId) {
   if (!res.ok) throw new Error(`incident comparison fetch failed: ${res.status}`);
   return res.json();
 }
+
+export async function fetchRootCauseConfidence(incidentId) {
+  const res = await fetch(`/api/incidents/${incidentId}/root_cause_confidence`);
+  if (!res.ok) throw new Error(`root cause confidence fetch failed: ${res.status}`);
+  return res.json();
+}
