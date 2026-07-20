@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Compass, Dna, History, Shield, TrendingUp, Users, Wrench } from "lucide-react";
+import { ArrowLeft, Clock, Compass, Dna, GitCompare, History, Shield, Sparkles, TrendingUp, Users, Wrench } from "lucide-react";
 import { PriorityBadge, RiskMeter, SeverityDot, SeverityBadge, ServiceChip, SourceTag, StatCard } from "../components/ui";
+import HistoricalComparator from "../components/HistoricalComparator";
 
 const FACTOR_LABEL = {
   growth_rate: "Alert growth rate",
@@ -25,6 +27,7 @@ function FactorBar({ label, value }) {
 }
 
 function IncidentDetail({ cluster, onBack, onForecast }) {
+  const [tab, setTab] = useState("overview"); // overview | comparator
   const root = cluster.root_cause;
   const dna = cluster.dna_match;
   const risk = cluster.risk;
@@ -73,37 +76,74 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <div className="rounded-lg border p-4 mb-6" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
-            <div className="text-[15px] font-semibold mb-3">
-              Why this is <span style={{ color: RISK_COLOR[risk.level] }}>{risk.level.toUpperCase()}</span> risk
-            </div>
-            {Object.entries(risk.factors).map(([key, value]) => (
-              <FactorBar key={key} label={FACTOR_LABEL[key] || key} value={value} />
-            ))}
-            <div className="text-[13px] mt-2" style={{ color: "var(--muted)" }}>
-              score = 0.40·growth + 0.35·severity trend + 0.25·service spread — explainable by design, defensible under questioning.
-            </div>
-          </div>
+      {/* Incident Sub-Tab Navigation Bar */}
+      <div className="flex border-b mb-6 text-sm font-semibold gap-1" style={{ borderColor: "var(--border)" }}>
+        <button
+          onClick={() => setTab("overview")}
+          className="px-4 py-2.5 border-b-2 cursor-pointer transition-colors flex items-center gap-2"
+          style={{
+            borderColor: tab === "overview" ? "var(--accent)" : "transparent",
+            color: tab === "overview" ? "var(--text)" : "var(--muted)",
+          }}
+        >
+          <Shield size={15} /> Overview
+        </button>
 
-          {dna ? (
-            <div className="rounded-lg border p-4" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
-              <div className="flex items-center gap-1.5 text-[15px] font-semibold mb-2">
-                <Dna size={15} strokeWidth={2} style={{ color: "var(--purple)" }} /> Alert DNA · {dna.similarity_pct}% match to {dna.incident_id}
+        <button
+          onClick={() => setTab("comparator")}
+          className="px-4 py-2.5 border-b-2 cursor-pointer transition-colors flex items-center gap-2"
+          style={{
+            borderColor: tab === "comparator" ? "var(--purple)" : "transparent",
+            color: tab === "comparator" ? "var(--purple)" : "var(--muted)",
+          }}
+        >
+          <GitCompare size={15} /> Historical Comparator {dna ? `(${dna.similarity_pct}% Match)` : ""}
+        </button>
+      </div>
+
+      {tab === "comparator" ? (
+        <HistoricalComparator cluster={cluster} />
+      ) : (
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <div className="rounded-lg border p-4 mb-6" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
+              <div className="text-[15px] font-semibold mb-3">
+                Why this is <span style={{ color: RISK_COLOR[risk.level] }}>{risk.level.toUpperCase()}</span> risk
               </div>
-              <div className="text-[15px] font-medium mb-1">{dna.title}</div>
-              <div className="text-[13px] mb-3" style={{ color: "var(--muted)" }}>{dna.date} · {dna.services_affected?.join(", ")}</div>
-              <div className="text-[14px] mb-1"><span style={{ color: "var(--muted)" }}>Root cause: </span>{dna.root_cause}</div>
-              <div className="text-[14px] mb-1"><span style={{ color: "var(--muted)" }}>Resolution: </span>{dna.resolution}</div>
-              <div className="text-[14px]" style={{ color: "var(--ok)" }}>Resolved in {dna.resolution_minutes} min last time</div>
+              {Object.entries(risk.factors).map(([key, value]) => (
+                <FactorBar key={key} label={FACTOR_LABEL[key] || key} value={value} />
+              ))}
+              <div className="text-[13px] mt-2" style={{ color: "var(--muted)" }}>
+                score = 0.40·growth + 0.35·severity trend + 0.25·service spread — explainable by design, defensible under questioning.
+              </div>
             </div>
-          ) : (
-            <div className="rounded-lg border p-4 text-[15px] flex items-center gap-1.5" style={{ borderColor: "var(--border)", background: "var(--panel)", color: "var(--high)" }}>
-              <Dna size={15} strokeWidth={2} /> No match in the incident library — this is a novel pattern with no prior playbook.
-            </div>
-          )}
-        </div>
+
+            {dna ? (
+              <div
+                onClick={() => setTab("comparator")}
+                className="rounded-lg border p-4 cursor-pointer hover:border-[var(--purple)] transition-colors group"
+                style={{ borderColor: "var(--border)", background: "var(--panel)" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-[15px] font-semibold">
+                    <Dna size={15} strokeWidth={2} style={{ color: "var(--purple)" }} /> Alert DNA · {dna.similarity_pct}% match to {dna.incident_id}
+                  </div>
+                  <span className="text-xs text-[var(--purple)] group-hover:underline font-semibold flex items-center gap-1">
+                    Compare Diff →
+                  </span>
+                </div>
+                <div className="text-[15px] font-medium mb-1">{dna.title}</div>
+                <div className="text-[13px] mb-3" style={{ color: "var(--muted)" }}>{dna.date} · {dna.services_affected?.join(", ")}</div>
+                <div className="text-[14px] mb-1"><span style={{ color: "var(--muted)" }}>Root cause: </span>{dna.root_cause}</div>
+                <div className="text-[14px] mb-1"><span style={{ color: "var(--muted)" }}>Resolution: </span>{dna.resolution}</div>
+                <div className="text-[14px]" style={{ color: "var(--ok)" }}>Resolved in {dna.resolution_minutes} min last time</div>
+              </div>
+            ) : (
+              <div className="rounded-lg border p-4 text-[15px] flex items-center gap-1.5" style={{ borderColor: "var(--border)", background: "var(--panel)", color: "var(--high)" }}>
+                <Dna size={15} strokeWidth={2} /> No match in the incident library — this is a novel pattern with no prior playbook.
+              </div>
+            )}
+          </div>
 
         <div className="rounded-lg border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
           <div className="px-4 py-2.5 text-[15px] font-semibold border-b" style={{ borderColor: "var(--border)" }}>
@@ -122,6 +162,7 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

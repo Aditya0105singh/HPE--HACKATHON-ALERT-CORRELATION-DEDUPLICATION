@@ -77,7 +77,8 @@ export function ClusterCard({ cluster }) {
 
         {dna ? (
           <div
-            className="mt-3 rounded-lg border p-3 flex items-start gap-3"
+            onClick={() => navigate(`/incidents/${cluster.cluster_id}`)}
+            className="mt-3 rounded-lg border p-3 flex items-start gap-3 cursor-pointer hover:border-[var(--purple)] transition-colors group"
             style={{ borderColor: "color-mix(in srgb, var(--accent) 35%, var(--border))", background: "color-mix(in srgb, var(--accent) 7%, var(--panel-2))" }}
           >
             <span
@@ -86,11 +87,16 @@ export function ClusterCard({ cluster }) {
             >
               <Dna size={16} strokeWidth={2} />
             </span>
-            <div className="text-[15px]">
-              <span className="font-semibold" style={{ color: "var(--purple)" }}>
-                Alert DNA · {dna.similarity_pct}% match to {dna.incident_id}
-                <Info tip="This incident's fingerprint compared against a library of past incidents. When something similar happened before, we surface what fixed it — institutional memory as an automatic assist." />
-              </span>
+            <div className="text-[15px] flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold" style={{ color: "var(--purple)" }}>
+                  Alert DNA · {dna.similarity_pct}% match to {dna.incident_id}
+                  <Info tip="This incident's fingerprint compared against a library of past incidents. When something similar happened before, we surface what fixed it — institutional memory as an automatic assist." />
+                </span>
+                <span className="text-xs text-[var(--purple)] group-hover:underline font-semibold">
+                  Compare Diff →
+                </span>
+              </div>
               <span style={{ color: "var(--muted)" }}> ({dna.title}, {dna.date})</span>
               <div className="mt-0.5" style={{ color: "var(--text)" }}>
                 Last fix: {dna.resolution} <span style={{ color: "var(--ok)" }}>· resolved in {dna.resolution_minutes} min</span>
