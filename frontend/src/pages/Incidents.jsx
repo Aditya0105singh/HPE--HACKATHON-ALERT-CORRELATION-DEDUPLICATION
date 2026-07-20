@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Compass, Dna, Shield, TrendingUp, Users, Wrench } from "lucide-react";
+import { ArrowLeft, Clock, Compass, Dna, History, Shield, TrendingUp, Users, Wrench } from "lucide-react";
 import { PriorityBadge, RiskMeter, SeverityDot, SeverityBadge, ServiceChip, SourceTag, StatCard } from "../components/ui";
 
 const FACTOR_LABEL = {
@@ -28,6 +28,7 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
   const root = cluster.root_cause;
   const dna = cluster.dna_match;
   const risk = cluster.risk;
+  const navigate = useNavigate();
 
   return (
     <div className="p-6 overflow-auto h-full">
@@ -46,16 +47,23 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
           </h1>
           <p className="text-[15px] mt-2 max-w-2xl" style={{ color: "var(--muted)" }}>{cluster.summary}</p>
         </div>
-        <div className="w-64 shrink-0 rounded-lg border p-4" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
+        <div className="w-64 shrink-0 rounded-lg border p-4 flex flex-col gap-2" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
           <RiskMeter risk={risk} />
-          <div className="text-[13px] mt-3" style={{ color: "var(--muted)" }}>
+          <div className="text-[13px]" style={{ color: "var(--muted)" }}>
             {risk.services_affected} services affected · {cluster.raw_alert_count} raw alerts → {cluster.size} unique
           </div>
           {cluster.est_triage_minutes_saved > 0 && (
-            <div className="text-[14px] mt-2 mb-3" style={{ color: "var(--ok)" }}>
+            <div className="text-[14px]" style={{ color: "var(--ok)" }}>
               ⏱ est. {cluster.est_triage_minutes_saved} min triage saved
             </div>
           )}
+          <button
+            onClick={() => navigate(`/timemachine/${cluster.cluster_id}`)}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border hover:brightness-125"
+            style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--text)" }}
+          >
+            <History size={13} strokeWidth={2.25} /> Time Machine Replay
+          </button>
           <button
             onClick={() => onForecast(cluster.cluster_id)}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold grad-btn cursor-pointer"
@@ -222,15 +230,27 @@ export default function Incidents({ data }) {
                   )}
                 </td>
                 <td className="px-2 py-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/forecast/${c.cluster_id}`);
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold grad-btn cursor-pointer whitespace-nowrap"
-                  >
-                    <Compass size={12} strokeWidth={2.25} /> Forecast →
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/timemachine/${c.cluster_id}`);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold cursor-pointer border hover:brightness-125 whitespace-nowrap"
+                      style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--text)" }}
+                    >
+                      <History size={11} strokeWidth={2.25} /> Replay
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/forecast/${c.cluster_id}`);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold grad-btn cursor-pointer whitespace-nowrap"
+                    >
+                      <Compass size={12} strokeWidth={2.25} /> Forecast →
+                    </button>
+                  </div>
                 </td>
                 <td className="px-2 py-3 text-right pr-4 font-semibold" style={{ color: "var(--ok)" }}>
                   {c.est_triage_minutes_saved > 0 ? `${c.est_triage_minutes_saved} min` : "—"}

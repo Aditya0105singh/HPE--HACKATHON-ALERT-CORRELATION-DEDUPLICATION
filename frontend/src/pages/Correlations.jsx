@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CircleCheckBig, ChevronDown, ChevronRight, Compass, Dna, Inbox, Magnet, TrendingDown, Zap } from "lucide-react";
+import { CircleCheckBig, ChevronDown, ChevronRight, Compass, Dna, History, Inbox, Magnet, TrendingDown, Zap } from "lucide-react";
 import ChaosOrder from "../components/ChaosOrder";
 import { AlertIcon, Info, RiskMeter, SeverityDot, SeverityBadge, ServiceChip, SourceTag, StatCard } from "../components/ui";
 
@@ -53,8 +53,15 @@ export function ClusterCard({ cluster }) {
               {cluster.risk.services_affected} services affected
             </div>
             <button
+              onClick={() => navigate(`/timemachine/${cluster.cluster_id}`)}
+              className="mt-1 px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer text-center flex items-center justify-center gap-1 border hover:brightness-125"
+              style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--text)" }}
+            >
+              <History size={13} strokeWidth={2.25} /> Time Machine
+            </button>
+            <button
               onClick={() => navigate(`/forecast/${cluster.cluster_id}`)}
-              className="mt-1 px-3 py-1 rounded-lg text-xs font-semibold grad-btn cursor-pointer text-center flex items-center justify-center gap-1"
+              className="px-3 py-1 rounded-lg text-xs font-semibold grad-btn cursor-pointer text-center flex items-center justify-center gap-1"
             >
               <Compass size={13} strokeWidth={2.25} /> Forecast →
             </button>
