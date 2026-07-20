@@ -4,6 +4,7 @@ import { ArrowLeft, Clock, Compass, Dna, GitCompare, History, Shield, Sparkles, 
 import { PriorityBadge, RiskMeter, SeverityDot, SeverityBadge, ServiceChip, SourceTag, StatCard } from "../components/ui";
 import HistoricalComparator from "../components/HistoricalComparator";
 import RootCauseConfidenceGraph from "../components/RootCauseConfidenceGraph";
+import RemediationPlaybook from "../components/RemediationPlaybook";
 
 const FACTOR_LABEL = {
   growth_rate: "Alert growth rate",
@@ -28,7 +29,7 @@ function FactorBar({ label, value }) {
 }
 
 function IncidentDetail({ cluster, onBack, onForecast }) {
-  const [tab, setTab] = useState("overview"); // overview | rca | comparator
+  const [tab, setTab] = useState("overview"); // overview | playbook | rca | comparator
   const root = cluster.root_cause;
   const dna = cluster.dna_match;
   const risk = cluster.risk;
@@ -91,6 +92,17 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
         </button>
 
         <button
+          onClick={() => setTab("playbook")}
+          className="px-4 py-2.5 border-b-2 cursor-pointer transition-colors flex items-center gap-2"
+          style={{
+            borderColor: tab === "playbook" ? "var(--accent)" : "transparent",
+            color: tab === "playbook" ? "var(--accent)" : "var(--muted)",
+          }}
+        >
+          <Wrench size={15} /> Remediation Playbook
+        </button>
+
+        <button
           onClick={() => setTab("rca")}
           className="px-4 py-2.5 border-b-2 cursor-pointer transition-colors flex items-center gap-2"
           style={{
@@ -113,7 +125,9 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
         </button>
       </div>
 
-      {tab === "rca" ? (
+      {tab === "playbook" ? (
+        <RemediationPlaybook cluster={cluster} />
+      ) : tab === "rca" ? (
         <RootCauseConfidenceGraph cluster={cluster} />
       ) : tab === "comparator" ? (
         <HistoricalComparator cluster={cluster} />
