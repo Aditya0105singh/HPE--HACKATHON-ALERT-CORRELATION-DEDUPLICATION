@@ -49,3 +49,9 @@ export async function fetchRootCauseConfidence(incidentId) {
   if (!res.ok) throw new Error(`root cause confidence fetch failed: ${res.status}`);
   return res.json();
 }
+
+export async function fetchPlaybook(incidentId) {
+  const res = await fetch(`/api/incidents/${incidentId}/playbook`);
+  if (!res.ok) throw new Error(`playbook fetch failed: ${res.status}`);
+  return res.json();
+}
