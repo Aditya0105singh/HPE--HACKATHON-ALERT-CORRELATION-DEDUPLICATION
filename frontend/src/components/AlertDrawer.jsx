@@ -211,7 +211,7 @@ export default function AlertDrawer({
               >
                 <p className="text-[13.5px] leading-relaxed mb-3" style={{ color: "var(--text)" }}>{cluster.summary}</p>
                 <div className="flex items-center gap-1.5 text-[13px] font-medium" style={{ color: "var(--accent)" }}>
-                  View full incident (Cluster {cluster.cluster_id}) <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                  View full incident #{cluster.cluster_id} <span className="transition-transform group-hover:translate-x-0.5">→</span>
                 </div>
               </button>
               <RiskMeter risk={cluster.risk} />

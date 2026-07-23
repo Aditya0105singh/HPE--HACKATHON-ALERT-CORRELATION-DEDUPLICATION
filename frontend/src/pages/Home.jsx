@@ -342,15 +342,19 @@ export default function Home({ data }) {
   return (
     <div className="h-full flex min-h-0">
       <div className="flex-1 min-w-0 overflow-y-auto p-5">
-        <div className="grid grid-cols-2 md:grid-cols-3 min-[1280px]:grid-cols-6 gap-3 mb-5">
+        <div className="mb-3">
           <StatCard
-            icon={<Flame size={16} />}
+            size="lg"
+            icon={<Flame size={18} />}
             label="Active Incidents"
             value={clusters.length}
             color="var(--critical)"
-            delta="correlated now"
+            delta={clusters.length > 0 ? "correlated now — click to see them all" : "nothing active right now"}
             spark
+            onClick={() => navigate("/incidents")}
           />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 min-[1280px]:grid-cols-5 gap-3 mb-5">
           <StatCard
             icon={<Zap size={16} />}
             label="Firing Alerts"
@@ -361,10 +365,10 @@ export default function Home({ data }) {
           />
           <StatCard
             icon={<Magnet size={16} />}
-            label="Correlated Groups"
+            label="Duplicate Groups"
             value={stats.groups}
-            color="var(--purple)"
-            delta="fingerprints"
+            color="var(--info)"
+            delta="repeat alerts merged"
             spark
           />
           <StatCard
@@ -374,6 +378,11 @@ export default function Home({ data }) {
             color="var(--info)"
             delta="held back"
             spark
+            detail={
+              stats.suppressed > 0
+                ? `${stats.suppressed} alert${stats.suppressed === 1 ? "" : "s"} held back — already acknowledged or resolved, so they're kept out of the active incident count instead of re-alerting on something already being handled.`
+                : "Nothing held back right now — every alert in this window is either firing or already resolved."
+            }
           />
           <StatCard
             icon={<CircleCheckBig size={16} />}
@@ -382,6 +391,7 @@ export default function Home({ data }) {
             color="var(--ok)"
             delta="raw → incidents"
             spark
+            detail={`${alerts.length} raw alerts came in this window. Correlation collapsed them into ${clusters.length} incident${clusters.length === 1 ? "" : "s"} — that's the ${stats.noise}% you see above. Everything else was either a duplicate or grouped in as a symptom of one of those incidents.`}
           />
           <StatCard
             icon={<ChartColumn size={16} />}
@@ -478,7 +488,7 @@ export default function Home({ data }) {
         >
           {[
             ["feed", "Alerts Feed"],
-            ["groups", "Correlated Groups"],
+            ["groups", "Incidents"],
             ["timeline", "Timeline View"],
             ["insights", "AI Insights"],
           ].map(([k, label]) => (

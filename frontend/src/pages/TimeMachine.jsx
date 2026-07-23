@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Activity, ArrowRight, CheckCircle2, ChevronRight, Clock, Dna,
+  Activity, ArrowRight, CheckCircle2, ChevronRight, Clock,
   FastForward, Film, History, Layers, Magnet, Pause, Play,
-  RotateCcw, Server, Shield, ShieldAlert, Sparkles, TrendingUp, Users, Zap
+  RotateCcw, Server, Shield, ShieldAlert, Sparkles, TrendingUp, Zap
 } from "lucide-react";
 import { AlertIcon, Info, PriorityBadge, RiskMeter, ServiceChip, SeverityBadge, SeverityDot, StatCard } from "../components/ui";
 
@@ -91,13 +91,13 @@ function buildReplayTimeline(cluster) {
         id: `evt-cluster-${a.id}`,
         time: a.timestamp.slice(11, 19),
         rawTimestamp: a.timestamp,
-        title: `Incident Cluster #${cluster.cluster_id} Formed`,
+        title: `Incident #${cluster.cluster_id} Formed`,
         category: "cluster",
         service: a.service,
         severity: "high",
         duplicateCount: accumulatedDups,
         algorithm: "TF-IDF Embeddings + Time-Windowed DBSCAN (eps=1.00)",
-        whatHappened: `Correlated ${idx + 1} symptoms across ${seenServices.size} services into Incident Cluster #${cluster.cluster_id}.`,
+        whatHappened: `Correlated ${idx + 1} symptoms across ${seenServices.size} services into Incident #${cluster.cluster_id}.`,
         whyItHappened: `Alerts share high textual vocabulary similarity and fired within the active 6-minute cascade window.`,
       });
     }
@@ -257,12 +257,9 @@ export default function TimeMachine({ data }) {
             <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider grad-btn flex items-center gap-1">
               <Film size={12} strokeWidth={2.5} /> Incident Time Machine
             </span>
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>
-              Forensic Replay & Incident Formation Lifecycle
-            </span>
           </div>
           <h1 className="text-xl font-bold flex items-center gap-2.5">
-            Forensic Incident Replay — Cluster #{selectedCluster.cluster_id}
+            Incident #{selectedCluster.cluster_id} — replay from first alert to resolution
           </h1>
         </div>
 
@@ -279,7 +276,7 @@ export default function TimeMachine({ data }) {
           >
             {clusters.map((c) => (
               <option key={c.cluster_id} value={c.cluster_id}>
-                Cluster {c.cluster_id} — {c.root_cause.service} ({c.risk.level.toUpperCase()} risk)
+                Incident #{c.cluster_id} — {c.root_cause.service} ({c.risk.level.toUpperCase()} risk)
               </option>
             ))}
           </select>
@@ -377,8 +374,12 @@ export default function TimeMachine({ data }) {
         </div>
       </div>
 
-      {/* Live Replay Metrics Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0">
+      {/* Live Replay Metrics Bar — Affected Services and Alert DNA Match are
+          dropped here since the topology panel just below already shows
+          both (root cause node, cascade services, DNA match line) — no
+          reason to state the same two facts twice, once as a number and
+          once as the real thing. */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
         <StatCard
           icon={<ShieldAlert size={16} />}
           label="Raw Alerts Revealed"
@@ -396,27 +397,11 @@ export default function TimeMachine({ data }) {
           spark={false}
         />
         <StatCard
-          icon={<Users size={16} />}
-          label="Affected Services"
-          value={servicesSoFar.length}
-          color="var(--purple)"
-          delta={`Root: ${hasRoot ? root.service : "Pending"}`}
-          spark={false}
-        />
-        <StatCard
           icon={<Activity size={16} />}
           label="Replay Risk Score"
           value={`${currentRiskScore}%`}
           color={RISK_COLOR[currentRiskLevel]}
           delta={`${currentRiskLevel.toUpperCase()} escalation level`}
-          spark={false}
-        />
-        <StatCard
-          icon={<Dna size={16} />}
-          label="Alert DNA Match"
-          value={hasDna ? `${dna.similarity_pct}%` : "Searching"}
-          color={hasDna ? "var(--purple)" : "var(--muted)"}
-          delta={hasDna ? `Matched ${dna.incident_id}` : "Awaiting cluster payload"}
           spark={false}
         />
       </div>
@@ -446,7 +431,7 @@ export default function TimeMachine({ data }) {
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-sm truncate">{root.service}</span>
                     <span className="px-1.5 py-0.5 text-[10px] font-bold rounded uppercase" style={{ background: "var(--critical)", color: "#fff" }}>
-                      Root Cause Identified 🔴
+                      Root Cause Identified
                     </span>
                   </div>
                   <div className="text-xs truncate" style={{ color: "var(--muted)" }}>{root.alertname}</div>
@@ -454,7 +439,7 @@ export default function TimeMachine({ data }) {
               </div>
             ) : (
               <div className="rounded-xl border p-3.5 text-center text-xs" style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--muted)" }}>
-                ⏳ Awaiting root cause symptom arrival...
+                Awaiting root cause symptom arrival…
               </div>
             )}
 
@@ -467,7 +452,7 @@ export default function TimeMachine({ data }) {
                 </span>
                 <div className="flex-1 min-w-0">
                   <span className="font-semibold text-xs truncate block">{svc}</span>
-                  <span className="text-[10px]" style={{ color: "var(--high)" }}>Cascade Symptom Active 🟠</span>
+                  <span className="text-[10px]" style={{ color: "var(--high)" }}>Cascade symptom — active</span>
                 </div>
               </div>
             ))}
@@ -475,7 +460,7 @@ export default function TimeMachine({ data }) {
             {hasCluster && (
               <div className="mt-2 p-3 rounded-lg border text-xs flex items-center justify-between" style={{ background: "color-mix(in srgb, var(--accent) 12%, var(--panel-2))", borderColor: "var(--accent)" }}>
                 <span className="font-semibold flex items-center gap-1.5 text-[var(--accent)]">
-                  <Magnet size={14} /> Cluster #{selectedCluster.cluster_id} Active
+                  <Magnet size={14} /> Incident #{selectedCluster.cluster_id} Active
                 </span>
                 <span className="font-mono text-[11px]" style={{ color: "var(--muted)" }}>
                   {uniqueAlertsCount} unique alerts correlated
