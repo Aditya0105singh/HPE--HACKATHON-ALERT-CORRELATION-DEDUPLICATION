@@ -38,7 +38,7 @@ export default function Evaluation() {
         <MetricCard
           label="Cluster purity"
           value={`${eval_.cluster_purity_pct}%`}
-          accent="var(--accent)"
+          accent="var(--ok)"
           sub="correctly-grouped alerts per cluster"
         />
         <MetricCard
@@ -50,7 +50,7 @@ export default function Evaluation() {
         <MetricCard
           label="Alert DNA accuracy"
           value={`${eval_.dna_accuracy_pct}%`}
-          accent="var(--accent)"
+          accent="var(--ok)"
           sub={`${eval_.dna_correct}/${eval_.dna_total} matched to the correct past incident`}
         />
       </div>

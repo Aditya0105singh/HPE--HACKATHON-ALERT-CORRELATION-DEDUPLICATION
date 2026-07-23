@@ -50,7 +50,7 @@ export default function HistoricalComparator({ cluster, onAskCopilot }) {
     return (
       <div className="p-8 text-center text-xs" style={{ color: "var(--muted)" }}>
         <Dna size={32} className="mx-auto mb-2 animate-spin text-[var(--purple)]" />
-        <div>Comparing Cluster #{cluster.cluster_id} against historical incident library memory...</div>
+        <div>Comparing Incident #{cluster.cluster_id} against historical incident library memory...</div>
       </div>
     );
   }
@@ -105,7 +105,7 @@ export default function HistoricalComparator({ cluster, onAskCopilot }) {
               </span>
             </div>
             <h2 className="text-lg font-bold flex items-center gap-2">
-              Current Cluster #{cluster.cluster_id} vs Historical Incident {histId}
+              Current Incident #{cluster.cluster_id} vs Historical Incident {histId}
             </h2>
             <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
               {dna?.title || "Historical Failure Pattern Match"} ({dna?.date || "Past Resolution Memory"})
@@ -186,7 +186,7 @@ export default function HistoricalComparator({ cluster, onAskCopilot }) {
             <thead>
               <tr className="text-left uppercase font-mono tracking-wider border-b" style={{ color: "var(--muted)", background: "var(--panel-2)" }}>
                 <th className="px-4 py-3 font-semibold">Attribute</th>
-                <th className="px-4 py-3 font-semibold text-[var(--accent)]">Current Cluster #{cluster.cluster_id}</th>
+                <th className="px-4 py-3 font-semibold text-[var(--accent)]">Current Incident #{cluster.cluster_id}</th>
                 <th className="px-4 py-3 font-semibold text-[var(--purple)]">Historical Incident {histId}</th>
                 <th className="px-4 py-3 font-semibold">Diff Status</th>
               </tr>
@@ -220,7 +220,7 @@ export default function HistoricalComparator({ cluster, onAskCopilot }) {
         {/* Current Incident Timeline */}
         <div className="rounded-xl border p-4" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
           <div className="text-xs font-bold uppercase tracking-wider mb-3 text-[var(--accent)] flex items-center gap-2">
-            <Clock size={14} /> Current Incident Symptoms (Cluster #{cluster.cluster_id})
+            <Clock size={14} /> Current Incident Symptoms (#{cluster.cluster_id})
           </div>
           <div className="space-y-2">
             {timelineComp.current.map((t, i) => (
@@ -296,7 +296,7 @@ export default function HistoricalComparator({ cluster, onAskCopilot }) {
           {[
             "Why are these incidents similar?",
             "What changed between these incidents?",
-            "Would the previous resolution work for Cluster #" + cluster.cluster_id + "?",
+            "Would the previous resolution work for Incident #" + cluster.cluster_id + "?",
           ].map((q) => (
             <button
               key={q}

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Activity, AlertTriangle, ArrowRight, CheckCircle2, ChevronRight, Clock,
-  Compass, Dna, Play, Pause, Radio, RefreshCw, Server, Shield, ShieldAlert,
-  Sparkles, TrendingUp, Users, Wrench, Zap
+  Compass, Dna, Play, Pause, Radio, RefreshCw, Server, Shield,
+  Sparkles, Users, Wrench, Zap
 } from "lucide-react";
 import { fetchForecast } from "../api";
 import { AlertIcon, Info, PriorityBadge, RiskMeter, ServiceChip, SeverityDot, StatCard } from "../components/ui";
@@ -132,9 +132,6 @@ export default function Forecast({ data, stormActive = false }) {
             <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider grad-btn flex items-center gap-1">
               <Sparkles size={12} strokeWidth={2.5} /> Predictive Forecast
             </span>
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>
-              Explainable Heuristic Pipeline Extension
-            </span>
           </div>
           <h1 className="text-xl font-bold flex items-center gap-2.5">
             Predictive Blast Radius & Escalation Forecast
@@ -154,31 +151,28 @@ export default function Forecast({ data, stormActive = false }) {
           >
             {clusters.map((c) => (
               <option key={c.cluster_id} value={c.cluster_id}>
-                Cluster {c.cluster_id} — {c.root_cause.service} ({c.risk.level.toUpperCase()} risk)
+                Incident #{c.cluster_id} — {c.root_cause.service} ({c.risk.level.toUpperCase()} risk)
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Top Banner KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+      {/* Top Banner KPI Cards — Current Risk leads; which incident this is
+          about is already stated by the selector right above, so a
+          duplicate "Target Incident" card added nothing. */}
+      <div className="mb-3 shrink-0">
         <StatCard
-          icon={<ShieldAlert size={16} />}
-          label="Target Incident"
-          value={`Cluster ${selectedCluster.cluster_id}`}
-          color={RISK_COLOR[currentRisk.level]}
-          delta={`${root.service} / ${root.alertname}`}
-          spark={false}
-        />
-        <StatCard
-          icon={<Activity size={16} />}
+          size="lg"
+          icon={<Activity size={18} />}
           label="Current Risk"
           value={`${currentRiskPct}%`}
           color={RISK_COLOR[currentRisk.level]}
-          delta={`${currentRisk.level.toUpperCase()} risk level`}
+          delta={`${currentRisk.level.toUpperCase()} risk level — ${root.service} / ${root.alertname}`}
           spark={false}
         />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
         <StatCard
           icon={<Compass size={16} />}
           label="Forecast Confidence"
@@ -247,18 +241,13 @@ export default function Forecast({ data, stormActive = false }) {
                   borderColor: isSelected ? "var(--accent)" : "var(--border)",
                 }}
               >
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold font-mono" style={{ color: isSelected ? "var(--accent)" : "var(--muted)" }}>
                     {meta.time}
                   </span>
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase"
-                    style={{ background: `color-mix(in srgb, ${color} 20%, transparent)`, color }}
-                  >
-                    {riskVal}% Risk
-                  </span>
+                  <span className="text-[10px] font-medium" style={{ color: "var(--muted)" }}>{meta.label}</span>
                 </div>
-                <div className="text-sm font-semibold mb-1">{meta.label}</div>
+                <div className="text-[26px] font-extrabold leading-tight mb-1" style={{ color }}>{riskVal}%</div>
                 <div className="text-xs flex items-center justify-between" style={{ color: "var(--muted)" }}>
                   <span>{stepObj?.alerts ?? 0} alerts</span>
                   <span>{mins === 0 ? "Observed" : `+${(stepObj?.newServices ?? []).length} svcs`}</span>
@@ -269,79 +258,22 @@ export default function Forecast({ data, stormActive = false }) {
         </div>
       </div>
 
-      {/* Main Grid: Projected Risk & Blast Radius Expansion */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
-        {/* Risk Progression Chart & Metrics */}
-        <div className="rounded-xl border p-5 flex flex-col" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold flex items-center gap-2">
-              <TrendingUp size={17} style={{ color: "var(--high)" }} />
-              Projected Escalation Risk Curve
-            </h3>
-            <span className="text-xs px-2 py-0.5 rounded font-mono" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>
-              Horizon: {STAGE_LABELS[activeStage].time}
-            </span>
-          </div>
-
-          {/* Animated Risk Gauges */}
-          <div className="space-y-4 my-auto">
-            <div>
-              <div className="flex justify-between text-xs font-medium mb-1">
-                <span>Current Risk Baseline</span>
-                <span className="font-bold">{currentRiskPct}%</span>
-              </div>
-              <div className="h-2 rounded-full" style={{ background: "var(--panel-2)" }}>
-                <div
-                  className="h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${currentRiskPct}%`, background: RISK_COLOR[currentRisk.level] }}
-                />
-              </div>
-            </div>
-
-            {steps.map((step) => {
-              const isCurrentActive = activeStage === step.minutes;
-              const color = step.risk >= 80 ? "var(--critical)" : step.risk >= 50 ? "var(--high)" : "var(--ok)";
-              return (
-                <div
-                  key={step.minutes}
-                  className={`p-3 rounded-lg border transition-all ${
-                    isCurrentActive ? "bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] border-[var(--accent)]" : "border-transparent"
-                  }`}
-                >
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="flex items-center gap-1.5">
-                      <Clock size={12} style={{ color }} />
-                      +{step.minutes} Minutes Horizon
-                    </span>
-                    <span className="font-mono" style={{ color }}>{step.risk}% Projected Risk</span>
-                  </div>
-                  <div className="h-2 rounded-full" style={{ background: "var(--panel-2)" }}>
-                    <div
-                      className="h-2 rounded-full transition-all duration-700"
-                      style={{ width: `${step.risk}%`, background: color }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[11px] mt-1.5" style={{ color: "var(--muted)" }}>
-                    <span>Projected alerts: <b>{step.alerts}</b></span>
-                    <span>Confidence: <b>{Math.round(step.confidence * 100)}%</b></span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Blast Radius at the selected horizon — this used to sit next to a
+          "Projected Escalation Risk Curve" panel that re-listed the exact
+          same risk%/alerts/confidence numbers the horizon buttons above
+          already show, just as a vertical list instead of a button grid.
+          One timeline control (the buttons) driving one detail panel below
+          it, instead of three parallel views of the same steps. */}
+      <div className="rounded-xl border p-5 flex flex-col shrink-0" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <Users size={17} style={{ color: "var(--accent)" }} />
+            Predicted Service Blast Radius Expansion
+          </h3>
+          <span className="text-xs px-2 py-0.5 rounded font-mono" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>
+            Horizon {STAGE_LABELS[activeStage].time} · {stageForecast.risk}% risk · {Math.round((activeStage === 0 ? confidence : stageForecast.confidence) * 100)}% confidence · {currentServices.length + allPredicted.length} total services
+          </span>
         </div>
-
-        {/* Animated Service Blast Radius Expansion Graph */}
-        <div className="rounded-xl border p-5 flex flex-col" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold flex items-center gap-2">
-              <Users size={17} style={{ color: "var(--accent)" }} />
-              Predicted Service Blast Radius Expansion
-            </h3>
-            <span className="text-xs px-2 py-0.5 rounded font-mono" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>
-              {currentServices.length + allPredicted.length} Total Services
-            </span>
-          </div>
 
           {/* Topological Cascade Flow */}
           <div className="flex-1 flex flex-col justify-center gap-3">
@@ -354,7 +286,7 @@ export default function Forecast({ data, stormActive = false }) {
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm truncate">{root.service}</span>
                   <span className="px-1.5 py-0.5 text-[10px] font-bold rounded uppercase" style={{ background: "var(--critical)", color: "#fff" }}>
-                    Root Cause 🔴
+                    Root Cause
                   </span>
                 </div>
                 <div className="text-xs truncate" style={{ color: "var(--muted)" }}>{root.alertname}</div>
@@ -370,7 +302,7 @@ export default function Forecast({ data, stormActive = false }) {
                 </span>
                 <div className="flex-1 min-w-0">
                   <span className="font-semibold text-xs truncate block">{svc}</span>
-                  <span className="text-[10px]" style={{ color: "var(--high)" }}>Currently Firing (Active Symptom 🟠)</span>
+                  <span className="text-[10px]" style={{ color: "var(--high)" }}>Currently firing — active symptom</span>
                 </div>
               </div>
             ))}
@@ -406,7 +338,7 @@ export default function Forecast({ data, stormActive = false }) {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-xs truncate">{svc}</span>
                           <span className="px-1.5 py-0.5 text-[10px] font-bold rounded" style={{ background: `color-mix(in srgb, ${color} 20%, transparent)`, color }}>
-                            Predicted +{min}m 🟡
+                            Predicted +{min}m
                           </span>
                         </div>
                         <span className="text-[10px]" style={{ color: "var(--muted)" }}>Cascade expansion target</span>
@@ -418,7 +350,6 @@ export default function Forecast({ data, stormActive = false }) {
             })}
           </div>
         </div>
-      </div>
 
       {/* Recommended Immediate Action Callout Banner */}
       <div

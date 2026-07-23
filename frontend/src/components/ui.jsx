@@ -220,26 +220,72 @@ export function Sparkline({ seed, color = "var(--accent)", w = 96, h = 28, up = 
   );
 }
 
-export function StatCard({ icon, label, value, delta, deltaDir, color = "var(--accent)", sub, spark = true, info }) {
+// Shared motion standard for every hover/expand/reveal interaction added from
+// here on — one duration, Tailwind's default easing (already the implicit
+// timing function on every unlabeled `transition-*` class in this codebase,
+// so this doesn't fight anything already in place, just names it).
+export const REVEAL_MS = 300;
+
+// StatCard's glance/hover/click pattern: the number is the glance, `info`
+// (already existed) is the hover tier, and `detail`/`onClick` are new — pass
+// `detail` to make the card expand in place with real breakdown content, or
+// `onClick` to make it a direct action (e.g. jump to the full page for this
+// stat). They're alternate modes, not combined. Omit both and this is
+// exactly the StatCard that's been in use everywhere — nothing about
+// existing callers changes. `size="lg"` promotes a card to hero scale for
+// pages that want one dominant number instead of a row of equals.
+export function StatCard({ icon, label, value, delta, deltaDir, color = "var(--accent)", sub, spark = true, info, detail, onClick, size = "md", active = false }) {
+  const [open, setOpen] = useState(false);
+  const expandable = Boolean(detail);
+  const clickable = expandable || Boolean(onClick);
+  const isLg = size === "lg";
+
   return (
-    <div className="stat-card p-5 min-w-0" style={{ "--sc": color }}>
+    <div
+      className="stat-card min-w-0"
+      style={{
+        "--sc": color,
+        cursor: clickable ? "pointer" : undefined,
+        padding: isLg ? "24px 28px" : "20px",
+        borderColor: active ? color : undefined,
+        boxShadow: active ? `0 0 0 1px ${color}` : undefined,
+      }}
+      onClick={expandable ? () => setOpen((v) => !v) : onClick}
+      role={clickable ? "button" : undefined}
+      aria-expanded={expandable ? open : undefined}
+      aria-pressed={onClick ? active : undefined}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2 mb-2">
             <span
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              className={isLg ? "w-9 h-9 rounded-xl flex items-center justify-center shrink-0" : "w-7 h-7 rounded-lg flex items-center justify-center shrink-0"}
               style={{ background: `color-mix(in srgb, ${color} 18%, transparent)`, color }}
             >
               {icon}
             </span>
-            <span className="text-[12px] font-semibold uppercase tracking-wide leading-snug pt-0.5" style={{ color: "var(--muted)" }}>
+            <span
+              className={isLg ? "text-[13px] font-semibold uppercase tracking-wide leading-snug pt-1" : "text-[12px] font-semibold uppercase tracking-wide leading-snug pt-0.5"}
+              style={{ color: "var(--muted)" }}
+            >
               {label}
               {info && <Info tip={info} />}
             </span>
+            {expandable && (
+              <ChevronDown
+                size={13}
+                strokeWidth={2.25}
+                className="ml-auto shrink-0 mt-0.5"
+                style={{ color: "var(--muted)", transition: `transform ${REVEAL_MS}ms`, transform: open ? "rotate(180deg)" : "none" }}
+              />
+            )}
+            {!expandable && onClick && (
+              <ChevronRight size={13} strokeWidth={2.25} className="ml-auto shrink-0 mt-0.5" style={{ color: "var(--muted)" }} />
+            )}
           </div>
-          <div className="text-[26px] font-bold leading-tight" style={{ color: "var(--text)" }}>{value}</div>
+          <div className={isLg ? "text-[42px] font-bold leading-tight" : "text-[26px] font-bold leading-tight"} style={{ color: "var(--text)" }}>{value}</div>
           {(delta || sub) && (
-            <div className="text-[13px] mt-1 flex items-center gap-1" style={{ color: deltaDir === "down" ? "var(--ok)" : deltaDir === "up" ? "var(--critical)" : "var(--muted)" }}>
+            <div className={isLg ? "text-[14px] mt-1.5 flex items-center gap-1" : "text-[13px] mt-1 flex items-center gap-1"} style={{ color: deltaDir === "down" ? "var(--ok)" : deltaDir === "up" ? "var(--critical)" : "var(--muted)" }}>
               {deltaDir === "up" && <TrendingUp size={12} strokeWidth={2.25} />}
               {deltaDir === "down" && <TrendingDown size={12} strokeWidth={2.25} />}
               {delta || sub}
@@ -252,6 +298,23 @@ export function StatCard({ icon, label, value, delta, deltaDir, color = "var(--a
           </div>
         )}
       </div>
+
+      {expandable && (
+        <div
+          className="grid"
+          style={{ gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${REVEAL_MS}ms` }}
+        >
+          <div className="overflow-hidden">
+            <div
+              className="mt-3 pt-3 text-[13px] leading-relaxed"
+              style={{ borderTop: "1px solid var(--border)", color: "var(--muted)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {detail}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

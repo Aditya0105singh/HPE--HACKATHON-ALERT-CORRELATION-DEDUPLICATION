@@ -129,6 +129,13 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
 
   const sortBy = (key) => setSort((s) => ({ key, dir: s.key === key && s.dir === "desc" ? "asc" : "desc" }));
 
+  // Stat cards double as filters here — clicking one sets the same status
+  // facet the sidebar checkboxes use, so the number and the table it's
+  // describing are never two disconnected things. Click again to clear it.
+  const isStatusFilter = (status) => facets.status.size === 1 && facets.status.has(status);
+  const toggleStatusFilter = (status) =>
+    setFacets((f) => ({ ...f, status: isStatusFilter(status) ? new Set() : new Set([status]) }));
+
   const applyQuery = () => setQuery(draft.trim());
   const isDirty = draft.trim() !== query;
 
@@ -285,9 +292,25 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
             </>
           ) : (
             <>
-              <StatCard icon={<Flame size={16} />} label="Active Incidents" value={stats.clusters} color="var(--critical)" delta="correlated groups" />
-              <StatCard icon={<Zap size={16} />} label="Firing Alerts" value={stats.firing} color="var(--high)" delta="active now" />
-              <StatCard icon={<BellOff size={16} />} label="Suppressed" value={stats.suppressed} color="var(--info)" delta="held back" />
+              <StatCard icon={<Flame size={16} />} label="Active Incidents" value={stats.clusters} color="var(--critical)" delta="grouped from raw alerts" />
+              <StatCard
+                icon={<Zap size={16} />}
+                label="Firing Alerts"
+                value={stats.firing}
+                color="var(--high)"
+                delta={isStatusFilter("firing") ? "showing firing only — click to clear" : "click to filter the table"}
+                onClick={() => toggleStatusFilter("firing")}
+                active={isStatusFilter("firing")}
+              />
+              <StatCard
+                icon={<BellOff size={16} />}
+                label="Suppressed"
+                value={stats.suppressed}
+                color="var(--info)"
+                delta={isStatusFilter("suppressed") ? "showing suppressed only — click to clear" : "click to filter the table"}
+                onClick={() => toggleStatusFilter("suppressed")}
+                active={isStatusFilter("suppressed")}
+              />
               <StatCard icon={<CircleCheckBig size={16} />} label="Noise Reduction" value={`${stats.noisePct}%`} color="var(--ok)" delta="raw → incidents" />
               <StatCard icon={<ChartColumn size={16} />} label="Total Alerts (Raw)" value={stats.all} color="var(--accent)" delta="this window" />
             </>

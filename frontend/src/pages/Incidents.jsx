@@ -44,7 +44,7 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
       <div className="flex items-start gap-4 mb-6">
         <div className="flex-1">
           <div className="text-[13px] font-semibold px-2 py-0.5 rounded inline-block mb-2" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>
-            INCIDENT CLUSTER {cluster.cluster_id}
+            INCIDENT #{cluster.cluster_id}
           </div>
           <h1 className="text-xl font-semibold flex items-center gap-2">
             <SeverityDot severity={root.severity} />
@@ -110,7 +110,7 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
             color: tab === "rca" ? "var(--ok)" : "var(--muted)",
           }}
         >
-          <Zap size={15} /> Root Cause Confidence (92%)
+          <Zap size={15} /> Root Cause Confidence
         </button>
 
         <button
@@ -249,10 +249,8 @@ export default function Incidents({ data }) {
             <tr className="text-left text-[13px] uppercase tracking-wider" style={{ color: "var(--muted)", background: "var(--panel)" }}>
               <th className="px-4 py-2.5 font-medium">Incident</th>
               <th className="px-2 py-2.5 font-medium">Escalation Risk</th>
-              <th className="px-2 py-2.5 font-medium">Alerts</th>
-              <th className="px-2 py-2.5 font-medium">Services</th>
               <th className="px-2 py-2.5 font-medium">Known fix</th>
-              <th className="px-2 py-2.5 font-medium">Forecast</th>
+              <th className="px-2 py-2.5 w-20"></th>
               <th className="px-2 py-2.5 font-medium text-right pr-4">Triage saved</th>
             </tr>
           </thead>
@@ -271,7 +269,10 @@ export default function Incidents({ data }) {
                     {c.root_cause.service} / {c.root_cause.alertname}
                   </div>
                   <div className="text-[13px] mt-1 max-w-md" style={{ color: "var(--muted)" }}>{c.summary}</div>
-                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    <span className="text-[12.5px]" style={{ color: "var(--muted)" }}>
+                      {c.raw_alert_count} alerts · {c.risk.services_affected} services
+                    </span>
                     {[...new Set(c.alerts.map((a) => a.service))].slice(0, 3).map((s) => <ServiceChip key={s} name={s} />)}
                     {new Set(c.alerts.map((a) => a.service)).size > 3 && (
                       <span className="text-[13px]" style={{ color: "var(--muted)" }}>+{new Set(c.alerts.map((a) => a.service)).size - 3}</span>
@@ -279,10 +280,6 @@ export default function Incidents({ data }) {
                   </div>
                 </td>
                 <td className="px-2 py-3 w-44"><RiskMeter risk={c.risk} compact /></td>
-                <td className="px-2 py-3" style={{ color: "var(--muted)" }}>
-                  {c.raw_alert_count} raw → {c.size}
-                </td>
-                <td className="px-2 py-3" style={{ color: "var(--muted)" }}>{c.risk.services_affected}</td>
                 <td className="px-2 py-3 max-w-xs">
                   {c.dna_match ? (
                     <span className="text-[14px]">
@@ -301,14 +298,15 @@ export default function Incidents({ data }) {
                 <td className="px-2 py-3">
                   <div className="flex items-center gap-1.5">
                     <button
+                      title="Replay this incident"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/timemachine/${c.cluster_id}`);
                       }}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold cursor-pointer border hover:brightness-125 whitespace-nowrap"
-                      style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--text)" }}
+                      className="w-7 h-7 rounded flex items-center justify-center cursor-pointer border hover:brightness-125"
+                      style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--muted)" }}
                     >
-                      <History size={11} strokeWidth={2.25} /> Replay
+                      <History size={13} strokeWidth={2.25} />
                     </button>
                     <button
                       onClick={(e) => {
