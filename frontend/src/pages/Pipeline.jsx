@@ -174,11 +174,7 @@ function StageCard({ stage, isActive, isDone, onClick, countUpActive }) {
       <div className="flex items-center gap-1.5 mb-2">
         <span
           className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-          style={
-            isActive
-              ? { background: `color-mix(in srgb, ${stage.color} 18%, transparent)`, color: stage.color }
-              : { background: "var(--panel-2)", color: "var(--muted)" }
-          }
+          style={{ background: `color-mix(in srgb, ${stage.color} 18%, transparent)`, color: stage.color }}
         >
           <Icon size={13} strokeWidth={2.25} />
         </span>
@@ -187,7 +183,7 @@ function StageCard({ stage, isActive, isDone, onClick, countUpActive }) {
       <div className="text-[10.5px] uppercase tracking-wide font-semibold mb-1" style={{ color: "var(--muted)" }}>{stage.label}</div>
       <div className="text-[22px] font-bold leading-none tabular-nums" style={{ color: "var(--text)" }}>{displayMetric}</div>
       <div className="text-[10.5px] mt-1 truncate" style={{ color: "var(--muted)" }}>{stage.metricLabel}</div>
-      {stage.subMetric && <div className="text-[10.5px] mt-0.5 truncate" style={{ color: isActive ? stage.color : "var(--muted)" }}>{stage.subMetric}</div>}
+      {stage.subMetric && <div className="text-[10.5px] mt-0.5 truncate" style={{ color: stage.color }}>{stage.subMetric}</div>}
     </motion.button>
   );
 }
@@ -326,20 +322,18 @@ export default function Pipeline({ data }) {
 
       <div className="grid grid-cols-1 min-[1000px]:grid-cols-[1.3fr_1fr] gap-4">
         <div className="rounded-xl border p-5" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-4">
             <Sparkles size={15} strokeWidth={2.25} style={{ color: "var(--accent)" }} />
             <span className="text-[14px] font-semibold">Final Result</span>
           </div>
-          <BigNumber value={Number(noisePct)} suffix="%" label="of the raw noise never reached an on-call engineer" active={isReplaying} color="var(--ok)" size="lg" />
-          <div className="mt-4 pt-4 border-t text-[12px] uppercase tracking-wide font-semibold" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
-            How it got there
-          </div>
-          <div className="flex items-center flex-wrap gap-2 text-center mt-2 opacity-90">
+          <div className="flex items-center flex-wrap gap-3 text-center">
             <BigNumber value={stats.raw_count} label="raw alerts" active={isReplaying} />
-            <ArrowRight size={14} style={{ color: "var(--muted)" }} />
-            <BigNumber value={stats.unique_count} label="unique" active={isReplaying} />
-            <ArrowRight size={14} style={{ color: "var(--muted)" }} />
+            <ArrowRight size={18} style={{ color: "var(--muted)" }} />
+            <BigNumber value={stats.unique_count} label="unique" active={isReplaying} color="var(--purple)" />
+            <ArrowRight size={18} style={{ color: "var(--muted)" }} />
             <BigNumber value={clusters.length} label="incidents" active={isReplaying} color="var(--accent)" />
+            <ArrowRight size={18} style={{ color: "var(--muted)" }} />
+            <BigNumber value={Number(noisePct)} suffix="%" label="noise reduced" active={isReplaying} color="var(--ok)" />
           </div>
           <div className="mt-4 pt-4 border-t flex items-center gap-2 text-[13.5px]" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
             <Clock size={14} strokeWidth={2} style={{ color: "var(--ok)" }} />
@@ -374,13 +368,12 @@ export default function Pipeline({ data }) {
   );
 }
 
-function BigNumber({ value, suffix = "", label, active, color = "var(--text)", size = "md" }) {
+function BigNumber({ value, suffix = "", label, active, color = "var(--text)" }) {
   const display = useCountUp(value, active, 900);
-  const isLg = size === "lg";
   return (
     <div className="px-2">
-      <div className={isLg ? "text-[48px] font-extrabold leading-none tabular-nums" : "text-[30px] font-extrabold leading-none tabular-nums"} style={{ color }}>{display}{suffix}</div>
-      <div className={isLg ? "text-[13px] mt-1.5" : "text-[11px] mt-1"} style={{ color: "var(--muted)" }}>{label}</div>
+      <div className="text-[30px] font-extrabold leading-none tabular-nums" style={{ color }}>{display}{suffix}</div>
+      <div className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>{label}</div>
     </div>
   );
 }

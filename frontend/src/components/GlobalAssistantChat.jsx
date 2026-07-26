@@ -21,7 +21,7 @@ const PAGE_QUESTIONS = {
   ],
   correlations: [
     { label: "How Correlation Works", prompt: "How does the correlation engine group alerts?" },
-    { label: "Active Incidents", prompt: "How many incidents are there?" },
+    { label: "Active Groups", prompt: "How many correlated groups are there?" },
     { label: "What is AlertLens?", prompt: "Explain what AlertLens does." },
     { label: "Noise Reduction", prompt: "How much noise has been filtered out?" },
   ],

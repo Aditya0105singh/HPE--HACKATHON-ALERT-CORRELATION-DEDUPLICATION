@@ -24,14 +24,17 @@ export function ClusterCard({ cluster }) {
           <AlertIcon alertname={root.alertname} severity={root.severity} service={root.service} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
+              <span className="text-[13px] font-semibold px-2 py-0.5 rounded" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>
+                INCIDENT CLUSTER {cluster.cluster_id}
+              </span>
               <span
                 className="text-[13px] font-bold px-2 py-0.5 rounded uppercase"
                 style={{ background: `color-mix(in srgb, ${riskColor} 18%, transparent)`, color: riskColor }}
               >
                 {cluster.risk.level} risk
               </span>
-              <span className="text-[12.5px]" style={{ color: "var(--muted)" }}>
-                Incident #{cluster.cluster_id}
+              <span className="text-[13px]" style={{ color: "var(--muted)" }}>
+                {cluster.raw_alert_count} raw alerts → {cluster.size} unique → 1 incident
               </span>
             </div>
             <div className="font-semibold text-[17px] flex items-center gap-2">
@@ -39,43 +42,36 @@ export function ClusterCard({ cluster }) {
               {root.service} / {root.alertname}
             </div>
             <div className="text-[15px] mt-1" style={{ color: "var(--muted)" }}>{cluster.summary}</div>
-            <div className="text-[12.5px] mt-1.5" style={{ color: "var(--muted)" }}>
-              {cluster.raw_alert_count} raw alerts collapsed into this 1 incident ({cluster.size} unique)
-            </div>
             <div className="flex gap-1.5 mt-2 flex-wrap">
               {services.slice(0, 5).map((s) => <ServiceChip key={s} name={s} />)}
               {services.length > 5 && <span className="text-[13px]" style={{ color: "var(--muted)" }}>+{services.length - 5}</span>}
             </div>
           </div>
-          <div className="w-40 shrink-0 flex flex-col items-stretch gap-2">
+          <div className="w-44 shrink-0 flex flex-col items-stretch gap-2">
             <RiskMeter risk={cluster.risk} />
-            <div className="text-[13px] text-right mb-1" style={{ color: "var(--muted)" }}>
+            <div className="text-[13px] text-right" style={{ color: "var(--muted)" }}>
               {cluster.risk.services_affected} services affected
             </div>
             <button
+              onClick={() => navigate(`/timemachine/${cluster.cluster_id}`)}
+              className="mt-1 px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer text-center flex items-center justify-center gap-1 border hover:brightness-125"
+              style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--text)" }}
+            >
+              <History size={13} strokeWidth={2.25} /> Time Machine
+            </button>
+            <button
+              onClick={() => navigate(`/forecast/${cluster.cluster_id}`)}
+              className="px-3 py-1 rounded-lg text-xs font-semibold grad-btn cursor-pointer text-center flex items-center justify-center gap-1"
+            >
+              <Compass size={13} strokeWidth={2.25} /> Forecast →
+            </button>
+            <button
               onClick={() => navigate(`/incidents/${cluster.cluster_id}`)}
-              className="px-3 py-1.5 rounded-lg text-[13px] font-semibold grad-btn cursor-pointer text-center"
+              className="px-3 py-1.5 rounded-lg border text-[13px] font-semibold cursor-pointer text-center hover:brightness-125"
+              style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--panel-2)" }}
             >
               View details →
             </button>
-            <div className="flex items-center gap-1.5 justify-center">
-              <button
-                title="Time Machine replay"
-                onClick={() => navigate(`/timemachine/${cluster.cluster_id}`)}
-                className="w-7 h-7 rounded flex items-center justify-center cursor-pointer border hover:brightness-125"
-                style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--muted)" }}
-              >
-                <History size={13} strokeWidth={2.25} />
-              </button>
-              <button
-                title="Predictive forecast"
-                onClick={() => navigate(`/forecast/${cluster.cluster_id}`)}
-                className="w-7 h-7 rounded flex items-center justify-center cursor-pointer border hover:brightness-125"
-                style={{ background: "var(--panel-2)", borderColor: "var(--border)", color: "var(--muted)" }}
-              >
-                <Compass size={13} strokeWidth={2.25} />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -157,9 +153,9 @@ export default function Correlations({ data, stormActive = false }) {
         <h1 className="text-lg font-semibold">Correlations</h1>
         <div className="flex rounded-md border overflow-hidden text-[15px]" style={{ borderColor: "var(--border)" }}>
           {[
-            ["chaos", "Live view", Zap],
-            ["raw", "Raw feed", Inbox],
-            ["correlated", "Grouped", Magnet],
+            ["chaos", "Chaos → Order", Zap],
+            ["raw", "Raw stream", null],
+            ["correlated", "Correlated", null],
           ].map(([v, label, Icon]) => (
             <button
               key={v}
@@ -171,7 +167,7 @@ export default function Correlations({ data, stormActive = false }) {
                 fontWeight: view === v ? 600 : 400,
               }}
             >
-              <Icon size={14} strokeWidth={2.25} fill={view === v && v === "chaos" ? "currentColor" : "none"} />
+              {Icon && <Icon size={14} strokeWidth={2.25} fill={view === v ? "currentColor" : "none"} />}
               {label}
             </button>
           ))}
@@ -186,7 +182,7 @@ export default function Correlations({ data, stormActive = false }) {
         <StatCard icon={<Inbox size={16} />} label="Raw Alerts" value={stats.raw_count} color="var(--accent)" delta="all incoming alerts" />
         <StatCard
           icon={<Magnet size={16} />}
-          label="Incidents"
+          label="Incident Clusters"
           value={clusters.length}
           color="var(--high)"
           delta="unique incident groups"

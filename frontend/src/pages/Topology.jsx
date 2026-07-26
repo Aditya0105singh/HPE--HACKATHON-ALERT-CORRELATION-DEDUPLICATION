@@ -7,7 +7,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 import { Activity, Crown, Dna, Network, Radio, Server, Share2, Zap } from "lucide-react";
-import { AlertIcon, SeverityDot, StatCard, timeAgo } from "../components/ui";
+import { AlertIcon, SeverityDot, StatCard, StatusBadge, timeAgo } from "../components/ui";
 import { techLogoFor } from "../components/techLogos";
 
 const STATUS_COLOR = { critical: "var(--critical)", warning: "var(--high)", healthy: "var(--ok)" };
@@ -201,8 +201,13 @@ function ServiceNode({ data, selected }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="font-semibold text-[13.5px] truncate">{data.service}</span>
+            {data.isRoot && (
+              <span title="AI-identified root cause" className="shrink-0" style={{ color: "var(--high)" }}>
+                <Crown size={12.5} strokeWidth={2.25} fill="currentColor" />
+              </span>
+            )}
           </div>
-          <span className="text-[10.5px]" style={{ color: "var(--muted)" }}>Incident #{data.cluster.cluster_id}</span>
+          <span className="text-[10.5px]" style={{ color: "var(--muted)" }}>Cluster {data.cluster.cluster_id}</span>
         </div>
         <span
           className="w-2 h-2 rounded-full shrink-0 mt-0.5"
@@ -210,25 +215,8 @@ function ServiceNode({ data, selected }) {
         />
       </div>
 
-      <div className="mb-2.5 flex items-center gap-1.5 flex-wrap">
-        <span
-          className="px-2 py-0.5 rounded-md text-xs font-medium"
-          style={{
-            color,
-            background: `color-mix(in srgb, ${color} 14%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
-          }}
-        >
-          {data.status === "critical" ? "Critical" : data.status === "warning" ? "Degraded" : "Healthy"}
-        </span>
-        {data.isRoot && (
-          <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium"
-            style={{ color: "var(--high)", background: "color-mix(in srgb, var(--high) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--high) 30%, transparent)" }}
-          >
-            <Crown size={11} strokeWidth={2.25} fill="currentColor" /> Root cause
-          </span>
-        )}
+      <div className="mb-2.5">
+        <StatusBadge status={data.status === "critical" ? "firing" : data.status === "warning" ? "suppressed" : "resolved"} />
       </div>
 
       <div className="flex items-center justify-between text-[11.5px] mb-1.5" style={{ color: "var(--muted)" }}>
@@ -368,8 +356,7 @@ function TopologyInner({ data }) {
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--panel-2)", color: "var(--muted)" }}>live from current batch</span>
         </div>
         <p className="text-[13px] mb-4" style={{ color: "var(--muted)" }}>
-          Every service that fired an alert this window, connected wherever the real pipeline correlated them into the same incident.
-          Hover a service for details, click it to trace its blast radius.
+          Every service that fired an alert this window, connected wherever the real pipeline correlated them into the same incident. Click a service to trace its blast radius.
         </p>
         <div className="grid grid-cols-2 min-[900px]:grid-cols-5 gap-3">
           <StatCard icon={<Network size={16} />} label="Total Services" value={stats.total} color="var(--accent)" delta="in this batch" spark={false} />
@@ -407,13 +394,20 @@ function TopologyInner({ data }) {
           <Controls showInteractive={false} className="topology-controls" style={{ button: { background: "var(--panel)", color: "var(--text)", borderColor: "var(--border)" } }} />
         </ReactFlow>
 
+        <div className="absolute top-3 left-3 rounded-lg border px-3 py-2 text-[11.5px] flex items-center gap-3" style={{ background: "color-mix(in srgb, var(--panel) 90%, transparent)", borderColor: "var(--border)" }}>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: "var(--critical)" }} /> Critical</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: "var(--high)" }} /> Degraded</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: "var(--ok)" }} /> Healthy</span>
+          <span className="flex items-center gap-1.5"><Crown size={11} strokeWidth={2.25} style={{ color: "var(--high)" }} fill="currentColor" /> Root cause</span>
+        </div>
+
         {selected?.cluster && (
           <button
             onClick={() => navigate(`/incidents/${selected.cluster.cluster_id}`)}
             className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold cursor-pointer grad-btn"
           >
             <AlertIcon alertname={selected.cluster.root_cause.alertname} severity={selected.cluster.root_cause.severity} service={selected.cluster.root_cause.service} />
-            View Incident #{selected.cluster.cluster_id} →
+            View Incident (Cluster {selected.cluster.cluster_id}) →
           </button>
         )}
       </div>
