@@ -20,10 +20,12 @@ os.environ.setdefault("USE_TF", "0")
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "data"))
 from synthetic_alert_generator import generate_batch  # noqa: E402
 
+from . import db
 from .assistant import IncidentAssistantRequest, WorkspaceAssistantRequest, ask_incident_assistant, ask_workspace_assistant
 from .alert_dna import AlertDNA
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
@@ -64,8 +66,40 @@ def get_dna() -> AlertDNA:
     return _dna
 
 
+def _apply_actions(alerts: list[dict]) -> list[dict]:
+    """Merge persisted user actions (ack/assign/dismiss/escalate) onto a raw
+    alert batch. Actions live in their own table keyed by alert id, separate
+    from the alert payload itself, so they survive independently of whatever
+    batch happened to bring that id in."""
+    actions = db.get_actions()
+    if not actions:
+        return alerts
+    merged = []
+    for a in alerts:
+        action = actions.get(a["id"])
+        if not action:
+            merged.append(a)
+            continue
+        a = dict(a)
+        a["acked"] = action["acked"]
+        a["assignee"] = action["assignee"]
+        a["escalated"] = action["escalated"]
+        if action["status_override"]:
+            a["status"] = action["status_override"]
+        merged.append(a)
+    return merged
+
+
 def run_pipeline(alerts: list[dict]) -> dict:
     get_dna()
+
+    # The DB always mirrors exactly the batch currently shown — each call
+    # here represents a full replacement of "the current view" (a fresh demo
+    # batch, a dataset switch, or a full /ingest payload), so persisted
+    # actions from a previous, unrelated batch are cleared along with it.
+    db.clear_alerts()
+    db.save_alerts(alerts)
+    alerts = _apply_actions(alerts)
 
     unique, dedup_stats = deduplicate(alerts)
     labels, _ = cluster_alerts(unique)
@@ -110,9 +144,14 @@ def run_pipeline(alerts: list[dict]) -> dict:
 def compute_evaluation() -> dict:
     """Measures the pipeline against the generator's hidden ground truth,
     across a fixed seed set — same methodology as notebooks/poc_clustering.ipynb.
-    The pipeline never reads ground_truth; this is an external measurement."""
+    The pipeline never reads ground_truth; this is an external measurement.
+
+    Also records each seed's own numbers (per_seed) alongside the combined
+    total — real per-run results for a trend chart, not a single average
+    smoothed over 8 runs."""
     get_dna()
     tp_n = tp_d = dna_ok = dna_t = frag = missed = inc_total = noise_cl = noise_total = 0
+    per_seed = []
 
     for seed in EVAL_SEEDS:
         raw = generate_batch(3, 20, 45, seed=seed)
@@ -125,6 +164,11 @@ def compute_evaluation() -> dict:
         noise_total += sum(1 for a in unique if a["ground_truth"] == "noise")
         inc_map: dict[str, set] = {i: set() for i in incidents}
 
+        # seed-local counters, separate from the running totals above
+        s_tp_n = s_tp_d = s_noise_cl = 0
+        s_noise_total = sum(1 for a in unique if a["ground_truth"] == "noise")
+        s_inc_total = len(incidents)
+
         for label, members in groups.items():
             if label == -1:
                 continue
@@ -135,6 +179,9 @@ def compute_evaluation() -> dict:
             tp_n += counts[majority]
             tp_d += len(members)
             noise_cl += counts.get("noise", 0)
+            s_tp_n += counts[majority]
+            s_tp_d += len(members)
+            s_noise_cl += counts.get("noise", 0)
             for truth in counts:
                 if truth != "noise":
                     inc_map[truth].add(label)
@@ -144,11 +191,20 @@ def compute_evaluation() -> dict:
                 if match and match["incident_id"] == EXPECTED_DNA_MATCH[majority]:
                     dna_ok += 1
 
+        s_missed = sum(1 for v in inc_map.values() if not v)
         frag += sum(max(0, len(v) - 1) for v in inc_map.values())
-        missed += sum(1 for v in inc_map.values() if not v)
+        missed += s_missed
+
+        per_seed.append({
+            "seed": seed,
+            "incident_detection_pct": round(100 * (s_inc_total - s_missed) / s_inc_total, 1) if s_inc_total else 0,
+            "cluster_purity_pct": round(100 * s_tp_n / s_tp_d, 1) if s_tp_d else 0,
+            "noise_excluded_pct": round(100 * (1 - s_noise_cl / s_noise_total), 1) if s_noise_total else 0,
+        })
 
     return {
         "seeds_tested": len(EVAL_SEEDS),
+        "per_seed": per_seed,
         "incidents_total": inc_total,
         "incidents_detected": inc_total - missed,
         "incident_detection_pct": round(100 * (inc_total - missed) / inc_total, 1) if inc_total else 0,
@@ -162,12 +218,21 @@ def compute_evaluation() -> dict:
 
 
 def _initial_load() -> None:
+    # A prior run's batch survives a backend restart in alertlens.db — reload
+    # it instead of generating a brand new synthetic batch so acks/dismissed/
+    # assignee actions (and whatever dataset was loaded) aren't silently lost
+    # every time the server restarts.
+    persisted = db.load_alerts()
+    if persisted:
+        run_pipeline(persisted)
+        return
     run_pipeline(generate_batch(n_incidents=4, n_noise=80, window_minutes=45,
                                 seed=7, noise_window_hours=48))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    db.init_db()
     # Loading sentence-transformers/torch is real, unavoidable work — on a
     # low-CPU/low-RAM free-tier host it can take minutes. Running it inline
     # here blocks uvicorn from ever binding its port, which reads as a
@@ -219,6 +284,53 @@ def demo_load_aiops() -> dict:
 @app.get("/pipeline")
 def pipeline_state() -> dict:
     return _state
+
+
+class AckRequest(BaseModel):
+    value: bool
+
+
+class AssignRequest(BaseModel):
+    assignee: str | None = None
+
+
+class DismissRequest(BaseModel):
+    status: str | None = None  # "suppressed" | "resolved" | None (None clears the override)
+
+
+class EscalateRequest(BaseModel):
+    value: bool
+
+
+def _rerun_current_pipeline() -> dict:
+    """Actions below change how an already-loaded batch renders (ack badge,
+    assignee, status override) — not the batch itself — so replay the last
+    persisted batch through the pipeline rather than regenerating anything."""
+    return run_pipeline(db.load_alerts())
+
+
+@app.post("/alerts/{alert_id}/ack")
+def ack_alert(alert_id: str, body: AckRequest) -> dict:
+    db.set_ack(alert_id, body.value)
+    return _rerun_current_pipeline()
+
+
+@app.post("/alerts/{alert_id}/assign")
+def assign_alert(alert_id: str, body: AssignRequest) -> dict:
+    db.set_assignee(alert_id, body.assignee)
+    return _rerun_current_pipeline()
+
+
+@app.post("/alerts/{alert_id}/dismiss")
+def dismiss_alert(alert_id: str, body: DismissRequest) -> dict:
+    db.set_status_override(alert_id, body.status)
+    return _rerun_current_pipeline()
+
+
+@app.post("/alerts/{alert_id}/escalate")
+def escalate_alert(alert_id: str, body: EscalateRequest) -> dict:
+    db.set_escalated(alert_id, body.value)
+    return _rerun_current_pipeline()
 
 
 @app.get("/forecast/{incident_id}")
