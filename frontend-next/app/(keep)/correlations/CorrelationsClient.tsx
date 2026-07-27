@@ -1,12 +1,21 @@
 "use client";
 
-import { Card } from "@tremor/react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import clsx from "clsx";
+import { Badge, Card } from "@tremor/react";
+import { LuZap } from "react-icons/lu";
 import {
   EmptyStateCard,
   KeepLoader,
   PageSubtitle,
   PageTitle,
+  SeverityLabel,
 } from "@/shared/ui";
+import type { UISeverity } from "@/shared/ui";
+import type { Cluster } from "@/entities/alertlens";
+import { timeAgo } from "@/entities/alertlens/lib/format";
+import { ServiceChip } from "@/entities/alertlens/ui/AlertIcon";
 import { TbChartDots3 } from "react-icons/tb";
 import { HiOutlineInbox } from "react-icons/hi2";
 import { IoMdGitMerge } from "react-icons/io";
@@ -16,8 +25,31 @@ import { StatCard } from "@/entities/alertlens/ui/StatCard";
 import { ClusterCard } from "@/entities/alertlens/ui/ClusterCard";
 import { ChaosOrder } from "@/entities/alertlens/ui/ChaosOrder";
 
+type ViewKey = "chaos" | "raw" | "correlated";
+
+const VIEWS: { key: ViewKey; label: string; icon?: React.ElementType }[] = [
+  { key: "chaos", label: "Chaos → Order", icon: LuZap },
+  { key: "raw", label: "Raw stream" },
+  { key: "correlated", label: "Correlated" },
+];
+
 export function CorrelationsClient() {
   const { state, isLoading, error } = usePipelineState();
+  const [view, setView] = useState<ViewKey>("chaos");
+
+  /**
+   * Every deduplicated alert in arrival order, annotated with the incident it
+   * ended up in — the "before" picture the correlation engine starts from.
+   */
+  const rawStream = useMemo(() => {
+    const owner = new Map<string, Cluster>();
+    for (const c of state.clusters) {
+      for (const a of c.alerts) owner.set(a.id, c);
+    }
+    return [...state.clusters.flatMap((c) => c.alerts), ...state.noise]
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .map((alert) => ({ alert, cluster: owner.get(alert.id) ?? null }));
+  }, [state.clusters, state.noise]);
 
   if (isLoading) {
     return <KeepLoader loadingText="Correlating alerts..." />;
@@ -83,7 +115,24 @@ export function CorrelationsClient() {
         />
       </div>
 
-      {clusters.length > 0 && <ChaosOrder />}
+      <div className="flex items-center gap-1">
+        {VIEWS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setView(key)}
+            className={clsx(
+              "flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors",
+              view === key
+                ? "bg-orange-500 border-orange-500 text-white font-medium"
+                : "border-gray-200 text-gray-600 hover:border-orange-300"
+            )}
+          >
+            {Icon && <Icon className="w-3.5 h-3.5" />}
+            {label}
+          </button>
+        ))}
+      </div>
 
       {clusters.length === 0 ? (
         <Card>
@@ -93,6 +142,64 @@ export function CorrelationsClient() {
             title="No incidents correlated"
             description="No alert batch is loaded, or nothing in it correlated into a group."
           />
+        </Card>
+      ) : view === "chaos" ? (
+        <ChaosOrder />
+      ) : view === "raw" ? (
+        <Card className="p-0 overflow-hidden">
+          <div className="max-h-[32rem] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-white">
+                <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b border-gray-200">
+                  <th className="py-2 px-3">Severity</th>
+                  <th className="py-2 px-3">Alert</th>
+                  <th className="py-2 px-3">Service</th>
+                  <th className="py-2 px-3">Correlated into</th>
+                  <th className="py-2 px-3">Received</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rawStream.map(({ alert, cluster }) => (
+                  <tr
+                    key={alert.id}
+                    className="border-b border-gray-100 last:border-0"
+                  >
+                    <td className="py-2 px-3">
+                      <SeverityLabel severity={alert.severity as UISeverity} />
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className="font-medium truncate max-w-xs">
+                        {alert.alertname}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate max-w-md">
+                        {alert.message}
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      <ServiceChip service={alert.service} />
+                    </td>
+                    <td className="py-2 px-3">
+                      {cluster ? (
+                        <Link
+                          href={`/incidents/${cluster.cluster_id}`}
+                          className="text-orange-500 text-xs"
+                        >
+                          {cluster.root_cause.alertname}
+                        </Link>
+                      ) : (
+                        <Badge size="xs" color="gray">
+                          noise
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-xs text-gray-500 whitespace-nowrap">
+                      {timeAgo(alert.timestamp)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3">
