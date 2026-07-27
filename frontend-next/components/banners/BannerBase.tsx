@@ -21,7 +21,7 @@ const KeepBanner = ({
       <div className="flex items-center justify-between gap-4">
         <Image
           src={KeepPng}
-          alt="Keep Logo"
+          alt="AlertLens Logo"
           width={20}
           height={20}
           className="inline-block mr-2"

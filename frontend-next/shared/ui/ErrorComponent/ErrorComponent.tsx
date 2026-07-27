@@ -30,8 +30,9 @@ export function ErrorComponent({
   const { isHealthy } = useHealth();
   const { data: config } = useConfig();
 
-  const contactUsUrl =
-    config?.KEEP_CONTACT_US_URL || "https://slack.keephq.dev/";
+  // No AlertLens support channel by default, so the contact button is hidden
+  // unless one is configured. (Upstream defaults this to Keep's own Slack.)
+  const contactUsUrl = config?.KEEP_CONTACT_US_URL || "";
 
   useEffect(() => {
     Sentry.captureException(originalError);
@@ -94,13 +95,15 @@ export function ErrorComponent({
             Try again
           </Button>
         )}{" "}
-        <Button
-          color="orange"
-          variant="secondary"
-          onClick={() => window.open(contactUsUrl, "_blank")}
-        >
-          {contactUsUrl.includes("slack") ? "Slack Us" : "Mail Us"}
-        </Button>
+        {contactUsUrl && (
+          <Button
+            color="orange"
+            variant="secondary"
+            onClick={() => window.open(contactUsUrl, "_blank")}
+          >
+            {contactUsUrl.includes("slack") ? "Slack Us" : "Mail Us"}
+          </Button>
+        )}
       </div>
     </div>
   );
