@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import clsx from "clsx";
+import { LuCheck, LuColumns3, LuMinus } from "react-icons/lu";
 import { Badge, Card, Text, TextInput } from "@tremor/react";
 import { DisplayColumnDef } from "@tanstack/react-table";
 import { GenericTable } from "@/components/table/GenericTable";
 import {
+  DropdownMenu,
   EmptyStateCard,
   KeepLoader,
   PageSubtitle,
@@ -17,6 +20,7 @@ import { useFilteredAlerts } from "@/entities/alertlens";
 import type { Alert } from "@/entities/alertlens";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 import { AlertDetailDrawer } from "./AlertDetailDrawer";
+import { AlertIcon, ServiceChip, SourceTag } from "./AlertIcon";
 import {
   AlertFacets,
   applyFacets,
@@ -25,6 +29,54 @@ import {
 } from "./AlertFacets";
 
 const PAGE_SIZE = 20;
+
+/** Columns that can be toggled off, and those that always show. */
+const ALWAYS_ON = ["severity", "alertname"];
+const OPTIONAL_COLUMNS: { id: string; label: string }[] = [
+  { id: "service", label: "Service" },
+  { id: "status", label: "Status" },
+  { id: "source", label: "Source" },
+  { id: "flags", label: "Flags" },
+  { id: "received", label: "Received" },
+];
+
+/** Orders severity meaningfully rather than alphabetically. */
+const SEVERITY_RANK: Record<string, number> = {
+  critical: 3,
+  high: 2,
+  info: 1,
+};
+
+type SortState = { key: string; dir: "asc" | "desc" };
+
+function SortHeader({
+  label,
+  col,
+  sort,
+  onSort,
+}: {
+  label: string;
+  col: string;
+  sort: SortState;
+  onSort: (col: string) => void;
+}) {
+  const active = sort.key === col;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(col)}
+      className={clsx(
+        "flex items-center gap-1 hover:text-orange-500",
+        active && "text-orange-500"
+      )}
+    >
+      {label}
+      <span className="text-[10px]">
+        {active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}
+      </span>
+    </button>
+  );
+}
 
 const statusColor = (status: string) => {
   switch (status) {
@@ -60,6 +112,29 @@ export function AlertFeed({
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Alert | null>(null);
   const [facets, setFacets] = useState(emptySelections);
+  const [sort, setSort] = useState<SortState>({
+    key: "received",
+    dir: "desc",
+  });
+  const [visibleCols, setVisibleCols] = useState<Set<string>>(
+    () => new Set(OPTIONAL_COLUMNS.map((c) => c.id))
+  );
+
+  const toggleSort = useCallback((key: string) => {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "desc" }
+    );
+  }, []);
+
+  const toggleColumn = (id: string) =>
+    setVisibleCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const toggleFacet = (key: FacetKey, value: string) => {
     setFacets((prev) => {
@@ -82,37 +157,68 @@ export function AlertFeed({
     );
   }, [alerts, facets, query]);
 
-  const columns = useMemo<DisplayColumnDef<Alert>[]>(
+  const sorted = useMemo(() => {
+    const dir = sort.dir === "asc" ? 1 : -1;
+    const value = (a: Alert) => {
+      switch (sort.key) {
+        case "severity":
+          return SEVERITY_RANK[a.severity] ?? 0;
+        case "received":
+          return a.timestamp;
+        default:
+          return String(a[sort.key as keyof Alert] ?? "");
+      }
+    };
+    return [...filtered].sort((a, b) => {
+      const va = value(a);
+      const vb = value(b);
+      if (va === vb) return 0;
+      return va > vb ? dir : -dir;
+    });
+  }, [filtered, sort]);
+
+  const allColumns = useMemo<DisplayColumnDef<Alert>[]>(
     () => [
       {
         id: "severity",
-        header: "Severity",
+        header: () => <SortHeader label="Severity" col="severity" sort={sort} onSort={toggleSort} />,
         cell: ({ row }) => (
           <SeverityLabel severity={row.original.severity as UISeverity} />
         ),
       },
       {
         id: "alertname",
-        header: "Alert",
+        header: () => <SortHeader label="Alert" col="alertname" sort={sort} onSort={toggleSort} />,
         cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="font-medium truncate">{row.original.alertname}</div>
-            <div className="text-xs text-gray-500 truncate">
-              {row.original.message}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <AlertIcon
+              alertname={row.original.alertname}
+              severity={row.original.severity}
+              service={row.original.service}
+            />
+            <div className="min-w-0">
+              <div className="font-medium truncate">
+                {row.original.alertname}
+              </div>
+              <div className="text-xs text-gray-500 truncate">
+                {row.original.message}
+              </div>
             </div>
           </div>
         ),
       },
       {
         id: "service",
-        header: "Service",
+        header: () => <SortHeader label="Service" col="service" sort={sort} onSort={toggleSort} />,
         cell: ({ row }) => (
-          <Text className="truncate">{row.original.service}</Text>
+          <Text className="truncate">
+            <ServiceChip service={row.original.service} />
+          </Text>
         ),
       },
       {
         id: "status",
-        header: "Status",
+        header: () => <SortHeader label="Status" col="status" sort={sort} onSort={toggleSort} />,
         cell: ({ row }) => (
           <Badge size="xs" color={statusColor(row.original.status)}>
             {row.original.status}
@@ -121,10 +227,8 @@ export function AlertFeed({
       },
       {
         id: "source",
-        header: "Source",
-        cell: ({ row }) => (
-          <Text className="text-xs text-gray-500">{row.original.source}</Text>
-        ),
+        header: () => <SortHeader label="Source" col="source" sort={sort} onSort={toggleSort} />,
+        cell: ({ row }) => <SourceTag source={row.original.source} />,
       },
       {
         id: "flags",
@@ -150,8 +254,8 @@ export function AlertFeed({
         ),
       },
       {
-        id: "timestamp",
-        header: "Received",
+        id: "received",
+        header: () => <SortHeader label="Received" col="received" sort={sort} onSort={toggleSort} />,
         cell: ({ row }) => (
           <Text className="text-xs text-gray-500 whitespace-nowrap">
             {timeAgo(row.original.timestamp)}
@@ -159,12 +263,21 @@ export function AlertFeed({
         ),
       },
     ],
-    []
+    [sort, toggleSort]
+  );
+
+  // Severity and Alert always show; the rest are user-selectable.
+  const columns = useMemo(
+    () =>
+      allColumns.filter(
+        (c) => ALWAYS_ON.includes(c.id as string) || visibleCols.has(c.id as string)
+      ),
+    [allColumns, visibleCols]
   );
 
   const pageRows = useMemo(
-    () => filtered.slice(offset, offset + limit),
-    [filtered, offset, limit]
+    () => sorted.slice(offset, offset + limit),
+    [sorted, offset, limit]
   );
 
   if (isLoading) {
@@ -190,15 +303,27 @@ export function AlertFeed({
           <PageTitle>{title}</PageTitle>
           <PageSubtitle>{subtitle}</PageSubtitle>
         </div>
-        <TextInput
-          className="max-w-xs"
-          placeholder="Filter alerts..."
-          value={query}
-          onValueChange={(v) => {
-            setQuery(v);
-            setOffset(0);
-          }}
-        />
+        <div className="flex items-center gap-2">
+          <TextInput
+            className="max-w-xs"
+            placeholder="Filter alerts..."
+            value={query}
+            onValueChange={(v) => {
+              setQuery(v);
+              setOffset(0);
+            }}
+          />
+          <DropdownMenu.Menu icon={LuColumns3} label="Columns">
+            {OPTIONAL_COLUMNS.map((c) => (
+              <DropdownMenu.Item
+                key={c.id}
+                icon={visibleCols.has(c.id) ? LuCheck : LuMinus}
+                label={c.label}
+                onClick={() => toggleColumn(c.id)}
+              />
+            ))}
+          </DropdownMenu.Menu>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 items-start">
