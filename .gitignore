@@ -27,3 +27,8 @@ frontend-next/.env.local
 # OS
 .DS_Store
 Thumbs.db
+
+# Local logs and build artifacts
+*.log
+.cc-history/
+frontend.zip
