@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { Badge, Button, Card, ProgressBar, Text } from "@tremor/react";
 import { DropdownMenu, showErrorToast, showSuccessToast } from "@/shared/ui";
 import { LuZap, LuPause, LuPlay, LuFastForward, LuShuffle, LuX } from "react-icons/lu";
@@ -23,12 +24,71 @@ const TICK_MS = 100;
 export function StormEngine() {
   const isStorming = useStormStore((s) => s.full !== null);
   const tick = useStormStore((s) => s.tick);
+  const full = useStormStore((s) => s.full);
+  const schedule = useStormStore((s) => s.schedule);
+  const elapsed = useStormStore((s) => s.elapsed);
+
+  // Clusters already announced, so each milestone fires once per replay.
+  const announced = useRef({
+    formed: new Set<number>(),
+    dna: new Set<number>(),
+  });
 
   useEffect(() => {
     if (!isStorming) return;
     const iv = setInterval(tick, TICK_MS);
     return () => clearInterval(iv);
   }, [isStorming, tick]);
+
+  useEffect(() => {
+    if (!isStorming) {
+      announced.current = { formed: new Set(), dna: new Set() };
+    }
+  }, [isStorming]);
+
+  /**
+   * Narrates the replay: calls out each incident as it forms, and again when
+   * it completes with a match in the Alert DNA library. This is what makes a
+   * replay read as a story rather than a progress bar.
+   */
+  useEffect(() => {
+    if (!full || !schedule) return;
+
+    for (const c of full.clusters) {
+      const revealed = c.alerts.filter(
+        (a) => (schedule.get(a.id) ?? Infinity) <= elapsed
+      ).length;
+      if (revealed === 0) continue;
+
+      const formingAt = Math.max(2, Math.ceil(c.alerts.length / 2));
+
+      if (revealed >= formingAt && !announced.current.formed.has(c.cluster_id)) {
+        announced.current.formed.add(c.cluster_id);
+        toast.info(
+          `Correlating · ${c.root_cause.service} — ${revealed} alerts grouped into ${c.root_cause.alertname}`,
+          { position: "top-right", autoClose: 4000 }
+        );
+      }
+
+      if (
+        revealed === c.alerts.length &&
+        c.dna_match &&
+        !announced.current.dna.has(c.cluster_id)
+      ) {
+        announced.current.dna.add(c.cluster_id);
+        const { similarity_pct, incident_id, resolution, resolution_minutes } =
+          c.dna_match;
+        const fix = resolution
+          ? ` Known fix: ${resolution.slice(0, 70)}${resolution.length > 70 ? "…" : ""}`
+          : "";
+        const took = resolution_minutes ? ` (${resolution_minutes} min last time)` : "";
+        toast.success(
+          `Alert DNA · ${similarity_pct}% match to ${incident_id}.${fix}${took}`,
+          { position: "top-right", autoClose: 7000 }
+        );
+      }
+    }
+  }, [full, schedule, elapsed]);
 
   return null;
 }
