@@ -19,14 +19,27 @@ const EMPTY_STATE: PipelineState = {
   evaluation: null,
 };
 
+/** How often to re-poll the pipeline, matching the original AlertLens UI. */
+export const PIPELINE_REFRESH_MS = 30_000;
+
 /** GET /pipeline — current dedup stats, clusters, noise and raw alerts. */
 export const usePipeline = (options: SWRConfiguration = {}) => {
   const api = useApi();
+  const isStorming = useStormStore((s) => s.full !== null);
 
   return useSWR<PipelineState>(
     api.isReady() ? PIPELINE_KEY : null,
     (url: string) => api.get(url),
-    { revalidateOnFocus: false, ...options }
+    {
+      // Keep a long-lived dashboard current, but hold off during a storm
+      // replay so a refetch can't disturb the batch being replayed.
+      refreshInterval: isStorming ? 0 : PIPELINE_REFRESH_MS,
+      // Default (false) already skips polling while the tab is hidden; pair
+      // that with a refetch on return so coming back shows current data
+      // instead of waiting out the rest of the interval.
+      revalidateOnFocus: !isStorming,
+      ...options,
+    }
   );
 };
 
