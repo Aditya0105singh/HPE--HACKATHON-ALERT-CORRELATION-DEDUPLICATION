@@ -110,7 +110,7 @@ function IncidentDetail({ cluster, onBack, onForecast }) {
             color: tab === "rca" ? "var(--ok)" : "var(--muted)",
           }}
         >
-          <Zap size={15} /> Root Cause Confidence (92%)
+          <Zap size={15} /> Root Cause Confidence
         </button>
 
         <button

@@ -3,7 +3,7 @@ import {
   Activity, Bell, ChevronDown, ChevronLeft, ChevronRight,
   Clock, Cpu, Database, FileBadge, FileText, Flame, Globe, HardDrive,
   Info as InfoIcon, Layers, Lock, Package, Plug,
-  Puzzle, ShieldCheck, TrendingDown, TrendingUp, User,
+  Puzzle, ShieldCheck, TrendingDown, TrendingUp, User, Zap,
 } from "lucide-react";
 import { SOURCE_LOGO, techLogoFor } from "./techLogos";
 
@@ -110,17 +110,13 @@ const STATUS_STYLE = {
   resolved: { color: "var(--ok)" },
 };
 
+// Plain colored text, no pill background — a status column reads faster
+// as a scannable list of words than as a row of same-shaped colored boxes.
 export function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || { color: "var(--muted)" };
   return (
-    <span
-      className="px-2 py-0.5 rounded-md text-xs font-medium capitalize"
-      style={{
-        color: s.color,
-        background: `color-mix(in srgb, ${s.color} 14%, transparent)`,
-        border: `1px solid color-mix(in srgb, ${s.color} 30%, transparent)`,
-      }}
-    >
+    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium capitalize" style={{ color: s.color }}>
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
       {status}
     </span>
   );
@@ -160,20 +156,27 @@ export function Info({ tip }) {
 const RISK_TIP =
   "How likely this incident is to get worse — based on how fast alerts are joining, whether they are getting more severe, and how many services are affected. An explainable score, not a black box.";
 
+// A fixed green→amber→red gradient track with a marker at the current
+// score — shows where this incident sits on the whole scale, not just a
+// bar that happens to be red when risk is high. Same gauge language as
+// AlertDrawer's FatigueMeter, now used everywhere risk is shown.
 export function RiskMeter({ risk, compact = false }) {
   const color = RISK_COLOR[risk.level] || "var(--muted)";
   const pct = Math.round(risk.score * 100);
   return (
     <div className={compact ? "w-28" : "w-full"}>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1.5">
         <span className={`text-xs font-semibold uppercase tracking-wide ${risk.level === "high" ? "risk-pulse" : ""}`} style={{ color }}>
           {risk.level} risk
           <Info tip={RISK_TIP} />
         </span>
-        <span className="text-xs" style={{ color: "var(--muted)" }}>{pct}%</span>
+        <span className="text-xs font-semibold" style={{ color: "var(--text)" }}>{pct}%</span>
       </div>
-      <div className="h-1.5 rounded-full" style={{ background: "var(--panel-2)" }}>
-        <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      <div className="relative h-2 rounded-full" style={{ background: "linear-gradient(90deg, var(--ok), var(--high), var(--critical))" }}>
+        <div
+          className="absolute top-1/2 -translate-y-1/2 rounded-sm"
+          style={{ left: `calc(${pct}% - 2px)`, width: "4px", height: "14px", background: "#fff", boxShadow: "0 0 0 1px rgba(0,0,0,0.35)" }}
+        />
       </div>
     </div>
   );
@@ -369,4 +372,27 @@ export function timeAgo(ts) {
   const h = Math.round(min / 60);
   if (h < 48) return `${h}h ago`;
   return `${Math.round(h / 24)}d ago`;
+}
+
+// A page loaded with zero data and a page that's actually broken look
+// identical if "zero" just renders as a blank area — this is a real risk on
+// a live judged demo. An empty state is structured on purpose: it names
+// what's missing and gives a real next step, the way Datadog's Monitors
+// page never just shows nothing.
+export function EmptyState({ icon, title, description, action }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center px-6 py-16">
+      <div
+        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+        style={{ background: "var(--panel-2)", color: "var(--muted)" }}
+      >
+        {icon || <Zap size={20} strokeWidth={2} />}
+      </div>
+      <div className="text-[15px] font-semibold mb-1.5" style={{ color: "var(--text)" }}>{title}</div>
+      {description && (
+        <div className="text-[13px] max-w-sm mb-5" style={{ color: "var(--muted)" }}>{description}</div>
+      )}
+      {action}
+    </div>
+  );
 }

@@ -97,7 +97,9 @@ export function StormToasts({ toasts, onDismiss, onView }) {
           className="w-full rounded-lg border p-3 shadow-xl animate-[fadein-plain_.3s_ease]"
           style={{
             background: "var(--panel)",
-            borderColor: "var(--border)",
+            borderTopColor: "var(--border)",
+            borderRightColor: "var(--border)",
+            borderBottomColor: "var(--border)",
             borderLeftColor: t.color || "var(--accent)",
             borderLeftWidth: 4,
           }}

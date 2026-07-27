@@ -1,45 +1,54 @@
 @import "tailwindcss";
 
+/* Design tokens below are Keep's (github.com/keephq/keep, MIT licensed)
+   Tremor-based theme, ported 1:1 from keep-ui/tailwind.config.js so
+   AlertLens shares its exact look — including Keep's own quirk of
+   switching brand hue between light (orange-500) and dark (blue-500)
+   mode rather than using one accent everywhere. */
 :root {
-  --bg: #07080d;
-  --panel: #0e1017;
-  --panel-2: #171a24;
-  --border: #262b3a;
-  --text: #f0f1f5;
-  --muted: #9aa2b8;
-  --accent: #8b5cf6;
-  --accent-2: #6366f1;
-  --grad: linear-gradient(135deg, #7c3aed, #4f46e5);
-  --critical: #fb5273;
-  --high: #f5a623;
-  --info: #4cc3fc;
-  --ok: #3ddc9c;
-  --purple: #b295fb;
-  --card-glow: 0 0 0 1px rgba(139, 92, 246, 0.05);
-  --radius-card: 16px;
-  --radius-ctrl: 10px;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --bg: #111827; /* dark-tremor background DEFAULT (gray-900) */
+  --panel: #1f2937; /* dark-tremor background subtle (gray-800) */
+  --panel-2: #131a2b; /* dark-tremor background muted */
+  --border: #1f2937; /* dark-tremor border (gray-800) */
+  --text: #f9fafb; /* dark-tremor content strong (gray-50) */
+  --muted: #6b7280; /* dark-tremor content DEFAULT (gray-600) */
+  --accent: #3b82f6; /* dark-tremor brand DEFAULT (blue-500) */
+  --accent-2: #60a5fa; /* dark-tremor brand emphasis (blue-400) */
+  --grad: linear-gradient(135deg, #60a5fa, #3b82f6);
+  --critical: #dc2626; /* red-600 */
+  --high: #d97706; /* amber-600 */
+  --info: #0284c7; /* sky-600 */
+  --ok: #16a34a; /* green-600 */
+  /* Reserved for AI-powered / predictive features — Forecast, Alert DNA,
+     Historical Comparator, Root Cause Confidence — not a stand-in for
+     --accent and not decorative; if it isn't one of those, it doesn't get
+     this color. */
+  --purple: #8b5cf6; /* violet-500 */
+  --card-glow: none;
+  --radius-card: 0.5rem; /* tremor-default */
+  --radius-ctrl: 0.375rem; /* tremor-small */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); /* dark-tremor-card */
+  --shadow-pop: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* dark-tremor-dropdown */
 }
 
 :root[data-theme="light"] {
-  --bg: #f3f4f8;
+  --bg: #ffffff; /* tremor background DEFAULT */
   --panel: #ffffff;
-  --panel-2: #eef0f5;
-  --border: #dde1e9;
-  --text: #101218;
-  --muted: #565f74;
-  --accent: #7c3aed;
-  --accent-2: #4f46e5;
-  --grad: linear-gradient(135deg, #7c3aed, #4f46e5);
-  --critical: #d81e4c;
-  --high: #b5680a;
-  --info: #0369a1;
-  --ok: #04815a;
-  --purple: #6d28d9;
+  --panel-2: #f9fafb; /* tremor background muted/subtle (gray-50) */
+  --border: #e5e7eb; /* tremor border (gray-200) */
+  --text: #1a1a1a; /* tremor content emphasis */
+  --muted: #646464; /* tremor content subtle */
+  --accent: #f97316; /* tremor brand DEFAULT (orange-500) */
+  --accent-2: #fb923c; /* tremor brand subtle (orange-400) */
+  --grad: linear-gradient(135deg, #fb923c, #f97316);
+  --critical: #dc2626;
+  --high: #d97706;
+  --info: #0369a1; /* sky-700, darker for light-bg contrast */
+  --ok: #15803d; /* green-700 */
+  --purple: #7c3aed; /* violet-600 */
   --card-glow: none;
-  --shadow-card: 0 1px 2px rgba(16, 18, 24, 0.06);
-  --shadow-pop: 0 16px 32px rgba(16, 18, 24, 0.14);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); /* tremor-card */
+  --shadow-pop: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* tremor-dropdown */
 }
 
 * { border-color: var(--border); }
@@ -72,29 +81,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 ::-webkit-scrollbar-thumb:hover { background: var(--border); }
 ::-webkit-scrollbar-track { background: transparent; }
 
-/* Gradient-tinted stat card */
+/* Stat card — flat panel by default; color shows up only on hover/focus, not
+   as a permanent wash. Dozens of these render on one screen, so a resting
+   tint on every single one is exactly the kind of "everything is colored"
+   noise a clean instrument panel shouldn't have. */
 .stat-card {
   position: relative;
   border-radius: var(--radius-card);
   border: 1px solid var(--border);
-  background:
-    linear-gradient(140deg, color-mix(in srgb, var(--sc, var(--accent)) 13%, transparent), transparent 55%),
-    var(--panel);
+  background: var(--panel);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 .stat-card:hover {
-  border-color: color-mix(in srgb, var(--sc, var(--accent)) 45%, var(--border));
+  border-color: color-mix(in srgb, var(--sc, var(--accent)) 40%, var(--border));
+  background:
+    linear-gradient(140deg, color-mix(in srgb, var(--sc, var(--accent)) 8%, transparent), transparent 55%),
+    var(--panel);
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--sc, var(--accent)) 10%, transparent);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--sc, var(--accent)) 8%, transparent);
 }
 
 .grad-btn {
   background: var(--grad);
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.30);
+  box-shadow: 0 2px 10px rgba(194, 65, 12, 0.30);
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 .grad-btn:hover { filter: brightness(1.12); }
@@ -200,8 +213,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* Inject Failure hero button — idle breathing glow */
 @keyframes hero-pulse {
-  0%, 100% { box-shadow: 0 2px 10px rgba(124, 58, 237, 0.30), 0 0 0 0 rgba(139, 92, 246, 0.27); }
-  50%      { box-shadow: 0 2px 15px rgba(124, 58, 237, 0.47), 0 0 0 6px rgba(139, 92, 246, 0); }
+  0%, 100% { box-shadow: 0 2px 10px rgba(194, 65, 12, 0.30), 0 0 0 0 rgba(232, 89, 12, 0.27); }
+  50%      { box-shadow: 0 2px 15px rgba(194, 65, 12, 0.47), 0 0 0 6px rgba(232, 89, 12, 0); }
 }
 .hero-glow { animation: hero-pulse 2.6s ease-in-out infinite; }
 .hero-glow:hover { animation-play-state: paused; }

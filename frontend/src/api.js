@@ -26,6 +26,46 @@ export async function loadAiopsBatch() {
   return res.json();
 }
 
+export async function ackAlert(id, value) {
+  const res = await fetch(`/api/alerts/${id}/ack`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
+  if (!res.ok) throw new Error(`ack failed: ${res.status}`);
+  return res.json();
+}
+
+export async function assignAlert(id, assignee) {
+  const res = await fetch(`/api/alerts/${id}/assign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ assignee }),
+  });
+  if (!res.ok) throw new Error(`assign failed: ${res.status}`);
+  return res.json();
+}
+
+export async function dismissAlert(id, status) {
+  const res = await fetch(`/api/alerts/${id}/dismiss`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(`dismiss failed: ${res.status}`);
+  return res.json();
+}
+
+export async function escalateAlert(id, value) {
+  const res = await fetch(`/api/alerts/${id}/escalate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
+  if (!res.ok) throw new Error(`escalate failed: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchEvaluation() {
   const res = await fetch("/api/evaluation");
   if (!res.ok) throw new Error(`evaluation fetch failed: ${res.status}`);

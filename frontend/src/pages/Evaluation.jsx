@@ -1,6 +1,21 @@
 import { useEffect, useState } from "react";
+import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { fetchEvaluation } from "../api";
 import { MetricCard } from "../components/ui";
+
+function EvalTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border px-3 py-2 text-[13px]" style={{ background: "var(--panel)", borderColor: "var(--border)", color: "var(--text)" }}>
+      <div style={{ color: "var(--muted)" }}>Seed {label}</div>
+      {payload.map((p) => (
+        <div key={p.dataKey}>
+          <span style={{ color: p.color }}>{p.name}</span>: {p.value}%
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Evaluation() {
   const [eval_, setEval] = useState(null);
@@ -54,6 +69,32 @@ export default function Evaluation() {
           sub={`${eval_.dna_correct}/${eval_.dna_total} matched to the correct past incident`}
         />
       </div>
+
+      {eval_.per_seed?.length > 0 && (
+        <div className="rounded-lg border p-4 mb-6" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
+          <div className="text-[15px] font-semibold mb-1">Accuracy per random seed</div>
+          <div className="text-[13px] mb-3" style={{ color: "var(--muted)" }}>
+            The {eval_.seeds_tested} individual test runs behind the averaged numbers above — real per-seed results, not smoothed.
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={eval_.per_seed}>
+              <defs>
+                <linearGradient id="detectionGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="seed" stroke="var(--muted)" tick={{ fill: "var(--muted)", fontSize: 12 }} />
+              <YAxis stroke="var(--muted)" tick={{ fill: "var(--muted)", fontSize: 12 }} domain={[0, 100]} />
+              <Tooltip content={<EvalTooltip />} />
+              <Area type="monotone" dataKey="incident_detection_pct" name="Incident detection" stroke="var(--accent)" fill="url(#detectionGrad)" strokeWidth={2} />
+              <Line type="monotone" dataKey="cluster_purity_pct" name="Cluster purity" stroke="var(--ok)" strokeWidth={2} dot={{ r: 3, fill: "var(--ok)" }} />
+              <Line type="monotone" dataKey="noise_excluded_pct" name="Noise excluded" stroke="var(--info)" strokeWidth={2} dot={{ r: 3, fill: "var(--info)" }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="rounded-lg border p-4 mb-6" style={{ borderColor: "var(--border)", background: "var(--panel)" }}>
         <div className="text-[15px] font-semibold mb-2">Incident fragmentation</div>

@@ -25,6 +25,7 @@ import {
   AlertIcon,
   CheckRow,
   Dropdown,
+  EmptyState,
   MenuItem,
   Pager,
   PriorityBadge,
@@ -42,11 +43,6 @@ const RISK_EDGE = {
   high: "var(--critical)",
   medium: "var(--high)",
   low: "var(--ok)",
-};
-const SEV_EDGE = {
-  critical: "var(--critical)",
-  high: "var(--high)",
-  info: "var(--info)",
 };
 
 function IncidentCard({ cluster }) {
@@ -463,11 +459,32 @@ export default function Home({ data }) {
             <IncidentCard key={c.cluster_id} cluster={c} />
           ))}
           {cards.length === 0 && (
-            <div
-              className="col-span-full p-8 text-center text-[15px] rounded-xl border"
-              style={{ color: "var(--muted)", borderColor: "var(--border)" }}
-            >
-              No incidents match the current risk filter.
+            <div className="col-span-full rounded-xl border" style={{ borderColor: "var(--border)" }}>
+              {clusters.length === 0 ? (
+                <EmptyState
+                  icon={<CircleCheckBig size={20} strokeWidth={2} style={{ color: "var(--ok)" }} />}
+                  title="No active incidents right now"
+                  description="Nothing has been correlated in this window. Load a dataset or trigger a demo scenario to see the pipeline in action."
+                  action={
+                    <span className="text-[12px] font-mono px-2.5 py-1 rounded-md border" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                      Try ⌘K → "load"
+                    </span>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  title="No incidents match the current risk filter"
+                  description="There are active incidents, just none at this risk level. Clear the filter to see all of them."
+                  action={
+                    <button
+                      onClick={() => setRiskFilter(new Set())}
+                      className="text-[13px] font-semibold px-3 py-1.5 rounded-lg cursor-pointer grad-btn"
+                    >
+                      Clear filter
+                    </button>
+                  }
+                />
+              )}
             </div>
           )}
         </div>
@@ -609,11 +626,9 @@ export default function Home({ data }) {
                         <tr
                           key={a.id}
                           onClick={() => setDrawerAlert(a)}
-                          className="row-hover border-t border-l-[3px] cursor-pointer"
+                          className="row-hover border-t cursor-pointer"
                           style={{
                             borderColor: "var(--border)",
-                            borderLeftColor:
-                              SEV_EDGE[a.severity] || "transparent",
                             opacity: ackedIds.has(a.id) ? 0.6 : 1,
                           }}
                         >

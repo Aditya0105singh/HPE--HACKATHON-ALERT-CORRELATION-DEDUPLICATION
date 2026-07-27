@@ -17,7 +17,13 @@ export function ClusterCard({ cluster }) {
   return (
     <div
       className="rounded-xl border mb-4 overflow-hidden border-l-4"
-      style={{ borderColor: "var(--border)", borderLeftColor: riskColor, background: "var(--panel)" }}
+      style={{
+        borderTopColor: "var(--border)",
+        borderRightColor: "var(--border)",
+        borderBottomColor: "var(--border)",
+        borderLeftColor: riskColor,
+        background: "var(--panel)",
+      }}
     >
       <div className="p-4">
         <div className="flex items-start gap-4">
