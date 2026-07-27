@@ -32,6 +32,7 @@ import {
 } from "@/entities/alertlens";
 import type { Alert } from "@/entities/alertlens";
 import { AlertDetailDrawer } from "@/entities/alertlens/ui/AlertDetailDrawer";
+import { AlertIcon, ServiceChip } from "@/entities/alertlens/ui/AlertIcon";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
 import { riskColor, timeAgo } from "@/entities/alertlens/lib/format";
 
@@ -139,6 +140,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
 
       <TabGroup className="flex-1">
         <TabList>
+          <Tab>Overview</Tab>
           <Tab>Alerts ({incident.size})</Tab>
           <Tab>Root cause</Tab>
           <Tab>Forecast</Tab>
@@ -146,6 +148,92 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
           <Tab>Playbook</Tab>
         </TabList>
         <TabPanels>
+          {/* Overview — the at-a-glance answer before drilling in */}
+          <TabPanel>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+              <Card className="p-4">
+                <Title className="text-base mb-2">Root cause</Title>
+                <div className="flex items-center gap-2.5">
+                  <AlertIcon
+                    alertname={incident.root_cause.alertname}
+                    severity={incident.root_cause.severity}
+                    service={incident.root_cause.service}
+                  />
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">
+                      {incident.root_cause.alertname}
+                    </div>
+                    <Text className="text-xs text-gray-500">
+                      <ServiceChip service={incident.root_cause.service} />
+                    </Text>
+                  </div>
+                </div>
+                <Text className="mt-2 text-sm">
+                  {incident.root_cause.message}
+                </Text>
+              </Card>
+
+              <Card className="p-4">
+                <Title className="text-base mb-2">Risk factors</Title>
+                <div className="flex flex-col gap-2">
+                  {Object.entries(incident.risk.factors).map(([k, v]) => (
+                    <div key={k} className="flex items-center gap-3">
+                      <div className="w-32 text-xs text-gray-500 capitalize shrink-0">
+                        {k.replace(/_/g, " ")}
+                      </div>
+                      <div className="flex-1">
+                        <ProgressBar value={Number(v) * 100} color={color} />
+                      </div>
+                      <div className="w-10 text-xs text-right shrink-0">
+                        {Math.round(Number(v) * 100)}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="p-4">
+                <Title className="text-base mb-2">Affected services</Title>
+                <div className="flex flex-wrap gap-1">
+                  {Array.from(
+                    new Set(incident.alerts.map((a) => a.service))
+                  ).map((s) => (
+                    <Badge key={s} size="xs" color="gray">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="p-4">
+                <Title className="text-base mb-2">Known history</Title>
+                {incident.dna_match ? (
+                  <>
+                    <Text className="text-sm font-medium">
+                      {incident.dna_match.incident_id} —{" "}
+                      {incident.dna_match.title}
+                    </Text>
+                    <Text className="text-xs text-gray-500 mt-1">
+                      {incident.dna_match.similarity_pct}% similar ·{" "}
+                      {incident.dna_match.date}
+                    </Text>
+                    {incident.dna_match.resolution && (
+                      <Text className="text-sm mt-2">
+                        <span className="font-medium">Previous fix: </span>
+                        {incident.dna_match.resolution}
+                      </Text>
+                    )}
+                  </>
+                ) : (
+                  <Text className="text-sm text-gray-500">
+                    Novel signature — nothing comparable in the Alert DNA
+                    library.
+                  </Text>
+                )}
+              </Card>
+            </div>
+          </TabPanel>
+
           {/* Alerts */}
           <TabPanel>
             <div className="flex flex-col gap-2 mt-3">

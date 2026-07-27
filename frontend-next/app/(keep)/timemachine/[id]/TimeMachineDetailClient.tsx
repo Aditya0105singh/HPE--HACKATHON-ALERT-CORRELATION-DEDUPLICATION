@@ -11,6 +11,7 @@ import {
 import { TbTimeline } from "react-icons/tb";
 import { useIncident, useIncidentComparison } from "@/entities/alertlens";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
+import { ReplayTimeline } from "@/entities/alertlens/ui/ReplayTimeline";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 
 const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -76,6 +77,8 @@ export function TimeMachineDetailClient({
           )}
         </div>
       </div>
+
+      {incident && <ReplayTimeline cluster={incident} />}
 
       {!data.has_match ? (
         <Card>
