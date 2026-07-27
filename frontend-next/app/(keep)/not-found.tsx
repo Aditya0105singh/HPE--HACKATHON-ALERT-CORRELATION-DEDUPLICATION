@@ -1,26 +1,16 @@
 "use client";
 
-import { Link } from "@/components/ui";
 import { Title, Button, Subtitle } from "@tremor/react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { AlertLensMark } from "@/components/AlertLensMark";
 
 export default function NotFound() {
   const router = useRouter();
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className="flex flex-col items-center justify-center h-full gap-4">
       <Title>404 Page not found</Title>
-      <Subtitle>
-        If you believe this is an error, please contact us on{" "}
-        <Link
-          href="https://slack.keephq.dev/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Slack
-        </Link>
-      </Subtitle>
-      <Image src="/keep.svg" alt="Keep" width={150} height={150} />
+      <Subtitle>That page doesn&apos;t exist in AlertLens.</Subtitle>
+      <AlertLensMark className="w-24 h-24" />
       <Button
         onClick={() => {
           router.back();

@@ -141,7 +141,7 @@ export const CreateIncidentWithAIModal = ({
       if (error instanceof KeepApiError) {
         if (error.statusCode === 400) {
           setError(
-            "Keep backend is not initialized with an AI model. See documentation on how to enable it."
+            "AlertLens backend is not initialized with an AI model. See documentation on how to enable it."
           );
         } else {
           setError(

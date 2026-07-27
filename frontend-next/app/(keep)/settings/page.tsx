@@ -11,5 +11,5 @@ export default function Page() {
 
 export const metadata = {
   title: "Settings | AlertLens",
-  description: "Configure your Keep.",
+  description: "Configure your AlertLens instance.",
 };
