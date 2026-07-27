@@ -1,46 +1,51 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  ArrowLeftRight, BellRing, Bookmark, ChartColumn, ChevronRight, Compass, Database,
-  Flame, History, House, Layers, List, Network, OctagonAlert, Radar, Search, Star,
-  Waypoints, Workflow, X,
+  ArrowLeftRight, Bell, BellRing, Bookmark, ChevronDown, Compass, Database,
+  Flame, GitMerge, History, Network, OctagonAlert, Radar, Search,
+  Star, Waypoints, Workflow, X, Zap,
 } from "lucide-react";
 import { matchesCel } from "../lib/cel";
 import { Sparkline } from "./ui";
 import AlertLensMark from "./AlertLensMark";
 
+// Icon + label choices below deliberately mirror Keep's actual left-nav
+// (components/navbar/*Links.tsx): same section names (INCIDENTS / ALERTS /
+// NOISE REDUCTION), same per-item icon families (a flash icon for Incidents,
+// a swap icon for Feed, a merge icon for Deduplication), same Beta-badge
+// convention on Topology/Dashboards. The AI/forecast pages have no Keep
+// equivalent, so they get their own "INTELLIGENCE" section instead of being
+// forced into one of Keep's groups.
 const NAV_ICON = {
-  "/": House,
-  "/incidents": Flame,
-  "/forecast": Compass,
-  "/timemachine": History,
-  "/feed": List,
+  "/incidents": Zap,
+  "/feed": ArrowLeftRight,
   "/5xx": OctagonAlert,
   "/firing": BellRing,
-  "/deduplication": Layers,
+  "/deduplication": GitMerge,
   "/correlations": Radar,
-  "/pipeline": Waypoints,
-  "/evaluation": ChartColumn,
   "/workflows": Workflow,
   "/topology": Network,
   "/providers": ArrowLeftRight,
+  "/forecast": Compass,
+  "/timemachine": History,
+  "/pipeline": Waypoints,
+  "/evaluation": Database,
 };
 
 const NAV_ITEMS = [
-  { to: "/", label: "Home" },
-  { to: "/incidents", label: "Active Incidents" },
-  { to: "/forecast", label: "Predictive Forecast" },
-  { to: "/timemachine", label: "Time Machine" },
-  { to: "/feed", label: "Alerts Feed" },
+  { to: "/incidents", label: "Incidents" },
+  { to: "/feed", label: "Feed" },
   { to: "/5xx", label: "5xx Alerts" },
   { to: "/firing", label: "Firing Alerts" },
   { to: "/deduplication", label: "Deduplication" },
   { to: "/correlations", label: "Correlations" },
-  { to: "/pipeline", label: "Pipeline" },
-  { to: "/evaluation", label: "Evaluation" },
   { to: "/workflows", label: "Workflows" },
   { to: "/topology", label: "Service Topology" },
   { to: "/providers", label: "Providers" },
+  { to: "/forecast", label: "Predictive Forecast" },
+  { to: "/timemachine", label: "Time Machine" },
+  { to: "/pipeline", label: "Pipeline" },
+  { to: "/evaluation", label: "Evaluation" },
 ];
 
 // Built-in saved-filter presets — counts are computed live against the batch.
@@ -78,81 +83,126 @@ function Badge({ tone = "info", children }) {
   );
 }
 
-function Section({ title, children, defaultOpen = true }) {
+// Section header mirrors Keep's Disclosure pattern in components/navbar/
+// *Links.tsx exactly: uppercase text-xs label, chevron that rotates 180deg
+// when open, optional "Beta" pill next to the chevron (Keep uses this same
+// pill on Dashboards/Topology).
+function Section({ title, children, defaultOpen = true, beta = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mt-5 mb-1 first:mt-1">
+    <div className="mb-1 first:mt-1">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 w-full px-5 mb-2 text-[11px] font-medium uppercase tracking-[0.09em] cursor-pointer transition-colors"
-        style={{ color: "var(--muted)" }}
+        className="flex items-center justify-between w-full px-4 py-1.5 cursor-pointer"
       >
-        <ChevronRight
-          size={11}
-          strokeWidth={2.5}
-          className="transition-transform duration-200 shrink-0"
-          style={{ transform: open ? "rotate(90deg)" : "none" }}
-        />
-        {title}
+        <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--muted)" }}>
+          {title}
+        </span>
+        <span className="flex items-center gap-1.5">
+          {beta && (
+            <span
+              className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 16%, transparent)" }}
+            >
+              Beta
+            </span>
+          )}
+          <ChevronDown
+            size={13}
+            strokeWidth={2.25}
+            className="transition-transform duration-200 shrink-0"
+            style={{ color: "var(--muted)", transform: open ? "rotate(180deg)" : "none" }}
+          />
+        </span>
       </button>
       <div className={`collapse-rows ${open ? "is-open" : ""}`}>
-        <div>{children}</div>
+        <div className="px-2">{children}</div>
       </div>
     </div>
   );
 }
 
-function Item({ to, label, count, tone, collapsed }) {
-  const Icon = NAV_ICON[to] || List;
+// Nav link chrome mirrors Keep's LinkWithIcon.tsx: flat rounded-lg row, a
+// single neutral hover/active tint (Keep's bg-stone-200/50) rather than a
+// gradient/accent-bar treatment, icon+label switching to the brand color
+// when active (Keep's text-orange-400 / dark:text-blue-400).
+function Item({ to, label, count, isBeta, collapsed }) {
+  const Icon = NAV_ICON[to] || Bell;
   return (
     <NavLink
       to={to}
       end={to === "/"}
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
-        `nav-link group flex items-center gap-3 py-2 rounded-xl mb-0.5 ${
-          isActive ? "nav-link--active" : ""
-        } ${collapsed ? "justify-center px-0 mx-2" : "px-3 mx-2"}`
+        `nav-link group flex items-center gap-2.5 py-1.5 rounded-lg mb-0.5 ${
+          collapsed ? "justify-center px-0 mx-2" : "px-2 mx-2"
+        } ${isActive ? "nav-link--active" : ""}`
       }
-      style={{ color: "var(--text)" }}
+      style={({ isActive }) => ({
+        background: isActive ? "color-mix(in srgb, var(--text) 8%, transparent)" : "transparent",
+      })}
     >
       {({ isActive }) => (
         <>
-          <span
-            className="nav-link__accent"
-            style={{ height: "60%" }}
-          />
-          <span
-            className="nav-link__icon flex items-center justify-center w-4 shrink-0"
-            style={{ color: isActive ? "var(--accent)" : "var(--muted)" }}
-          >
-            <Icon size={16} strokeWidth={isActive ? 2.4 : 2} />
+          <span className="flex items-center justify-center w-4 shrink-0" style={{ color: isActive ? "var(--accent)" : "var(--text)" }}>
+            <Icon size={15} strokeWidth={2} />
           </span>
           {!collapsed && (
-            <span
-              className="flex-1 truncate text-[14px]"
-              style={{ color: isActive ? "var(--text)" : "var(--muted)", fontWeight: isActive ? 600 : 400 }}
-            >
+            <span className="flex-1 truncate text-[13.5px] font-medium" style={{ color: isActive ? "var(--accent)" : "var(--text)" }}>
               {label}
             </span>
           )}
-          {!collapsed && count != null && <Badge tone={tone}>{count}</Badge>}
+          {!collapsed && count != null && (
+            <span
+              className="px-1.5 min-w-5 text-center rounded-full text-[11px] font-semibold shrink-0"
+              style={{ color: "#fff", background: "var(--accent)" }}
+            >
+              {count}
+            </span>
+          )}
+          {!collapsed && isBeta && (
+            <span
+              className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
+              style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 16%, transparent)" }}
+            >
+              Beta
+            </span>
+          )}
         </>
       )}
     </NavLink>
   );
 }
 
-function CommandSearch() {
+function CommandSearch({ clusters = [] }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
+  // The palette used to only jump between pages — every page you could
+  // already reach by clicking the sidebar. Its actual value is jumping to a
+  // specific *thing*, the way it works in real tools, so it also surfaces
+  // live actions built from the current batch, not just static routes.
+  const topRisk = useMemo(
+    () => (clusters.length ? [...clusters].sort((a, b) => b.risk.score - a.risk.score)[0] : null),
+    [clusters]
+  );
+  const actions = useMemo(() => {
+    if (!topRisk) return [];
+    return [{
+      to: `/incidents/${topRisk.cluster_id}`,
+      label: `Jump to highest-risk incident — ${topRisk.root_cause.service} (${Math.round(topRisk.risk.score * 100)}%)`,
+      isAction: true,
+    }];
+  }, [topRisk]);
+
   const matches = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return NAV_ITEMS;
-    return NAV_ITEMS.filter((n) => n.label.toLowerCase().includes(term));
-  }, [q]);
+    if (!term) return [...actions, ...NAV_ITEMS];
+    const actionMatches = actions.filter((a) => a.label.toLowerCase().includes(term) || "risk incident highest".includes(term));
+    const pageMatches = NAV_ITEMS.filter((n) => n.label.toLowerCase().includes(term));
+    return [...actionMatches, ...pageMatches];
+  }, [q, actions]);
 
   useEffect(() => {
     if (!open) return;
@@ -170,10 +220,10 @@ function CommandSearch() {
   };
 
   return (
-    <div className="px-4 pb-3 relative" data-sidebar-search>
+    <div className="flex-1 min-w-0 relative" data-sidebar-search>
       <div
-        className="search-shell flex items-center gap-2.5 px-3 py-2.5 rounded-xl border"
-        style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--bg) 55%, transparent)" }}
+        className="search-shell flex items-center gap-2 px-2.5 py-1.5 rounded-lg border"
+        style={{ borderColor: "var(--border)", background: "var(--panel)" }}
       >
         <Search size={15} strokeWidth={2} style={{ color: "var(--muted)" }} className="shrink-0" />
         <input
@@ -201,16 +251,21 @@ function CommandSearch() {
           style={{ borderColor: "var(--border)", background: "var(--panel)", boxShadow: "var(--shadow-pop)" }}
         >
           {matches.length === 0 ? (
-            <div className="px-3 py-2.5 text-[13px]" style={{ color: "var(--muted)" }}>No pages match</div>
+            <div className="px-3 py-2.5 text-[13px]" style={{ color: "var(--muted)" }}>No matches</div>
           ) : (
             matches.map((n) => (
               <button
                 key={n.to}
                 onClick={() => select(n)}
-                className="block w-full text-left px-3 py-2 text-[13.5px] cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
-                style={{ color: "var(--text)" }}
+                className="flex items-center gap-2 w-full text-left px-3 py-2 text-[13.5px] cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
+                style={{ color: n.isAction ? "var(--accent)" : "var(--text)" }}
               >
-                {n.label}
+                {n.isAction && (
+                  <span className="text-[9.5px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0" style={{ background: "color-mix(in srgb, var(--accent) 16%, transparent)" }}>
+                    Action
+                  </span>
+                )}
+                <span className="truncate">{n.label}</span>
               </button>
             ))
           )}
@@ -242,12 +297,12 @@ function SavedFilters({ rawAlerts }) {
   ];
 
   return (
-    <Section title="Saved Filters">
+    <>
       {entries.map((f) => (
         <div
           key={f.name}
-          className="group flex items-center gap-2.5 mx-2 px-3 py-1.5 rounded-xl text-[14px] cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
-          style={{ color: "var(--muted)" }}
+          className="group flex items-center gap-2.5 mx-2 px-2 py-1.5 rounded-lg text-[13.5px] font-medium cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--text)_8%,transparent)]"
+          style={{ color: "var(--text)" }}
         >
           <button
             onClick={() => navigate(`/feed?q=${encodeURIComponent(f.query)}`)}
@@ -270,7 +325,7 @@ function SavedFilters({ rawAlerts }) {
           <Badge tone="info">{rawAlerts.filter((a) => matchesCel(a, f.query)).length}</Badge>
         </div>
       ))}
-    </Section>
+    </>
   );
 }
 
@@ -292,29 +347,24 @@ export default function Sidebar({ data, collapsed, lastUpdated }) {
 
   return (
     <aside
-      className={`sidebar-surface ${collapsed ? "w-16" : "w-72"} shrink-0 h-full flex flex-col border-r overflow-y-auto overflow-x-hidden transition-all duration-200`}
-      style={{ borderColor: "var(--border)" }}
+      className={`${collapsed ? "w-16" : "w-72"} shrink-0 h-full flex flex-col border-r overflow-y-auto overflow-x-hidden transition-all duration-200`}
+      style={{ borderColor: "var(--border)", background: "var(--panel-2)" }}
     >
-      <div className={`flex items-center gap-3 px-5 pt-5 pb-4 ${collapsed ? "justify-center px-0" : ""}`}>
+      {/* Header row mirrors Keep's components/navbar/Search.tsx exactly:
+          logo + search combined in one flex row with a bottom border,
+          rather than two stacked blocks. */}
+      <div className={`flex items-center w-full py-3 px-2.5 border-b gap-3 ${collapsed ? "justify-center" : ""}`} style={{ borderColor: "var(--border)" }}>
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "var(--grad)", boxShadow: "0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent)", color: "#fff" }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: "var(--grad)", color: "#fff" }}
+          title="AlertLens"
         >
-          <AlertLensMark size={19} />
+          <AlertLensMark size={16} />
         </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <div className="font-extrabold text-[17px] leading-tight tracking-tight">AlertLens</div>
-            <div className="text-[10.5px] font-semibold mt-0.5 uppercase tracking-wide" style={{ color: "var(--accent)" }}>
-              AI Incident Intelligence
-            </div>
-          </div>
-        )}
+        {!collapsed && <CommandSearch clusters={clusters} />}
       </div>
 
-      {!collapsed && <CommandSearch />}
-
-      <nav className="flex-1 pt-1">
+      <nav className="flex-1 pt-3">
         {collapsed ? (
           <>
             {NAV_ITEMS.map((n) => (
@@ -323,30 +373,31 @@ export default function Sidebar({ data, collapsed, lastUpdated }) {
           </>
         ) : (
           <>
-            <Section title="Overview">
-              <Item to="/" label="Home" />
-              <Item to="/incidents" label="Active Incidents" count={clusters.length} tone="critical" />
-              <Item to="/forecast" label="Forecast" tone="ai" />
-              <Item to="/timemachine" label="Time Machine" tone="warning" />
-              <Item to="/feed" label="Alerts Feed" count={feedCount} tone="info" />
-              <Item to="/5xx" label="5xx Alerts" count={critical} tone="critical" />
-              <Item to="/firing" label="Firing Alerts" count={firing} tone="warning" />
+            <Section title="Incidents">
+              <Item to="/incidents" label="Incidents" count={clusters.length} />
+            </Section>
+
+            <Section title="Alerts">
+              <Item to="/feed" label="Feed" count={feedCount} />
+              <Item to="/firing" label="Firing Alerts" count={firing} />
+              <Item to="/5xx" label="5xx Alerts" count={critical} />
+              <SavedFilters rawAlerts={rawAlerts} />
             </Section>
 
             <Section title="Noise Reduction">
               <Item to="/deduplication" label="Deduplication" />
-              <Item to="/correlations" label="Correlations" count={clusters.length} tone="ai" />
-            </Section>
-
-            <Section title="Platform">
-              <Item to="/pipeline" label="Pipeline" />
-              <Item to="/evaluation" label="Evaluation" />
+              <Item to="/correlations" label="Correlations" count={clusters.length} />
               <Item to="/workflows" label="Workflows" />
-              <Item to="/topology" label="Service Topology" />
+              <Item to="/topology" label="Service Topology" isBeta />
               <Item to="/providers" label="Providers" />
             </Section>
 
-            <SavedFilters rawAlerts={rawAlerts} />
+            <Section title="Intelligence" beta>
+              <Item to="/forecast" label="Predictive Forecast" />
+              <Item to="/timemachine" label="Time Machine" />
+              <Item to="/pipeline" label="Pipeline" />
+              <Item to="/evaluation" label="Evaluation" />
+            </Section>
           </>
         )}
       </nav>

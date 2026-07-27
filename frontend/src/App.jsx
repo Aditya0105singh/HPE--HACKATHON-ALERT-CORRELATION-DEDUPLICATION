@@ -364,9 +364,9 @@ export default function App() {
           <PageErrorBoundary resetKey={location.pathname}>
             <Routes>
               <Route path="/" element={<Home data={viewData} />} />
-              <Route path="/feed" element={<Feed data={viewData} />} />
-              <Route path="/firing" element={<Feed data={viewData} firingOnly stormRate={stormRate} />} />
-              <Route path="/5xx" element={<Feed data={viewData} criticalOnly />} />
+              <Route path="/feed" element={<Feed data={viewData} onRefresh={refresh} />} />
+              <Route path="/firing" element={<Feed data={viewData} firingOnly stormRate={stormRate} onRefresh={refresh} />} />
+              <Route path="/5xx" element={<Feed data={viewData} criticalOnly onRefresh={refresh} />} />
               <Route path="/deduplication" element={<Deduplication data={viewData} />} />
               <Route path="/correlations" element={<Correlations data={viewData} stormActive={!!storm} />} />
               <Route path="/incidents" element={<Incidents data={viewData} />} />

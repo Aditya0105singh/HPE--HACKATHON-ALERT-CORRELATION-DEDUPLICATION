@@ -8,11 +8,12 @@ import AlertDrawer from "../components/AlertDrawer";
 import FacetSidebar from "../components/FacetSidebar";
 import { AlertIcon, CheckRow, Dropdown, MenuItem, Pager, SeverityDot, StatCard, StatusBadge, SourceTag, timeAgo } from "../components/ui";
 import { matchesCel } from "../lib/cel";
+import { ackAlert, assignAlert, dismissAlert, escalateAlert } from "../api";
 
-const SEV_BORDER = { critical: "var(--critical)", high: "var(--high)", info: "var(--info)" };
+const ASSIGNEE = "Aditya"; // single-operator demo — no user directory yet
 
-function ActionChips({ alert, onAck, onDismiss, acked, onOpen, copied, onCopy }) {
-  const isAcked = acked.has(alert.id);
+function ActionChips({ alert, onAck, onDismiss, onOpen, copied, onCopy }) {
+  const isAcked = !!alert.acked;
   const btn = "action-icon w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer";
   return (
     <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
@@ -41,7 +42,7 @@ function ActionChips({ alert, onAck, onDismiss, acked, onOpen, copied, onCopy })
   );
 }
 
-export default function Feed({ data, firingOnly = false, criticalOnly = false, stormRate = 0 }) {
+export default function Feed({ data, firingOnly = false, criticalOnly = false, stormRate = 0, onRefresh }) {
   const [facets, setFacets] = useState({
     severity: new Set(),
     status: new Set(),
@@ -53,10 +54,6 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(new Set());
-  const [acked, setAcked] = useState(new Set());
-  const [dismissedLocal, setDismissedLocal] = useState(new Map()); // id -> overridden status
-  const [escalated, setEscalated] = useState(new Set());
-  const [assignee, setAssignee] = useState(new Map());
   const [drawerAlert, setDrawerAlert] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [shareState, setShareState] = useState("Share");
@@ -164,46 +161,26 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
       prev.size === visible.length ? new Set() : new Set(visible.map((a) => a.id))
     );
 
+  const byId = useMemo(() => new Map(base.map((a) => [a.id, a])), [base]);
+
   const toggleAck = (id) =>
-    setAcked((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    ackAlert(id, !byId.get(id)?.acked).then(onRefresh);
 
-  const dismissOne = (id) =>
-    setDismissedLocal((prev) => new Map(prev).set(id, "suppressed"));
+  const dismissOne = (id) => dismissAlert(id, "suppressed").then(onRefresh);
 
-  const resolveOne = (id) =>
-    setDismissedLocal((prev) => new Map(prev).set(id, "resolved"));
+  const resolveOne = (id) => dismissAlert(id, "resolved").then(onRefresh);
 
   const toggleEscalate = (id) =>
-    setEscalated((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    escalateAlert(id, !byId.get(id)?.escalated).then(onRefresh);
 
   const toggleAssign = (id) =>
-    setAssignee((prev) => {
-      const next = new Map(prev);
-      next.get(id) === "Aditya" ? next.delete(id) : next.set(id, "Aditya");
-      return next;
-    });
+    assignAlert(id, byId.get(id)?.assignee === ASSIGNEE ? null : ASSIGNEE).then(onRefresh);
 
   const ackSelected = () =>
-    setAcked((prev) => {
-      const next = new Set(prev);
-      selected.forEach((id) => next.add(id));
-      return next;
-    });
+    Promise.all([...selected].map((id) => ackAlert(id, true))).then(onRefresh);
 
   const dismissSelected = () =>
-    setDismissedLocal((prev) => {
-      const next = new Map(prev);
-      selected.forEach((id) => next.set(id, "suppressed"));
-      return next;
-    });
+    Promise.all([...selected].map((id) => dismissAlert(id, "suppressed"))).then(onRefresh);
 
   return (
     <div className="flex h-full min-h-0">
@@ -416,13 +393,13 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
             </thead>
             <tbody>
               {pageRows.map((a) => {
-                const status = dismissedLocal.get(a.id) || a.status;
+                const status = a.status;
                 return (
                   <tr
                     key={a.id}
                     onClick={() => setDrawerAlert(a)}
-                    className="row-hover border-t border-l-[3px] cursor-pointer"
-                    style={{ borderColor: "var(--border)", borderLeftColor: SEV_BORDER[a.severity] || "transparent" }}
+                    className="row-hover border-t cursor-pointer"
+                    style={{ borderColor: "var(--border)" }}
                   >
                     <td className="pl-5 pr-2 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <input
@@ -461,7 +438,6 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
                         alert={a}
                         onAck={toggleAck}
                         onDismiss={dismissOne}
-                        acked={acked}
                         onOpen={() => setDrawerAlert(a)}
                         copied={copiedId === a.id}
                         onCopy={() => copyLink(a)}
@@ -485,14 +461,14 @@ export default function Feed({ data, firingOnly = false, criticalOnly = false, s
           alert={drawerAlert}
           data={data}
           onClose={() => setDrawerAlert(null)}
-          isAcked={acked.has(drawerAlert.id)}
+          isAcked={!!(byId.get(drawerAlert.id)?.acked)}
           onAck={() => toggleAck(drawerAlert.id)}
-          status={dismissedLocal.get(drawerAlert.id) || drawerAlert.status}
+          status={byId.get(drawerAlert.id)?.status ?? drawerAlert.status}
           onSuppress={() => dismissOne(drawerAlert.id)}
           onResolve={() => resolveOne(drawerAlert.id)}
-          isEscalated={escalated.has(drawerAlert.id)}
+          isEscalated={!!(byId.get(drawerAlert.id)?.escalated)}
           onEscalate={() => toggleEscalate(drawerAlert.id)}
-          assignee={assignee.get(drawerAlert.id)}
+          assignee={byId.get(drawerAlert.id)?.assignee}
           onAssign={() => toggleAssign(drawerAlert.id)}
         />
       )}
