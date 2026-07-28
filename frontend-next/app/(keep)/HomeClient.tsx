@@ -26,6 +26,13 @@ import { AlertDetailDrawer } from "@/entities/alertlens/ui/AlertDetailDrawer";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
 import { AlertIcon, ServiceChip } from "@/entities/alertlens/ui/AlertIcon";
+import {
+  DataTable,
+  TableHead,
+  Td,
+  Th,
+  Tr,
+} from "@/entities/alertlens/ui/Table";
 import { riskColor, timeAgo } from "@/entities/alertlens/lib/format";
 
 const RECENT_LIMIT = 12;
@@ -360,27 +367,21 @@ export function HomeClient() {
       {tab === "feed" ? (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b border-gray-200">
-                  <th className="py-2 px-3">Severity</th>
-                  <th className="py-2 px-3">Alert</th>
-                  <th className="py-2 px-3">Service</th>
-                  <th className="py-2 px-3">Status</th>
-                  <th className="py-2 px-3">Received</th>
-                </tr>
-              </thead>
+            <DataTable>
+              <TableHead>
+                <Th>Severity</Th>
+                <Th>Alert</Th>
+                <Th>Service</Th>
+                <Th>Status</Th>
+                <Th>Received</Th>
+              </TableHead>
               <tbody>
                 {recent.map((a) => (
-                  <tr
-                    key={a.id}
-                    className="border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50"
-                    onClick={() => setSelected(a)}
-                  >
-                    <td className="py-2 px-3">
+                  <Tr key={a.id} onClick={() => setSelected(a)}>
+                    <Td>
                       <SeverityLabel severity={a.severity as UISeverity} />
-                    </td>
-                    <td className="py-2 px-3">
+                    </Td>
+                    <Td>
                       <div className="flex items-center gap-2.5 min-w-0">
                         <AlertIcon
                           alertname={a.alertname}
@@ -396,22 +397,22 @@ export function HomeClient() {
                           </div>
                         </div>
                       </div>
-                    </td>
-                    <td className="py-2 px-3">
+                    </Td>
+                    <Td>
                       <ServiceChip service={a.service} />
-                    </td>
-                    <td className="py-2 px-3">
+                    </Td>
+                    <Td>
                       <Badge size="xs" color="gray">
                         {a.status}
                       </Badge>
-                    </td>
-                    <td className="py-2 px-3 text-xs text-gray-500 whitespace-nowrap">
+                    </Td>
+                    <Td className="text-xs text-gray-500 whitespace-nowrap">
                       {timeAgo(a.timestamp)}
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))}
               </tbody>
-            </table>
+            </DataTable>
           </div>
         </Card>
       ) : (

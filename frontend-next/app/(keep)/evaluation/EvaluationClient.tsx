@@ -10,6 +10,13 @@ import {
 import { LuBrainCircuit } from "react-icons/lu";
 import { useEvaluation } from "@/entities/alertlens";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
+import {
+  DataTable,
+  TableHead,
+  Td,
+  Th,
+  Tr,
+} from "@/entities/alertlens/ui/Table";
 
 const pctColor = (v: number) =>
   v >= 90 ? "emerald" : v >= 70 ? "amber" : "red";
@@ -120,26 +127,24 @@ export function EvaluationClient() {
       <Card className="p-4">
         <Title className="text-base mb-3">Per-seed results</Title>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b border-gray-200">
-                <th className="py-2 pr-4">Seed</th>
-                <th className="py-2 pr-4">Detection</th>
-                <th className="py-2 pr-4">Purity</th>
-                <th className="py-2">Noise excluded</th>
-              </tr>
-            </thead>
+          <DataTable>
+            <TableHead>
+              <Th>Seed</Th>
+              <Th>Detection</Th>
+              <Th>Purity</Th>
+              <Th>Noise excluded</Th>
+            </TableHead>
             <tbody>
               {data.per_seed?.map((s) => (
-                <tr key={s.seed} className="border-b border-gray-100">
-                  <td className="py-2 pr-4 font-mono text-xs">{s.seed}</td>
-                  <td className="py-2 pr-4">{s.incident_detection_pct}%</td>
-                  <td className="py-2 pr-4">{s.cluster_purity_pct}%</td>
-                  <td className="py-2">{s.noise_excluded_pct}%</td>
-                </tr>
+                <Tr key={s.seed}>
+                  <Td className="font-mono text-xs">{s.seed}</Td>
+                  <Td className="tabular-nums">{s.incident_detection_pct}%</Td>
+                  <Td className="tabular-nums">{s.cluster_purity_pct}%</Td>
+                  <Td className="tabular-nums">{s.noise_excluded_pct}%</Td>
+                </Tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       </Card>
     </div>
