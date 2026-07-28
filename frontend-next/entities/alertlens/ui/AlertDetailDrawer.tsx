@@ -8,6 +8,7 @@ import type { UISeverity } from "@/shared/ui";
 import { useAlertActions } from "@/entities/alertlens";
 import type { Alert } from "@/entities/alertlens";
 import { formatTimestamp, timeAgo } from "@/entities/alertlens/lib/format";
+import { AlertIcon, ServiceChip } from "./AlertIcon";
 
 const Field = ({
   label,
@@ -61,9 +62,19 @@ export function AlertDetailDrawer({
     <Drawer isOpen={!!alert} onClose={onClose}>
       <div className="flex flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <Title className="truncate">{alert.alertname}</Title>
-            <Text className="text-gray-500">{alert.service}</Text>
+          <div className="flex items-start gap-3 min-w-0">
+            <AlertIcon
+              alertname={alert.alertname}
+              severity={alert.severity}
+              service={alert.service}
+              className="mt-0.5"
+            />
+            <div className="min-w-0">
+              <Title className="truncate">{alert.alertname}</Title>
+              <Text className="text-gray-500">
+                <ServiceChip service={alert.service} />
+              </Text>
+            </div>
           </div>
           <SeverityLabel severity={alert.severity as UISeverity} />
         </div>
@@ -96,6 +107,8 @@ export function AlertDetailDrawer({
           <Field label="Escalated">{isEscalated ? "Yes" : "No"}</Field>
         </div>
 
+        {/* Investigative actions — these change how the alert is tracked, not
+            its outcome, so they share the brand colour. */}
         <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
           <Button
             size="xs"
@@ -130,9 +143,16 @@ export function AlertDetailDrawer({
           >
             {assignee ? "Unassign" : "Assign to me"}
           </Button>
+        </div>
+
+        {/* Outcome actions — these change the alert's disposition, so they get
+            their own colours: gray to de-emphasise (suppress), emerald to
+            signal it's handled (resolve), rather than matching the buttons
+            above that don't change the outcome at all. */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
           <Button
             size="xs"
-            color="orange"
+            color="gray"
             variant="secondary"
             loading={busy === "Suppress"}
             onClick={() =>
@@ -148,7 +168,7 @@ export function AlertDetailDrawer({
           </Button>
           <Button
             size="xs"
-            color="orange"
+            color="emerald"
             variant="secondary"
             loading={busy === "Resolve"}
             onClick={() =>

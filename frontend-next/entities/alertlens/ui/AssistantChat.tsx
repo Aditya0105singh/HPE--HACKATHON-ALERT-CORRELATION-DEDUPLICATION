@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import clsx from "clsx";
 import { usePathname } from "next/navigation";
 import { Button, Card, Text, Textarea, Title } from "@tremor/react";
 import { HiOutlineSparkles, HiOutlineXMark } from "react-icons/hi2";
@@ -64,6 +65,24 @@ const PAGE_QUESTIONS: Record<string, Suggestion[]> = {
   ],
 };
 
+/** Bouncing-dots indicator, matched to the app's brand colour. */
+function TypingIndicator() {
+  return (
+    <div
+      className="self-start flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2.5"
+      aria-label="Assistant is thinking"
+    >
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-bounce"
+          style={{ animationDelay: `${i * 120}ms` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 const INCIDENT_QUESTIONS: Suggestion[] = [
   { label: "Root Cause", prompt: "What is the likely root cause of this incident?" },
   { label: "Blast Radius", prompt: "How far could this incident spread?" },
@@ -110,10 +129,17 @@ export function AssistantChat() {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [errorText, setErrorText] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAsking]);
+
+  // Land the cursor in the composer as soon as the panel opens, rather than
+  // requiring an extra click before the first question can be typed.
+  useEffect(() => {
+    if (isOpen) textareaRef.current?.focus();
+  }, [isOpen]);
 
   const send = async (question: string) => {
     const q = question.trim();
@@ -139,23 +165,36 @@ export function AssistantChat() {
     }
   };
 
-  if (!isOpen) {
-    return (
+  return (
+    <>
+      {/* Both the trigger and the panel stay mounted so opening/closing can
+          cross-fade instead of popping in and out with no transition. */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
         aria-label="Open AlertLens assistant"
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-white shadow-lg hover:bg-orange-600 transition-colors"
+        className={clsx(
+          "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-white shadow-lg hover:bg-orange-600",
+          "transition-all duration-200 ease-out",
+          isOpen
+            ? "opacity-0 scale-90 pointer-events-none"
+            : "opacity-100 scale-100"
+        )}
       >
         <HiOutlineSparkles className="w-5 h-5" />
         <span className="text-sm font-medium">Ask AlertLens</span>
       </button>
-    );
-  }
 
-  return (
-    <Card className="fixed bottom-5 right-5 z-40 w-[min(28rem,calc(100vw-2.5rem))] max-h-[min(38rem,calc(100vh-6rem))] p-0 flex flex-col shadow-2xl">
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200">
+      <Card
+        className={clsx(
+          "fixed bottom-5 right-5 z-40 w-[min(28rem,calc(100vw-2.5rem))] max-h-[min(38rem,calc(100vh-6rem))] p-0 flex flex-col shadow-2xl origin-bottom-right",
+          "transition-all duration-200 ease-out",
+          isOpen
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-90 translate-y-2 pointer-events-none"
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-2 min-w-0">
           <HiOutlineSparkles className="w-5 h-5 text-orange-500 shrink-0" />
           <div className="min-w-0">
@@ -214,11 +253,7 @@ export function AssistantChat() {
           </div>
         ))}
 
-        {isAsking && (
-          <div className="self-start rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-500">
-            Thinking…
-          </div>
-        )}
+        {isAsking && <TypingIndicator />}
 
         {errorText && (
           <div className="self-start max-w-[95%] rounded-lg bg-red-50 text-red-600 px-3 py-2 text-sm">
@@ -246,8 +281,10 @@ export function AssistantChat() {
 
       <div className="px-4 py-3 border-t border-gray-200 flex items-end gap-2">
         <Textarea
+          ref={textareaRef}
           rows={1}
-          className="flex-1 resize-none"
+          autoHeight
+          className="flex-1 resize-none max-h-32"
           placeholder="Ask a question..."
           value={input}
           onValueChange={setInput}
@@ -268,7 +305,8 @@ export function AssistantChat() {
         >
           Send
         </Button>
-      </div>
-    </Card>
+        </div>
+      </Card>
+    </>
   );
 }
