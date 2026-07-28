@@ -21,7 +21,7 @@ import { toast } from "react-toastify";
 import { MaintenanceRule } from "./model";
 import { IoCheckmark } from "react-icons/io5";
 import { HiMiniXMark } from "react-icons/hi2";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useApi } from "@/shared/lib/hooks/useApi";
 import { showErrorToast } from "@/shared/ui";
 
@@ -159,10 +159,12 @@ export default function MaintenanceRulesTable({
       </TableHead>
       <TableBody>
         {table.getRowModel().rows.map((row) => (
-          <>
+          // The key belongs on the fragment .map() returns, not the first
+          // TableRow inside it — a shorthand <>...</> can't carry a key at
+          // all, so it was silently doing nothing here.
+          <Fragment key={row.id}>
             <TableRow
               className="even:bg-tremor-background-muted even:dark:bg-dark-tremor-background-muted hover:bg-slate-100"
-              key={row.id}
               onClick={() => row.toggleExpanded()}
             >
               {row.getVisibleCells().map((cell) => (
@@ -199,7 +201,7 @@ export default function MaintenanceRulesTable({
                 </TableCell>
               </TableRow>
             )}
-          </>
+          </Fragment>
         ))}
       </TableBody>
     </Table>
