@@ -65,7 +65,12 @@ export const middleware = auth(async (request) => {
     !pathname.startsWith("/error") &&
     !pathname.startsWith("/api/healthcheck")
   ) {
-    const redirectTo = request.nextUrl.href || "/incidents";
+    // A relative path (not request.nextUrl.href) so it resolves against
+    // whatever origin the browser actually used - Next's own host detection
+    // is unreliable behind a reverse proxy (e.g. a cloudflared tunnel) that
+    // doesn't forward the original Host header.
+    const redirectTo =
+      `${request.nextUrl.pathname}${request.nextUrl.search}` || "/incidents";
     console.log(
       `Redirecting ${pathname} to signin page because user is not authenticated`
     );
