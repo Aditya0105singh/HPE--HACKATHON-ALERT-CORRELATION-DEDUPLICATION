@@ -1,5 +1,4 @@
 import { PageSubtitle, PageTitle } from "@/shared/ui";
-import { TbTimeline } from "react-icons/tb";
 import { IncidentPicker } from "@/entities/alertlens/ui/IncidentPicker";
 
 export const metadata = {
@@ -18,7 +17,6 @@ export default function TimeMachinePage() {
       </div>
       <IncidentPicker
         basePath="/timemachine"
-        icon={TbTimeline}
         emptyTitle="No incidents to compare"
       />
     </div>
