@@ -1,6 +1,6 @@
 import { Subtitle, Title } from "@tremor/react";
 import clsx from "clsx";
-import Image from "next/image";
+import { AlertLensMark } from "@/components/AlertLensMark";
 
 export function KeepLoader({
   includeMinHeight = true,
@@ -22,13 +22,7 @@ export function KeepLoader({
       )}
       {...props}
     >
-      <Image
-        className="animate-bounce -my-10"
-        src="/keep.svg"
-        alt="loading"
-        width={200}
-        height={200}
-      />
+      <AlertLensMark className="w-32 h-32 animate-bounce" />
       <Title>{loadingText}</Title>
       {slowLoading && (
         <Subtitle>

@@ -9,5 +9,5 @@ export default async function Page(props: {
 
 export const metadata = {
   title: "Providers | AlertLens",
-  description: "Connect providers to Keep to make your alerts better.",
+  description: "Connect providers to AlertLens to make your alerts better.",
 };
