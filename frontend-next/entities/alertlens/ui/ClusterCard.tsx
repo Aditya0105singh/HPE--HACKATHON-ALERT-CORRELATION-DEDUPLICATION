@@ -18,7 +18,7 @@ export function ClusterCard({ cluster }: { cluster: Cluster }) {
   const color = riskColor(cluster.risk.level);
 
   return (
-    <Card className="p-4 flex flex-col gap-3">
+    <Card className="p-4 flex flex-col gap-3 transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <Link
