@@ -16,6 +16,13 @@ import type { UISeverity } from "@/shared/ui";
 import type { Cluster } from "@/entities/alertlens";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 import { ServiceChip } from "@/entities/alertlens/ui/AlertIcon";
+import {
+  DataTable,
+  TableHead,
+  Td,
+  Th,
+  Tr,
+} from "@/entities/alertlens/ui/Table";
 import { TbChartDots3 } from "react-icons/tb";
 import { HiOutlineInbox } from "react-icons/hi2";
 import { IoMdGitMerge } from "react-icons/io";
@@ -148,41 +155,36 @@ export function CorrelationsClient() {
       ) : view === "raw" ? (
         <Card className="p-0 overflow-hidden">
           <div className="max-h-[32rem] overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-white">
-                <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b border-gray-200">
-                  <th className="py-2 px-3">Severity</th>
-                  <th className="py-2 px-3">Alert</th>
-                  <th className="py-2 px-3">Service</th>
-                  <th className="py-2 px-3">Correlated into</th>
-                  <th className="py-2 px-3">Received</th>
-                </tr>
-              </thead>
+            <DataTable>
+              <TableHead sticky>
+                <Th>Severity</Th>
+                <Th>Alert</Th>
+                <Th>Service</Th>
+                <Th>Correlated into</Th>
+                <Th>Received</Th>
+              </TableHead>
               <tbody>
                 {rawStream.map(({ alert, cluster }) => (
-                  <tr
-                    key={alert.id}
-                    className="border-b border-gray-100 last:border-0"
-                  >
-                    <td className="py-2 px-3">
+                  <Tr key={alert.id}>
+                    <Td>
                       <SeverityLabel severity={alert.severity as UISeverity} />
-                    </td>
-                    <td className="py-2 px-3">
+                    </Td>
+                    <Td>
                       <div className="font-medium truncate max-w-xs">
                         {alert.alertname}
                       </div>
                       <div className="text-xs text-gray-500 truncate max-w-md">
                         {alert.message}
                       </div>
-                    </td>
-                    <td className="py-2 px-3">
+                    </Td>
+                    <Td>
                       <ServiceChip service={alert.service} />
-                    </td>
-                    <td className="py-2 px-3">
+                    </Td>
+                    <Td>
                       {cluster ? (
                         <Link
                           href={`/incidents/${cluster.cluster_id}`}
-                          className="text-orange-500 text-xs"
+                          className="text-orange-500 text-xs hover:underline"
                         >
                           {cluster.root_cause.alertname}
                         </Link>
@@ -191,14 +193,14 @@ export function CorrelationsClient() {
                           noise
                         </Badge>
                       )}
-                    </td>
-                    <td className="py-2 px-3 text-xs text-gray-500 whitespace-nowrap">
+                    </Td>
+                    <Td className="text-xs text-gray-500 whitespace-nowrap">
                       {timeAgo(alert.timestamp)}
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))}
               </tbody>
-            </table>
+            </DataTable>
           </div>
         </Card>
       ) : (
