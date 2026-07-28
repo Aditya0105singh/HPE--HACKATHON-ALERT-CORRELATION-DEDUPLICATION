@@ -9,7 +9,7 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   LockClosedIcon,
-  PhotoIcon,
+
 } from "@heroicons/react/24/outline";
 import { MdOutlineSecurity } from "react-icons/md";
 import { useHydratedSession as useSession } from "@/shared/lib/hooks/useHydratedSession";
@@ -35,7 +35,6 @@ import { GroupsTable } from "./auth/groups-table";
 import { RolesTable } from "./auth/roles-table";
 import { APIKeysTable } from "./auth/api-key-table";
 import { User } from "@/app/(keep)/settings/models";
-import ProviderImagesSettings from "./provider-images/provider-images-settings";
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -79,8 +78,6 @@ export default function SettingsPage() {
         ? 1
         : newSelectedTab === "smtp"
         ? 2
-        : newSelectedTab === "provider-images"
-        ? 3
         : 0;
     const userSubTabIndex =
       newUserSubTab === "users"
@@ -378,12 +375,6 @@ export default function SettingsPage() {
           <Tab icon={EnvelopeIcon} onClick={() => handleTabChange("smtp")}>
             SMTP
           </Tab>
-          <Tab
-            icon={PhotoIcon}
-            onClick={() => handleTabChange("provider-images")}
-          >
-            Provider Icons
-          </Tab>
         </TabList>
         <TabPanels className="flex-grow overflow-hidden p-px">
           <TabPanel className="h-full">
@@ -456,9 +447,6 @@ export default function SettingsPage() {
           </TabPanel>
           <TabPanel className="h-full pt-4">
             <SmtpSettings selectedTab={selectedTab} />
-          </TabPanel>
-          <TabPanel className="h-full pt-4">
-            <ProviderImagesSettings />
           </TabPanel>
         </TabPanels>
       </TabGroup>

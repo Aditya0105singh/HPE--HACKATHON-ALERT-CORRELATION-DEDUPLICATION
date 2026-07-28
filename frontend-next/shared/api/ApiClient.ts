@@ -3,7 +3,6 @@ import { Session } from "next-auth";
 import { KeepApiError, KeepApiReadOnlyError } from "./KeepApiError";
 import { getApiUrlFromConfig } from "@/shared/lib/getApiUrlFromConfig";
 import { getApiURL } from "@/utils/apiUrl";
-import * as Sentry from "@sentry/nextjs";
 import { signOut as signOutClient } from "next-auth/react";
 import { GuestSession } from "@/types/auth";
 import { AuthType } from "@/utils/authenticationType";
@@ -126,7 +125,6 @@ export class ApiClient {
     } catch (error) {
       console.error(error);
       if (!this.config?.SENTRY_DISABLED) {
-        Sentry.captureException(error);
       }
       return null;
     }

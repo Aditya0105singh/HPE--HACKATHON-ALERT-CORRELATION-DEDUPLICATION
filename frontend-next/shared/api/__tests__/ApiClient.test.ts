@@ -9,10 +9,6 @@ jest.mock("next-auth/react", () => ({
   signOut: jest.fn(),
 }));
 
-jest.mock("@sentry/nextjs", () => ({
-  captureException: jest.fn(),
-}));
-
 // Helper to create mock Response objects for Jest/Node environment
 function createMockResponse(
   body: object,

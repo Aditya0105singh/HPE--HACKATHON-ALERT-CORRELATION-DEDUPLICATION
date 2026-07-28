@@ -2,7 +2,6 @@
 
 import { useCallback } from "react";
 import { signOut } from "next-auth/react";
-import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
 import { useConfig } from "@/utils/hooks/useConfig";
 import { AuthType } from "@/utils/authenticationType";
@@ -16,7 +15,6 @@ export function useSignOut() {
     }
 
     if (configData?.SENTRY_DISABLED !== "true") {
-      Sentry.setUser(null);
     }
 
     if (configData?.POSTHOG_DISABLED !== "true") {

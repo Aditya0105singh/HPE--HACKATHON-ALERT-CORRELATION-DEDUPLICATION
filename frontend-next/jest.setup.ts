@@ -45,21 +45,6 @@ jest.mock("@/utils/hooks/useConfig", () => ({
   }),
 }));
 
-// Mock @copilotkit/react-core
-jest.mock("@copilotkit/react-core", () => ({
-  useCopilotContext: jest.fn(() => ({})),
-  CopilotProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-// Mock @segment/analytics-node
-jest.mock("@segment/analytics-node", () => ({
-  Analytics: jest.fn().mockImplementation(() => ({
-    track: jest.fn(),
-    identify: jest.fn(),
-    page: jest.fn(),
-  })),
-}));
-
 // Mock CreateOrUpdatePresetForm
 jest.mock("@/features/presets/create-or-update-preset", () => ({
   CreateOrUpdatePresetForm: ({ onCancel }: any) => {
@@ -81,12 +66,6 @@ jest.mock("@/features/alerts/alert-error-event-process", () => ({
   },
 }));
 
-// Mock CopilotKit
-jest.mock("@copilotkit/react-core", () => ({
-  CopilotKit: ({ children }: any) => children,
-  useCopilotContext: jest.fn(() => ({})),
-  CopilotProvider: ({ children }: any) => children,
-}));
 
 // Mock usePresets
 jest.mock("@/entities/presets/model/usePresets", () => ({

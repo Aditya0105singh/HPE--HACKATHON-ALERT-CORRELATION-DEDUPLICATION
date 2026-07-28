@@ -8,7 +8,6 @@ import { useEffect, useMemo } from "react";
 import { Title, Subtitle } from "@tremor/react";
 import { Button, Text } from "@tremor/react";
 import { KeepApiError } from "@/shared/api";
-import * as Sentry from "@sentry/nextjs";
 import { useSignOut } from "@/shared/lib/hooks/useSignOut";
 import { KeepApiHealthError } from "@/shared/api/KeepApiError";
 import { useHealth } from "@/shared/lib/hooks/useHealth";
@@ -33,10 +32,6 @@ export function ErrorComponent({
   // No AlertLens support channel by default, so the contact button is hidden
   // unless one is configured. (Upstream defaults this to Keep's own Slack.)
   const contactUsUrl = config?.KEEP_CONTACT_US_URL || "";
-
-  useEffect(() => {
-    Sentry.captureException(originalError);
-  }, [originalError]);
 
   const error = useMemo(() => {
     return isHealthy ? originalError : new KeepApiHealthError();
