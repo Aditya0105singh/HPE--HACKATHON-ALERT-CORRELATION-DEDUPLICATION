@@ -141,7 +141,10 @@ const workflow = (
   last_execution_time: daysAgo(0),
   last_execution_status: failures > 0 ? "error" : "success",
   last_updated: daysAgo(2),
-  workflow_raw: `workflow:\n  id: ${id}\n  description: ${description}\n  triggers:\n    - type: alert\n  steps: []\n`,
+  // Must satisfy YamlWorkflowDefinitionSchema: triggers needs >=1 entry, and
+  // the workflow needs at least one real step (an empty steps array fails
+  // the schema's own "at least one step or action" check).
+  workflow_raw: `workflow:\n  id: ${id}\n  description: ${description}\n  triggers:\n    - type: alert\n  steps:\n    - name: notify\n      provider:\n        type: console\n        with: {}\n`,
   workflow_raw_id: id,
   revision: 1,
   last_executions: Array.from({ length: 8 }, (_, i) => ({

@@ -17,15 +17,16 @@ export const GroupedByCell = ({ fields }: GroupedByCellProps) => {
   }
 
   function renderFields(fields: string[]): React.JSX.Element[] | React.JSX.Element {
+    // The key belongs on the top-level element .map() returns — a shorthand
+    // <>...</> fragment can't carry props at all, so it was silently doing
+    // nothing on the Badge inside it instead.
     return fields.map((group, index) => (
-      <>
-        <Badge color="orange" key={group}>
-          {group}
-        </Badge>
+      <React.Fragment key={group}>
+        <Badge color="orange">{group}</Badge>
         {fields.length !== index + 1 && (
           <Icon icon={PlusIcon} size="xs" color="slate" />
         )}
-      </>
+      </React.Fragment>
     ));
   }
 

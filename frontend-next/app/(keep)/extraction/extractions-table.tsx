@@ -24,7 +24,7 @@ import { ExtractionRule } from "./model";
 import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
 import { IoCheckmark } from "react-icons/io5";
 import { HiMiniXMark } from "react-icons/hi2";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useApi } from "@/shared/lib/hooks/useApi";
 import { showErrorToast } from "@/shared/ui";
 import { useConfig } from "@/utils/hooks/useConfig";
@@ -222,10 +222,12 @@ export default function ExtractionsTable({ extractions, editCallback }: Props) {
         </TableHead>
         <TableBody>
           {table.getRowModel().rows.map((row) => (
-            <>
+            // The key belongs on the fragment .map() returns, not the first
+            // TableRow inside it — a shorthand <>...</> can't carry a key at
+            // all, so it was silently doing nothing here.
+            <Fragment key={row.id}>
               <TableRow
                 className="hover:bg-slate-100 group cursor-pointer"
-                key={row.id}
                 onClick={() =>
                   router.push(`/extraction/${row.original.id}/executions`)
                 }
@@ -272,7 +274,7 @@ export default function ExtractionsTable({ extractions, editCallback }: Props) {
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </Fragment>
           ))}
         </TableBody>
       </Table>
