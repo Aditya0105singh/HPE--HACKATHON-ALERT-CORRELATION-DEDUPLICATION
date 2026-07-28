@@ -1,5 +1,4 @@
 import { PageSubtitle, PageTitle } from "@/shared/ui";
-import { LuGauge } from "react-icons/lu";
 import { IncidentPicker } from "@/entities/alertlens/ui/IncidentPicker";
 
 export const metadata = {
@@ -18,7 +17,6 @@ export default function ForecastPage() {
       </div>
       <IncidentPicker
         basePath="/forecast"
-        icon={LuGauge}
         emptyTitle="No incidents to forecast"
       />
     </div>

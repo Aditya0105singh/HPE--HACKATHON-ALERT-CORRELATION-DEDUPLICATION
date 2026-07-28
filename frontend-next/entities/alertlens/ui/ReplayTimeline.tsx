@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, ProgressBar, Text, Title } from "@tremor/react";
 import clsx from "clsx";
 import {
+  LuCheck,
   LuChevronLeft,
   LuChevronRight,
   LuPause,
@@ -180,12 +181,19 @@ export function ReplayTimeline({ cluster }: { cluster: Cluster }) {
                   !isActive && !isPast && "opacity-55"
                 )}
               >
+                {/* Past/active steps get a filled, checked marker; future
+                    steps get a hollow outline — a glance down this column
+                    should read as progress, not just a list of rows. */}
                 <span
                   className={clsx(
-                    "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
-                    meta.dot
+                    "flex items-center justify-center w-4 h-4 rounded-full mt-0.5 shrink-0 transition-colors",
+                    isActive || isPast
+                      ? clsx(meta.dot, "text-white")
+                      : "border-2 border-gray-300 bg-transparent"
                   )}
-                />
+                >
+                  {(isActive || isPast) && <LuCheck className="w-2.5 h-2.5" />}
+                </span>
                 <span className="min-w-0">
                   <span className="block text-xs font-mono text-gray-400">
                     {e.time}
