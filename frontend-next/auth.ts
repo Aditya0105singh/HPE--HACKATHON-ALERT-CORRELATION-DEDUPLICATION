@@ -95,7 +95,10 @@ function proxyFetch(
       ...args[1],
       method: request.method,
       headers: request.headers as HeadersInit,
-      body: request.body,
+      // undici streams the body at runtime (that is what `duplex` above is
+      // for), but neither the ambient nor undici's own BodyInit type admits a
+      // ReadableStream, so this has to be cast to compile.
+      body: request.body as any,
       dispatcher,
     }).then(async (response) => {
       if (isDebug) {

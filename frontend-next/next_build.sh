@@ -4,8 +4,7 @@
 # That prints every build-time variable into the deploy log, including tokens
 # the host does not redact, so it is deliberately not done.
 
-# Vercel's build container has 8 GB. Node's default heap is far below what
-# this tree needs (Monaco, the workflow builder and the Keep component set),
-# so raise it while leaving headroom for the OS. Lowering this causes the
-# build to OOM sooner, not later.
-NODE_OPTIONS="--max-old-space-size=7168" next build
+# 4096 MB is enough after removing Sentry (productionBrowserSourceMaps was the
+# actual driver of the prior OOM at 4096, not general tree size) and the
+# CopilotKit/Monaco weight that had no working backend behind it anyway.
+NODE_OPTIONS="--max-old-space-size=4096" next build

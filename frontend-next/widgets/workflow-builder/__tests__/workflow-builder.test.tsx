@@ -48,10 +48,6 @@ jest.mock("@xyflow/react", () => ({
   ),
 }));
 
-jest.mock("@/features/workflows/ai-assistant", () => ({
-  WorkflowBuilderChatSafe: () => <div>WorkflowBuilderChat</div>,
-}));
-
 jest.mock("@/shared/ui/WorkflowYAMLEditor", () => ({
   __esModule: true,
   WorkflowYAMLEditor: () => <div>WorkflowYAMLEditor</div>,

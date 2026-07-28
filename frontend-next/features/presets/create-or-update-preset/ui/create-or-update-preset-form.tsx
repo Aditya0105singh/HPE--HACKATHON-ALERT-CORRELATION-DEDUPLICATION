@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui";
 import { useConfig } from "@/utils/hooks/useConfig";
-import {
-  useCopilotAction,
-  useCopilotContext,
-  useCopilotReadable,
-} from "@copilotkit/react-core";
-import { CopilotTask } from "@copilotkit/react-core";
 import { Subtitle, TextInput, Select, SelectItem } from "@tremor/react";
 import { useCallback, useState } from "react";
 import { PresetControls } from "./preset-controls";
@@ -91,34 +85,10 @@ export function CreateOrUpdatePresetForm({
   };
 
   const { data: configData } = useConfig();
-  const isAIEnabled = configData?.OPEN_AI_API_KEY_SET;
-  const context = useCopilotContext();
-
-  useCopilotReadable({
-    description: "The CEL query for the alert preset",
-    value: presetData.CEL,
-  });
-
-  useCopilotAction({
-    name: "setGeneratedName",
-    description: "Set the generated preset name",
-    parameters: [
-      { name: "name", type: "string", description: "The generated name" },
-    ],
-    handler: async ({ name }) => {
-      setPresetName(name);
-    },
-  });
-
-  const generatePresetName = useCallback(async () => {
-    setGeneratingName(true);
-    const task = new CopilotTask({
-      instructions:
-        "Generate a short, descriptive name for an alert preset based on the provided CEL query. The name should be concise but meaningful, reflecting the key conditions in the query.",
-    });
-    await task.run(context);
-    setGeneratingName(false);
-  }, [context]);
+  // Upstream generated preset names through Keep's CopilotKit runtime, which
+  // AlertLens does not run. The name is entered manually instead.
+  const isAIEnabled = false;
+  const generatePresetName = useCallback(async () => {}, []);
 
   const { createPreset, updatePreset } = usePresetActions();
   const addOrUpdatePreset = async (e: React.FormEvent<HTMLFormElement>) => {

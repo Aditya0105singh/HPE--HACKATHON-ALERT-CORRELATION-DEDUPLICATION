@@ -1,8 +1,3 @@
-const { withSentryConfig } = require("@sentry/nextjs");
-
-const isSentryDisabled =
-  process.env.SENTRY_DISABLED === "true" ||
-  process.env.NODE_ENV === "development";
 
 // Turbopack doesn't support dynamic imports yet, so we need to fallback to CDN for development
 // Checking NODE_ENV because in the future we may use turbopack in production as well
@@ -111,25 +106,11 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   output: "standalone",
-  productionBrowserSourceMaps: !isSentryDisabled,
+  // Upstream redirected "/" to /incidents because Keep has no landing page.
+  // AlertLens serves its overview dashboard at "/", so there is nothing to
+  // redirect — and no DISABLE_REDIRECTS env var needed to keep it reachable.
   async redirects() {
-    const workflowRawYamlRedirects = [
-      {
-        source: "/workflows/:path*.yaml",
-        destination: "/raw/workflows/:path*.yaml",
-        permanent: false,
-      },
-    ];
-    return process.env.DISABLE_REDIRECTS === "true"
-      ? []
-      : [
-          {
-            source: "/",
-            destination: "/incidents",
-            permanent: process.env.ENV === "production",
-          },
-          ...workflowRawYamlRedirects,
-        ];
+    return [];
   },
   async headers() {
     // Allow Keycloak Server as a CORS origin since we use SSO wizard as iframe
@@ -173,53 +154,8 @@ const nextConfig = {
   },
 };
 
-const sentryConfig = {
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
-
-  org: "keep-hq",
-  project: "keep-ui",
-
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Automatically annotate React components to show their full name in breadcrumbs and session replay
-  reactComponentAnnotation: {
-    enabled: true,
-  },
-
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  tunnelRoute: "/monitoring",
-
-  // Hides source maps from generated client bundles
-  hideSourceMaps: true,
-  sourceMaps: {
-    deleteSourcemapsAfterUpload: process.env.KEEP_INCLUDE_SOURCES !== "true",
-  },
-
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
-
-  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: true,
-};
-
 // Compose the final config
 let config = nextConfig;
-
-// Add Sentry if enabled
-if (!isSentryDisabled) {
-  config = withSentryConfig(config, sentryConfig);
-}
 
 // Add Bundle Analyzer only when analysis is requested
 if (process.env.ANALYZE === "true") {

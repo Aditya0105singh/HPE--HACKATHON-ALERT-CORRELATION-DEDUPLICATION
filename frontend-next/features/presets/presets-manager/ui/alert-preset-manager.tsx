@@ -7,7 +7,6 @@ import { CreateOrUpdatePresetForm } from "@/features/presets/create-or-update-pr
 import { STATIC_PRESETS_NAMES } from "@/entities/presets/model/constants";
 import { Preset } from "@/entities/presets/model/types";
 import { usePresets } from "@/entities/presets/model/usePresets";
-import { CopilotKit } from "@copilotkit/react-core";
 import { Button } from "@tremor/react";
 import { PushAlertToServerModal } from "@/features/alerts/simulate-alert";
 import { AlertErrorEventModal } from "@/features/alerts/alert-error-event-process";
@@ -210,8 +209,7 @@ export function AlertPresetManager({
         onClose={handlePresetModalClose}
         className="w-[40%] max-w-screen-2xl max-h-[710px] transform overflow-auto ring-tremor bg-white p-6 text-left align-middle shadow-tremor transition-all rounded-xl"
       >
-        <CopilotKit runtimeUrl="/api/copilotkit">
-          <CreateOrUpdatePresetForm
+        <CreateOrUpdatePresetForm
             key={idToUpdate}
             presetId={idToUpdate}
             presetData={presetData}
@@ -220,9 +218,8 @@ export function AlertPresetManager({
             //groupableColumns={getGroupableColumns()}
             groupableColumns={[]}
             onCreateOrUpdate={onCreateOrUpdatePreset}
-            onCancel={handlePresetModalClose}
-          />
-        </CopilotKit>
+          onCancel={handlePresetModalClose}
+        />
       </Modal>
 
       {/* Add Alert Modal */}

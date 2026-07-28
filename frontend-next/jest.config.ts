@@ -21,9 +21,7 @@ const config: Config = {
     "^@monaco-editor/react$": "<rootDir>/__mocks__/@monaco-editor/react.js",
   },
   // Transform ESM packages
-  transformIgnorePatterns: [
-    "node_modules/(?!(jose|@segment/analytics-node|@copilotkit)/)"
-  ],
+  transformIgnorePatterns: ["node_modules/(?!(jose)/)"],
   // Add more setup options before each test is run
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 };

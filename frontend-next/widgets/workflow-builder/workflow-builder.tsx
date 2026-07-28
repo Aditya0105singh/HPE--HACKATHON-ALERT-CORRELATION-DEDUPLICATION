@@ -18,7 +18,6 @@ import {
 import { CodeBracketIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { ResizableColumns } from "@/shared/ui";
-import { WorkflowBuilderChatSafe } from "@/features/workflows/ai-assistant";
 import debounce from "lodash.debounce";
 import { getOrderedWorkflowYamlStringFromJSON } from "@/entities/workflows/lib/yaml-utils";
 import { useWorkflowSecrets } from "@/utils/hooks/useWorkflowSecrets";
@@ -268,16 +267,6 @@ export function WorkflowBuilder({
             workflowId={workflowId}
             data-testid="wf-builder-yaml-editor"
             onChange={handleYamlChange}
-          />
-        </div>
-        <div
-          className={clsx(
-            leftColumnMode === "chat" ? "visible h-full" : "hidden"
-          )}
-        >
-          <WorkflowBuilderChatSafe
-            definition={definition}
-            installedProviders={installedProviders ?? []}
           />
         </div>
       </>

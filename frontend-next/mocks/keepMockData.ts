@@ -141,7 +141,7 @@ const workflow = (
   last_execution_time: daysAgo(0),
   last_execution_status: failures > 0 ? "error" : "success",
   last_updated: daysAgo(2),
-  workflow_raw: `workflow:\n  id: ${id}\n  description: ${description}\n`,
+  workflow_raw: `workflow:\n  id: ${id}\n  description: ${description}\n  triggers:\n    - type: alert\n  steps: []\n`,
   workflow_raw_id: id,
   revision: 1,
   last_executions: Array.from({ length: 8 }, (_, i) => ({

@@ -11,10 +11,6 @@ jest.mock("next-auth/react", () => ({
 
 jest.mock("@/utils/hooks/useConfig");
 
-jest.mock("@sentry/nextjs", () => ({
-  setUser: jest.fn(),
-}));
-
 jest.mock("posthog-js", () => ({
   reset: jest.fn(),
 }));
@@ -150,26 +146,6 @@ describe("useSignOut", () => {
 
     expect(signOut).toHaveBeenCalled();
     expect(locationHref).toBe("");
-  });
-
-  it("should reset Sentry user when SENTRY_DISABLED is not true", () => {
-    const Sentry = require("@sentry/nextjs");
-
-    (useConfig as jest.Mock).mockReturnValue({
-      data: {
-        AUTH_TYPE: AuthType.DB,
-        SENTRY_DISABLED: "false",
-        POSTHOG_DISABLED: "true",
-      },
-    });
-
-    const { result } = renderHook(() => useSignOut());
-
-    act(() => {
-      result.current();
-    });
-
-    expect(Sentry.setUser).toHaveBeenCalledWith(null);
   });
 
   it("should reset PostHog when POSTHOG_DISABLED is not true", () => {
