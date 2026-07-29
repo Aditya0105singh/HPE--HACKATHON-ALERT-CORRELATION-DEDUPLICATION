@@ -293,3 +293,14 @@ export interface WorkflowRule {
   /** ISO timestamp of this rule's most recent real firing, or null if it never has. */
   last_fired_at: string | null;
 }
+
+/** GET /notifications — real history of every workflow rule firing. */
+export interface NotificationLogEntry {
+  id: string;
+  rule_id: string;
+  incident_key: string;
+  provider_id: string | null;
+  status: "success" | "failed";
+  detail: string | null;
+  created_at: string;
+}

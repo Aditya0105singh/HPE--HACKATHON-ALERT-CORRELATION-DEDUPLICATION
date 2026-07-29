@@ -1,14 +1,10 @@
-import { Card } from "@tremor/react";
+import NotificationsPage from "./page.client";
 
 export default function Page() {
-  return (
-    <Card className="mt-10 p-4 md:p-10 mx-auto">
-      <div>Hello World</div>
-    </Card>
-  );
+  return <NotificationsPage />;
 }
 
 export const metadata = {
-  title: "Notifications Hub | AlertLens",
-  description: "Manage everything related with notifications.",
+  title: "Notifications | AlertLens",
+  description: "Real history of every workflow rule firing.",
 };
