@@ -39,7 +39,7 @@ export function Drawer({
       {/* <DrawerTrigger asChild>
         <Button variant="secondary">Open Drawer</Button>
       </DrawerTrigger> */}
-      <DrawerContent className="max-w-full sm:max-w-[80%] lg:max-w-[40%]">
+      <DrawerContent className="max-w-full sm:max-w-[80%] lg:max-w-[50%]">
         {/* <DrawerHeader>
           <DrawerTitle>{title}</DrawerTitle>
           <DrawerDescription className="mt-1 text-sm">
