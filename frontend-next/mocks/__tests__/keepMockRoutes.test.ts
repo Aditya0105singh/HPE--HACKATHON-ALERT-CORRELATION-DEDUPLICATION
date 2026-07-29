@@ -32,13 +32,13 @@ const ALERTLENS_ENDPOINTS = [
   "workflows/abc-123",
   "notifications",
   "settings/status",
+  "rules/config",
 ];
 
 /** KeepHQ's own surface, which AlertLens's backend does not implement. */
 const KEEP_ONLY_ENDPOINTS = [
   "healthcheck",
   "maintenance",
-  "rules",
   "deduplications",
   "preset",
   "tags",

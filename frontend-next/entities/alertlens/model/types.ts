@@ -316,3 +316,22 @@ export interface SettingsStatus {
   llm_provider: string | null;
   db_path: string;
 }
+
+/** GET /rules/config — the real, already-tuned correlation engine
+ * parameters, read-only (not an editable rules CRUD). */
+export interface RulesConfig {
+  dedup: {
+    window_seconds: number;
+    description: string;
+  };
+  clustering: {
+    eps: number;
+    min_samples: number;
+    time_scale_minutes: number;
+    time_penalty: number;
+    description: string;
+  };
+  root_cause: {
+    description: string;
+  };
+}

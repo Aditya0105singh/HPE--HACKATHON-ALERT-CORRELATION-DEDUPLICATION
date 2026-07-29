@@ -32,33 +32,6 @@ export const MAINTENANCE_RULES = [
   },
 ];
 
-export const CORRELATION_RULES = [
-  {
-    id: "rule-1",
-    name: "Gateway + upstream timeouts",
-    definition: { sql: "", params: {} },
-    definition_cel: 'service in ["api-gateway", "order-api"]',
-    timeframe: 600,
-    timeunit: "seconds",
-    created_by: "demo@alertlens.local",
-    creation_time: daysAgo(25),
-    tenant_id: "alertlens",
-    updated_by: null,
-    update_time: null,
-    grouping_criteria: ["service"],
-    group_description: "Gateway timeouts correlated with upstream failures",
-    require_approve: false,
-    resolve_on: "all_resolved",
-    create_on: "any",
-    incident_name_template: "",
-    incident_prefix: "INC",
-    multi_level: false,
-    multi_level_property_name: "",
-    threshold: 2,
-    assignee: null,
-  },
-];
-
 export const DEDUPLICATION_RULES = [
   {
     id: "dedup-1",
