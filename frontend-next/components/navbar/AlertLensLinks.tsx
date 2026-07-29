@@ -131,7 +131,6 @@ const SECTIONS: NavSection[] = [
         label: "Providers",
         icon: VscDebugDisconnect,
         testId: "providers",
-        isDemo: true,
       },
       {
         href: "/notifications-hub",
