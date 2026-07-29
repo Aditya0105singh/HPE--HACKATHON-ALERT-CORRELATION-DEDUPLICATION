@@ -13,10 +13,11 @@ type Resolver = (path: string, search: URLSearchParams) => unknown;
  * DANGER: never add a prefix that shadows a real AlertLens endpoint. The
  * backend owns `/ingest`, `/demo/*`, `/pipeline`, `/alerts/{id}/ack|assign|
  * dismiss|escalate`, `/forecast/{id}`, `/incidents/{id}/comparison|
- * root_cause_confidence|playbook`, `/evaluation`, `/debug/*`, `/assistant*`,
- * `/providers` (CRUD + `/providers/{id}/test`), `/workflows` (CRUD),
- * `/notifications` and `/settings/status`. Shadowing any of those would
- * silently replace engine output with demo data.
+ * root_cause_confidence|playbook`, `/evaluation`, `/debug/*`, `/assistant*`
+ * (including `/assistant/workspace`), `/providers` (CRUD +
+ * `/providers/{id}/test`), `/workflows` (CRUD), `/notifications` and
+ * `/settings/status`. Shadowing any of those would silently replace engine
+ * output with demo data.
  */
 const ROUTES: [string, Resolver][] = [
   // Keep's ApiClient probes this; a 404 makes every page show
@@ -39,11 +40,11 @@ const ROUTES: [string, Resolver][] = [
   ],
   ["tags", () => data.TAGS],
 
-  // Still real: alert-assignee.tsx (a live widget on Dashboard's preset
-  // alerts table) resolves assignee emails to a display name/picture via
-  // this. Everything else under auth/* and settings/* was fake RBAC with
-  // no real feature behind it, and has been removed along with the
-  // Settings page's old user/role/group/API-key management UI.
+  // Still real: alert-assignee.tsx (a widget consumed by widgets/alerts-table)
+  // resolves assignee emails to a display name/picture via this. Everything
+  // else under auth/* and settings/* was fake RBAC with no real feature
+  // behind it, and has been removed along with the Settings page's old
+  // user/role/group/API-key management UI.
   ["auth/users", () => data.USERS],
 
   // Keep's own alert search. Safe as an exact path: it cannot match
@@ -51,7 +52,6 @@ const ROUTES: [string, Resolver][] = [
   // FastAPI. AlertLens's own alert views use /pipeline, not this.
   ["alerts/query", () => ({ count: 0, results: [], limit: 20, offset: 0 })],
   ["alerts/facets", () => []],
-  ["ai/stats", () => data.AI_STATS],
   ["incidents/meta", () => ({})],
 ];
 
