@@ -33,12 +33,13 @@ const ALERTLENS_ENDPOINTS = [
   "notifications",
   "settings/status",
   "rules/config",
+  "maintenance",
+  "maintenance/abc-123",
 ];
 
 /** KeepHQ's own surface, which AlertLens's backend does not implement. */
 const KEEP_ONLY_ENDPOINTS = [
   "healthcheck",
-  "maintenance",
   "deduplications",
   "preset",
   "tags",

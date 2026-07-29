@@ -15,6 +15,7 @@ import os
 import sys
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 os.environ.setdefault("USE_TF", "0")
@@ -93,6 +94,25 @@ def _apply_actions(alerts: list[dict]) -> list[dict]:
     return merged
 
 
+def _apply_maintenance_windows(alerts: list[dict]) -> list[dict]:
+    """Real, wall-clock-evaluated suppression - unlike a manual dismiss,
+    this isn't a persisted per-alert action, so it stops applying the
+    instant a window's end_time passes, without needing anyone to undo it."""
+    windows = db.list_active_maintenance_windows()
+    if not windows:
+        return alerts
+    merged = []
+    for a in alerts:
+        if a.get("status") != "suppressed" and any(
+            w["service"] is None or w["service"] == a.get("service")
+            for w in windows
+        ):
+            a = dict(a)
+            a["status"] = "suppressed"
+        merged.append(a)
+    return merged
+
+
 def run_pipeline(alerts: list[dict]) -> dict:
     get_dna()
 
@@ -103,6 +123,7 @@ def run_pipeline(alerts: list[dict]) -> dict:
     db.clear_alerts()
     db.save_alerts(alerts)
     alerts = _apply_actions(alerts)
+    alerts = _apply_maintenance_windows(alerts)
 
     unique, dedup_stats = deduplicate(alerts)
     labels, _ = cluster_alerts(unique)
@@ -707,3 +728,44 @@ def rules_config() -> dict:
             ),
         },
     }
+
+
+class MaintenanceWindowCreate(BaseModel):
+    name: str
+    service: str | None = None  # None = applies to every service
+    start_time: datetime
+    end_time: datetime
+    enabled: bool = True
+
+
+class MaintenanceWindowUpdate(BaseModel):
+    enabled: bool
+
+
+@app.get("/maintenance")
+def list_maintenance_windows() -> list[dict]:
+    return db.list_maintenance_windows()
+
+
+@app.post("/maintenance")
+def create_maintenance_window(body: MaintenanceWindowCreate) -> dict:
+    if body.end_time <= body.start_time:
+        raise HTTPException(status_code=400, detail="end_time must be after start_time")
+    window_id = uuid.uuid4().hex[:8]
+    return db.create_maintenance_window(
+        window_id, body.name, body.service, body.start_time, body.end_time, body.enabled,
+    )
+
+
+@app.put("/maintenance/{window_id}")
+def update_maintenance_window(window_id: str, body: MaintenanceWindowUpdate) -> dict:
+    window = db.set_maintenance_window_enabled(window_id, body.enabled)
+    if not window:
+        raise HTTPException(status_code=404, detail=f"Maintenance window {window_id} not found")
+    return window
+
+
+@app.delete("/maintenance/{window_id}")
+def delete_maintenance_window(window_id: str) -> dict:
+    db.delete_maintenance_window(window_id)
+    return {"status": "deleted"}

@@ -16,7 +16,11 @@ import {
   AiOutlineGroup,
   AiOutlineHome,
 } from "react-icons/ai";
-import { MdOutlineNotificationsActive, MdOutlineRuleFolder } from "react-icons/md";
+import {
+  MdOutlineNotificationsActive,
+  MdOutlineRuleFolder,
+  MdOutlineEventBusy,
+} from "react-icons/md";
 import { HiOutlineCog6Tooth, HiOutlineSparkles } from "react-icons/hi2";
 
 type NavLink = {
@@ -136,6 +140,12 @@ const SECTIONS: NavSection[] = [
         label: "Notifications",
         icon: MdOutlineNotificationsActive,
         testId: "notifications-hub",
+      },
+      {
+        href: "/maintenance",
+        label: "Maintenance",
+        icon: MdOutlineEventBusy,
+        testId: "maintenance",
       },
       {
         href: "/settings",

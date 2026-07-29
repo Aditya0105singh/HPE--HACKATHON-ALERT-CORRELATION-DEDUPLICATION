@@ -1,13 +1,14 @@
 /**
- * Demo data for the KeepHQ-native pages that AlertLens's backend does not
- * serve (providers catalogue, workflow engine, enrichment rules, dashboards,
- * tenant settings).
+ * Demo data for the small number of remaining KeepHQ-native surfaces that
+ * still have no real AlertLens equivalent (Keep's own dedup-rules catalogue,
+ * user list for assignee lookups, misc alert-search fallbacks).
  *
  * These exist so those pages render their real KeepHQ UI instead of hanging on
  * a missing endpoint. Nothing here is wired to the AlertLens engine — every
  * page fed from this file is a demo surface. Anything backed by the real
  * pipeline (alerts, incidents, correlation, dedup, forecast, topology,
- * evaluation, assistant) is served by FastAPI and never touches this file.
+ * evaluation, assistant, providers, workflows, notifications, settings,
+ * rules, maintenance) is served by FastAPI and never touches this file.
  *
  * Shapes mirror KeepHQ's own TypeScript types so its components work unchanged.
  */
@@ -15,22 +16,6 @@
 const now = () => new Date().toISOString();
 const daysAgo = (n: number) =>
   new Date(Date.now() - n * 86_400_000).toISOString();
-
-export const MAINTENANCE_RULES = [
-  {
-    id: 1,
-    name: "Weekly database patching",
-    description: "Suppresses postgres-primary alerts during the patch window.",
-    created_by: "demo@alertlens.local",
-    created_at: daysAgo(40),
-    start_time: daysAgo(-2),
-    end_time: daysAgo(-2),
-    duration_seconds: 7200,
-    cel_query: 'service == "postgres-primary"',
-    enabled: true,
-    suppress: true,
-  },
-];
 
 export const DEDUPLICATION_RULES = [
   {

@@ -335,3 +335,18 @@ export interface RulesConfig {
     description: string;
   };
 }
+
+/** A real time window that suppresses alerts from a service (or every
+ * service, if unset) — evaluated against wall-clock time on every pipeline
+ * run, not a persisted per-alert action. GET/POST/PUT/DELETE /maintenance. */
+export interface MaintenanceWindow {
+  id: string;
+  name: string;
+  service: string | null;
+  start_time: string;
+  end_time: string;
+  enabled: boolean;
+  created_at: string;
+  /** Computed server-side right now: enabled AND start_time <= now <= end_time. */
+  active: boolean;
+}
