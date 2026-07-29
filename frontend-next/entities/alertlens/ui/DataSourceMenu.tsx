@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Button } from "@tremor/react";
 import { DropdownMenu, showErrorToast, showSuccessToast } from "@/shared/ui";
 import { HiOutlineCircleStack } from "react-icons/hi2";
-import { LuFlaskConical, LuSparkles, LuDatabase } from "react-icons/lu";
-import { usePipelineActions } from "@/entities/alertlens";
+import { LuFlaskConical, LuSparkles, LuDatabase, LuCheck } from "react-icons/lu";
+import { usePipelineActions, useSettingsStatus } from "@/entities/alertlens";
 
 export type DataSourceKey = "loghub" | "aiops" | "synthetic";
 
@@ -35,6 +35,15 @@ export const DATA_SOURCES: {
   },
 ];
 
+/** Maps the backend's real `dataset` status string to a DataSourceKey, so
+ * the UI can highlight what's actually loaded instead of guessing. */
+function keyForDataset(dataset: string | undefined): DataSourceKey | null {
+  if (dataset === "loghub-hdfs") return "loghub";
+  if (dataset === "aiops-challenge") return "aiops";
+  if (dataset === "synthetic") return "synthetic";
+  return null;
+}
+
 /**
  * Switches the loaded alert batch. Each option replaces the current batch
  * server-side and revalidates the pipeline, so the whole app follows.
@@ -45,7 +54,10 @@ export function DataSourceMenu({
   onLoaded?: (key: DataSourceKey) => void;
 }) {
   const { loadDemo, loadReal, loadAiops } = usePipelineActions();
+  const { data: status, mutate: refreshStatus } = useSettingsStatus();
   const [busy, setBusy] = useState<DataSourceKey | null>(null);
+  const [active, setActive] = useState<DataSourceKey | null>(null);
+  const resolvedActive = active ?? keyForDataset(status?.dataset);
 
   const select = async (key: DataSourceKey) => {
     setBusy(key);
@@ -61,6 +73,8 @@ export function DataSourceMenu({
       showSuccessToast(
         `Loaded ${label} — ${result.raw_alerts} alerts, ${result.clusters_formed} incidents`
       );
+      setActive(key);
+      refreshStatus();
       onLoaded?.(key);
     } catch (e) {
       showErrorToast(e, `Could not load ${label}`);
@@ -77,7 +91,7 @@ export function DataSourceMenu({
       {DATA_SOURCES.map(({ key, label, sub, icon }) => (
         <DropdownMenu.Item
           key={key}
-          icon={icon}
+          icon={resolvedActive === key ? LuCheck : icon}
           label={`${label} — ${sub}`}
           onClick={() => select(key)}
         />
@@ -89,14 +103,25 @@ export function DataSourceMenu({
 /** Inline button row variant, for pages that want the choices visible. */
 export function DataSourceButtons() {
   const { loadDemo, loadReal, loadAiops } = usePipelineActions();
+  const { data: status, mutate: refreshStatus } = useSettingsStatus();
   const [busy, setBusy] = useState<DataSourceKey | null>(null);
+  const [active, setActive] = useState<DataSourceKey | null>(null);
+  const resolvedActive = active ?? keyForDataset(status?.dataset);
 
-  const run = async (key: DataSourceKey, fn: () => Promise<unknown>) => {
+  const loaders: Record<DataSourceKey, () => Promise<unknown>> = {
+    loghub: loadReal,
+    aiops: loadAiops,
+    synthetic: () => loadDemo(),
+  };
+
+  const run = async (key: DataSourceKey) => {
     setBusy(key);
     const label = DATA_SOURCES.find((d) => d.key === key)?.label ?? key;
     try {
-      await fn();
+      await loaders[key]();
       showSuccessToast(`Loaded ${label}`);
+      setActive(key);
+      refreshStatus();
     } catch (e) {
       showErrorToast(e, `Could not load ${label}`);
     } finally {
@@ -106,35 +131,19 @@ export function DataSourceButtons() {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button
-        size="xs"
-        color="orange"
-        loading={busy === "loghub"}
-        disabled={busy !== null}
-        onClick={() => run("loghub", loadReal)}
-      >
-        Loghub HDFS_v1
-      </Button>
-      <Button
-        size="xs"
-        color="orange"
-        variant="secondary"
-        loading={busy === "aiops"}
-        disabled={busy !== null}
-        onClick={() => run("aiops", loadAiops)}
-      >
-        AIOps Challenge 2020
-      </Button>
-      <Button
-        size="xs"
-        color="orange"
-        variant="secondary"
-        loading={busy === "synthetic"}
-        disabled={busy !== null}
-        onClick={() => run("synthetic", () => loadDemo())}
-      >
-        Synthetic Demo
-      </Button>
+      {DATA_SOURCES.map(({ key, label }) => (
+        <Button
+          key={key}
+          size="xs"
+          color="orange"
+          variant={resolvedActive === key ? "primary" : "secondary"}
+          loading={busy === key}
+          disabled={busy !== null}
+          onClick={() => run(key)}
+        >
+          {label}
+        </Button>
+      ))}
     </div>
   );
 }
