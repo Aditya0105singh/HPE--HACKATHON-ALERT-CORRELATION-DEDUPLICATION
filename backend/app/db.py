@@ -145,3 +145,69 @@ def set_escalated(alert_id: str, value: bool) -> None:
         action.escalated = value
         action.updated_at = datetime.utcnow()
         db.commit()
+
+
+class ProviderRow(Base):
+    """A provider is a real webhook target - the only kind of external
+    integration the backend can actually exercise (one HTTP POST), rather
+    than pretending to support Slack/Jira/etc OAuth flows that would just be
+    fake buttons."""
+    __tablename__ = "providers"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    type = Column(String, nullable=False, default="webhook")
+    url = Column(String, nullable=False)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+def _provider_dict(row: ProviderRow) -> dict:
+    return {
+        "id": row.id,
+        "name": row.name,
+        "type": row.type,
+        "url": row.url,
+        "enabled": row.enabled,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+    }
+
+
+def list_providers() -> list[dict]:
+    with SessionLocal() as db:
+        rows = db.query(ProviderRow).order_by(ProviderRow.created_at.desc()).all()
+        return [_provider_dict(r) for r in rows]
+
+
+def get_provider(provider_id: str) -> dict | None:
+    with SessionLocal() as db:
+        row = db.get(ProviderRow, provider_id)
+        return _provider_dict(row) if row else None
+
+
+def create_provider(provider_id: str, name: str, url: str, enabled: bool = True) -> dict:
+    with SessionLocal() as db:
+        row = ProviderRow(id=provider_id, name=name, type="webhook", url=url, enabled=enabled)
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return _provider_dict(row)
+
+
+def set_provider_enabled(provider_id: str, enabled: bool) -> dict | None:
+    with SessionLocal() as db:
+        row = db.get(ProviderRow, provider_id)
+        if not row:
+            return None
+        row.enabled = enabled
+        db.commit()
+        db.refresh(row)
+        return _provider_dict(row)
+
+
+def delete_provider(provider_id: str) -> None:
+    with SessionLocal() as db:
+        row = db.get(ProviderRow, provider_id)
+        if row:
+            db.delete(row)
+            db.commit()

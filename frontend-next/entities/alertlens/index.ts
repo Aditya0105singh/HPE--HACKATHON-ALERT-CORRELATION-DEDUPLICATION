@@ -21,3 +21,4 @@ export {
   useSummarizerCheck,
 } from "./model/useIncidentInsights";
 export { useAssistant } from "./model/useAssistant";
+export { PROVIDERS_KEY, useProviders, useProviderActions } from "./model/useProviders";

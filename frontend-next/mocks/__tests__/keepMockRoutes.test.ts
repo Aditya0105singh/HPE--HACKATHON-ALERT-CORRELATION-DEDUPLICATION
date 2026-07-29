@@ -26,12 +26,13 @@ const ALERTLENS_ENDPOINTS = [
   "debug/summarizer-check",
   "assistant",
   "assistant/workspace",
+  "providers",
+  "providers/abc-123/test",
 ];
 
 /** KeepHQ's own surface, which AlertLens's backend does not implement. */
 const KEEP_ONLY_ENDPOINTS = [
   "healthcheck",
-  "providers",
   "workflows",
   "workflows/query",
   "workflows/executions",
@@ -77,9 +78,11 @@ describe("keep mock routing", () => {
     });
 
     it("matches only on a full path segment", () => {
-      // "providers" is Keep's, but a longer word starting with it is not.
-      expect(isKeepOnlyPath("providers")).toBe(true);
-      expect(isKeepOnlyPath("providers/oauth2")).toBe(true);
+      // "providers" is real (FastAPI) now; "provider-images" is still
+      // Keep's own asset store, but a longer word starting with it is not.
+      expect(isKeepOnlyPath("providers")).toBe(false);
+      expect(isKeepOnlyPath("providers/oauth2")).toBe(false);
+      expect(isKeepOnlyPath("provider-images")).toBe(true);
       expect(isKeepOnlyPath("provider-images-extra")).toBe(false);
     });
   });
@@ -117,7 +120,7 @@ describe("keep mock routing", () => {
   });
 
   it("tolerates a leading slash", () => {
-    expect(isKeepOnlyPath("/providers")).toBe(true);
+    expect(isKeepOnlyPath("/provider-images")).toBe(true);
     expect(isKeepOnlyPath("/pipeline")).toBe(false);
   });
 

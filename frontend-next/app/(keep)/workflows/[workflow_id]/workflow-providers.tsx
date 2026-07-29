@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Workflow, Provider } from "@/shared/api/workflows";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import { DynamicImageProviderIcon } from "@/components/ui";
-import { useFetchProviders } from "../../providers/page.client";
 import { useRevalidateMultiple } from "@/shared/lib/state-utils";
 import { checkProviderNeedsInstallation } from "@/entities/workflows/lib/validate-definition";
 import { Drawer } from "@/shared/ui/Drawer";
@@ -63,7 +62,13 @@ export function WorkflowProviders({ workflow }: { workflow: Workflow }) {
   const [selectedProvider, setSelectedProvider] = useState<FullProvider | null>(
     null
   );
-  const { providers, mutate } = useFetchProviders();
+  // This carousel is part of Keep's old YAML workflow builder, which reads
+  // from Keep's rich provider catalog (install status, scopes, OAuth) - a
+  // concept the new, real /providers (plain webhook targets) doesn't have.
+  // The whole old builder is being replaced, so this stays empty rather
+  // than reviving the old mock catalog just for a feature on its way out.
+  const providers: FullProvider[] = [];
+  const mutate = () => {};
   const revalidateMultiple = useRevalidateMultiple();
 
   const handleConnectProvider = (provider: FullProvider) => {

@@ -259,3 +259,20 @@ export interface DemoLoadOptions {
   seed?: number | null;
   scenario?: string | null;
 }
+
+/** A real webhook notification target — GET/POST/DELETE /providers. */
+export interface Provider {
+  id: string;
+  name: string;
+  type: "webhook";
+  url: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+/** POST /providers/{id}/test result — the real HTTP outcome, not a canned reply. */
+export interface ProviderTestResult {
+  status: "success" | "failed";
+  http_status: number | null;
+  detail: string;
+}
