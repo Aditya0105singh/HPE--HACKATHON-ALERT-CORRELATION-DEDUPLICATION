@@ -47,18 +47,21 @@ export const LinkWithIcon = ({
         restOfLinkProps.href?.toString() || ""
       );
 
+  // Active state needs to actually read as "selected" at a glance, not a
+  // faint tint that's easy to miss against inactive items' hover color -
+  // solid pill + white icon/text, same pattern as the selected-dataset
+  // buttons elsewhere in the app.
   const iconClasses = clsx(
-    "group-hover:text-orange-400",
     {
-      "text-orange-400": isActive,
-      "text-black": !isActive,
+      "text-white": isActive,
+      "text-black group-hover:text-orange-400": !isActive,
     },
     iconClassName
   );
 
   const textClasses = clsx("truncate", {
-    "text-orange-400": isActive,
-    "text-black": !isActive,
+    "text-white": isActive,
+    "text-black group-hover:text-orange-400": !isActive,
   });
 
   const handleMouseEnter = () => setIsHovered(true);
@@ -83,7 +86,7 @@ export const LinkWithIcon = ({
       className={clsx(
         "flex items-center justify-between py-0.5 px-1 font-medium rounded-lg focus:ring focus:ring-orange-300 group w-full min-w-0",
         {
-          "bg-stone-200/50": isActive,
+          "bg-orange-500": isActive,
           "hover:bg-stone-200/50": !isActive,
         },
         className
