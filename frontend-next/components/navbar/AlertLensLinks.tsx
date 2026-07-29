@@ -17,7 +17,7 @@ import {
   AiOutlineHome,
 } from "react-icons/ai";
 import { MdOutlineNotificationsActive } from "react-icons/md";
-import { HiOutlineChartBar, HiOutlineCog6Tooth } from "react-icons/hi2";
+import { HiOutlineCog6Tooth } from "react-icons/hi2";
 
 type NavLink = {
   href: string;
@@ -45,13 +45,6 @@ const SECTIONS: NavSection[] = [
         icon: AiOutlineHome,
         testId: "home",
         isExact: true,
-      },
-      {
-        href: "/dashboard",
-        label: "Dashboards",
-        icon: HiOutlineChartBar,
-        testId: "dashboard",
-        isDemo: true,
       },
     ],
   },

@@ -40,7 +40,6 @@ const KEEP_ONLY_ENDPOINTS = [
   "maintenance",
   "rules",
   "deduplications",
-  "dashboard",
   "preset",
   "tags",
   "auth/users",
