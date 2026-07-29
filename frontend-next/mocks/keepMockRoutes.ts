@@ -30,7 +30,6 @@ const ROUTES: [string, Resolver][] = [
   ["maintenance", () => data.MAINTENANCE_RULES],
   ["rules", () => data.CORRELATION_RULES],
   ["deduplications", () => data.DEDUPLICATION_RULES],
-  ["dashboard", () => data.DASHBOARDS],
   [
     "preset",
     (path) =>

@@ -85,15 +85,6 @@ export const DEDUPLICATION_RULES = [
   },
 ];
 
-export const DASHBOARDS = [
-  {
-    id: "dash-1",
-    dashboard_name: "Reliability overview",
-    dashboard_config: { layout: [], widgetData: [] },
-sort_order: 1,
-  },
-];
-
 export const PRESETS = [
   {
     id: "preset-feed",
