@@ -8,7 +8,7 @@ import {
   PageSubtitle,
   PageTitle,
 } from "@/shared/ui";
-import { LuWorkflow } from "react-icons/lu";
+import { LuWorkflow, LuChevronDown } from "react-icons/lu";
 import { usePipelineState } from "@/entities/alertlens";
 import { buildStages, type Stage } from "@/entities/alertlens/lib/buildStages";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
@@ -47,6 +47,11 @@ function StageCard({
             </Badge>
           )}
         </div>
+        <LuChevronDown
+          className={`w-4 h-4 text-gray-400 shrink-0 mt-1 transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
       </div>
 
       {isOpen && (
@@ -140,7 +145,11 @@ export function PipelineClient() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {/* items-start: without it, a grid row stretches every card to
+              match its tallest sibling, so expanding one stage left the
+              others in its row showing a wall of empty space below their
+              stat instead of just staying their natural (short) height. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
             {stages.map((stage, i) => (
               <StageCard
                 key={stage.id}
