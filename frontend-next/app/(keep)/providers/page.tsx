@@ -1,10 +1,7 @@
 import ProvidersPage from "./page.client";
 
-export default async function Page(props: {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const searchParams = await props.searchParams;
-  return <ProvidersPage searchParams={searchParams} />;
+export default function Page() {
+  return <ProvidersPage />;
 }
 
 export const metadata = {

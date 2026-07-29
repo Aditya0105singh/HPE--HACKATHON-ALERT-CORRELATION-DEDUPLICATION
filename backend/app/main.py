@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -33,6 +34,7 @@ from .dedup import deduplicate
 from .forecast import compute_forecast
 from .root_cause_confidence import build_root_cause_confidence
 from .playbook import generate_playbook
+from .providers import test_webhook
 from .real_data import load_loghub_alerts
 from .real_data_aiops import load_aiops_alerts
 from .risk_score import escalation_risk
@@ -525,3 +527,36 @@ def assistant_workspace(payload: WorkspaceAssistantRequest) -> dict:
     """Global chat widget endpoint — incident-specific when incident_id is set,
     workspace-mode (live pipeline snapshot) otherwise."""
     return ask_workspace_assistant(_state, payload)
+
+
+class ProviderCreate(BaseModel):
+    name: str
+    url: str
+    enabled: bool = True
+
+
+@app.get("/providers")
+def list_providers() -> list[dict]:
+    return db.list_providers()
+
+
+@app.post("/providers")
+def create_provider(body: ProviderCreate) -> dict:
+    provider_id = uuid.uuid4().hex[:8]
+    return db.create_provider(provider_id, body.name, body.url, body.enabled)
+
+
+@app.delete("/providers/{provider_id}")
+def delete_provider(provider_id: str) -> dict:
+    db.delete_provider(provider_id)
+    return {"status": "deleted"}
+
+
+@app.post("/providers/{provider_id}/test")
+def test_provider(provider_id: str) -> dict:
+    """Sends one real HTTP POST to the provider's URL and reports exactly
+    what happened - not a canned success message."""
+    provider = db.get_provider(provider_id)
+    if not provider:
+        raise HTTPException(status_code=404, detail=f"Provider {provider_id} not found")
+    return test_webhook(provider["url"])

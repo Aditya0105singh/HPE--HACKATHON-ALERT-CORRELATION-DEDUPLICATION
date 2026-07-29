@@ -13,8 +13,9 @@ type Resolver = (path: string, search: URLSearchParams) => unknown;
  * DANGER: never add a prefix that shadows a real AlertLens endpoint. The
  * backend owns `/ingest`, `/demo/*`, `/pipeline`, `/alerts/{id}/ack|assign|
  * dismiss|escalate`, `/forecast/{id}`, `/incidents/{id}/comparison|
- * root_cause_confidence|playbook`, `/evaluation`, `/debug/*` and `/assistant*`.
- * Shadowing any of those would silently replace engine output with demo data.
+ * root_cause_confidence|playbook`, `/evaluation`, `/debug/*`, `/assistant*`
+ * and `/providers` (CRUD + `/providers/{id}/test`). Shadowing any of those
+ * would silently replace engine output with demo data.
  */
 const WORKFLOW_FACETS = [
   {
@@ -38,8 +39,8 @@ const ROUTES: [string, Resolver][] = [
   // "API server is not available".
   ["healthcheck", () => ({ status: "ok" })],
 
-  ["providers", () => data.PROVIDERS_RESPONSE],
-  // Provider logos live in Keep's own storage; no equivalent here.
+  // Provider logos live in Keep's own storage; no equivalent here. Real
+  // provider CRUD (/providers, /providers/{id}/test) is served by FastAPI now.
   ["provider-images", () => []],
 
   // Keep's workflows table POSTs a query and expects a paginated envelope.
