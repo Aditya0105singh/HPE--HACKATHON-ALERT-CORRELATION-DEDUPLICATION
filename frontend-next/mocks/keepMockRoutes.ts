@@ -84,8 +84,6 @@ const ROUTES: [string, Resolver][] = [
     },
   ],
 
-  ["mapping", () => data.MAPPING_RULES],
-  ["extraction", () => data.EXTRACTION_RULES],
   ["maintenance", () => data.MAINTENANCE_RULES],
   ["rules", () => data.CORRELATION_RULES],
   ["deduplications", () => data.DEDUPLICATION_RULES],

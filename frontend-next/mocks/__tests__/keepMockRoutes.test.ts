@@ -36,8 +36,6 @@ const KEEP_ONLY_ENDPOINTS = [
   "workflows/query",
   "workflows/executions",
   "workflows/facets",
-  "mapping",
-  "extraction",
   "maintenance",
   "rules",
   "deduplications",
