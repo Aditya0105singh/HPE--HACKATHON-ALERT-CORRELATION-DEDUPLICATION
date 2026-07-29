@@ -625,3 +625,9 @@ def update_workflow_rule(rule_id: str, body: WorkflowRuleUpdate) -> dict:
 def delete_workflow_rule(rule_id: str) -> dict:
     db.delete_workflow_rule(rule_id)
     return {"status": "deleted"}
+
+
+@app.get("/notifications")
+def list_notifications() -> list[dict]:
+    """Real history of every workflow rule firing - see automation.py."""
+    return db.list_notifications()

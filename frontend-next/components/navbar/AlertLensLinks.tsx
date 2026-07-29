@@ -136,7 +136,6 @@ const SECTIONS: NavSection[] = [
         label: "Notifications",
         icon: MdOutlineNotificationsActive,
         testId: "notifications-hub",
-        isDemo: true,
       },
       {
         href: "/settings",

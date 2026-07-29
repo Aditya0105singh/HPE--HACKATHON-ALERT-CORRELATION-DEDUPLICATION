@@ -315,6 +315,30 @@ def log_notification(rule_id: str, incident_key: str, provider_id: str | None,
         db.commit()
 
 
+def list_notifications(limit: int = 200) -> list[dict]:
+    """Real firing history - every row is a real evaluate_workflow_rules()
+    outcome (automation.py), success or failure, not sample data."""
+    with SessionLocal() as db:
+        rows = (
+            db.query(NotificationLogRow)
+            .order_by(NotificationLogRow.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": r.id,
+                "rule_id": r.rule_id,
+                "incident_key": r.incident_key,
+                "provider_id": r.provider_id,
+                "status": r.status,
+                "detail": r.detail,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ]
+
+
 def last_fired_at(rule_id: str) -> str | None:
     with SessionLocal() as db:
         row = (
