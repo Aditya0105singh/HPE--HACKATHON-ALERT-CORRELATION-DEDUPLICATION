@@ -422,7 +422,7 @@ export function HomeClient() {
             {timeline.map((b) => (
               <div
                 key={b.label}
-                className="flex-1 flex flex-col items-center justify-end gap-1 min-w-0"
+                className="flex-1 h-full flex flex-col items-center justify-end gap-1 min-w-0"
                 title={`${b.label} — ${b.total} alerts (${b.critical} critical)`}
               >
                 <div
