@@ -15,9 +15,9 @@ type Resolver = (path: string, search: URLSearchParams) => unknown;
  * dismiss|escalate`, `/forecast/{id}`, `/incidents/{id}/comparison|
  * root_cause_confidence|playbook`, `/evaluation`, `/debug/*`, `/assistant*`
  * (including `/assistant/workspace`), `/providers` (CRUD +
- * `/providers/{id}/test`), `/workflows` (CRUD), `/notifications` and
- * `/settings/status`. Shadowing any of those would silently replace engine
- * output with demo data.
+ * `/providers/{id}/test`), `/workflows` (CRUD), `/notifications`,
+ * `/settings/status` and `/rules/config`. Shadowing any of those would
+ * silently replace engine output with demo data.
  */
 const ROUTES: [string, Resolver][] = [
   // Keep's ApiClient probes this; a 404 makes every page show
@@ -29,7 +29,6 @@ const ROUTES: [string, Resolver][] = [
   ["provider-images", () => []],
 
   ["maintenance", () => data.MAINTENANCE_RULES],
-  ["rules", () => data.CORRELATION_RULES],
   ["deduplications", () => data.DEDUPLICATION_RULES],
   [
     "preset",

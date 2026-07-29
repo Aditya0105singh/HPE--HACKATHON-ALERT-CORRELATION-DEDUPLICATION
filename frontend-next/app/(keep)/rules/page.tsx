@@ -1,10 +1,10 @@
-import { Client } from "./client";
+import RulesPage from "./page.client";
 
 export default function Page() {
-  return <Client />;
+  return <RulesPage />;
 }
 
 export const metadata = {
-  title: "Correlation rules | AlertLens",
-  description: "Create correlation rules to group alerts into incidents",
+  title: "Rules | AlertLens",
+  description: "How the correlation engine actually works - the real, tuned parameters.",
 };

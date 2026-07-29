@@ -16,7 +16,7 @@ import {
   AiOutlineGroup,
   AiOutlineHome,
 } from "react-icons/ai";
-import { MdOutlineNotificationsActive } from "react-icons/md";
+import { MdOutlineNotificationsActive, MdOutlineRuleFolder } from "react-icons/md";
 import { HiOutlineCog6Tooth, HiOutlineSparkles } from "react-icons/hi2";
 
 type NavLink = {
@@ -94,6 +94,12 @@ const SECTIONS: NavSection[] = [
         label: "Service Topology",
         icon: TbTopologyRing,
         testId: "topology",
+      },
+      {
+        href: "/rules",
+        label: "Rules",
+        icon: MdOutlineRuleFolder,
+        testId: "rules",
       },
     ],
   },
