@@ -98,7 +98,9 @@ function StageCard({
 
 export function PipelineClient() {
   const { state, isLoading, error } = usePipelineState();
-  const [openStage, setOpenStage] = useState<string | null>(null);
+  // A Set, not a single id - each stage toggles independently instead of
+  // opening one and silently closing whichever was open before.
+  const [openStages, setOpenStages] = useState<Set<string>>(new Set());
 
   const stages = useMemo(() => buildStages(state), [state]);
 
@@ -155,9 +157,14 @@ export function PipelineClient() {
                 key={stage.id}
                 stage={stage}
                 index={i}
-                isOpen={openStage === stage.id}
+                isOpen={openStages.has(stage.id)}
                 onToggle={() =>
-                  setOpenStage(openStage === stage.id ? null : stage.id)
+                  setOpenStages((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(stage.id)) next.delete(stage.id);
+                    else next.add(stage.id);
+                    return next;
+                  })
                 }
               />
             ))}
