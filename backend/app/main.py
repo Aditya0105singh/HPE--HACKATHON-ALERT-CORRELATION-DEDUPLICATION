@@ -42,7 +42,7 @@ from .risk_score import escalation_risk
 from .summarizer import summarize
 
 _dna: AlertDNA | None = None
-_state: dict = {"dedup_stats": None, "clusters": [], "noise": [], "raw_alerts": [], "evaluation": None}
+_state: dict = {"dedup_stats": None, "clusters": [], "noise": [], "raw_alerts": [], "evaluation": None, "dataset": "none"}
 
 # Rough triage-time model for the MTTR framing: minutes an on-call engineer
 # would spend manually reading and grouping this many raw alerts (~30s each),
@@ -246,9 +246,13 @@ def _initial_load() -> None:
     persisted = db.load_alerts()
     if persisted:
         run_pipeline(persisted)
+        # Which dataset these came from wasn't itself persisted, so this is
+        # deliberately honest rather than guessed.
+        _state["dataset"] = "restored-from-db"
         return
     run_pipeline(generate_batch(n_incidents=4, n_noise=80, window_minutes=45,
                                 seed=7, noise_window_hours=48))
+    _state["dataset"] = "synthetic"
 
 
 @asynccontextmanager
@@ -274,14 +278,18 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
 
 @app.post("/ingest")
 def ingest(alerts: list[dict]) -> dict:
-    return run_pipeline(alerts)
+    result = run_pipeline(alerts)
+    _state["dataset"] = "custom-ingest"
+    return result
 
 
 @app.post("/demo/load")
 def demo_load(incidents: int = 4, noise: int = 80, seed: int | None = None,
               scenario: str | None = None) -> dict:
-    return run_pipeline(generate_batch(incidents, noise, 45, seed=seed,
-                                       noise_window_hours=48, force_scenario=scenario))
+    result = run_pipeline(generate_batch(incidents, noise, 45, seed=seed,
+                                         noise_window_hours=48, force_scenario=scenario))
+    _state["dataset"] = "synthetic"
+    return result
 
 
 @app.post("/demo/load-real")
@@ -290,7 +298,9 @@ def demo_load_real() -> dict:
     the same pipeline as the synthetic path. See data/loghub_hdfs_loader.py
     and app/real_data.py for how these alerts are derived from the dataset's
     own log content and human-annotated Normal/Anomaly block labels."""
-    return run_pipeline(load_loghub_alerts())
+    result = run_pipeline(load_loghub_alerts())
+    _state["dataset"] = "loghub-hdfs"
+    return result
 
 
 @app.post("/demo/load-aiops")
@@ -299,7 +309,9 @@ def demo_load_aiops() -> dict:
     source) through the same pipeline. See data/aiops_challenge_loader.py and
     app/real_data_aiops.py for how these alerts are derived from the
     dataset's own real fault-injection log."""
-    return run_pipeline(load_aiops_alerts())
+    result = run_pipeline(load_aiops_alerts())
+    _state["dataset"] = "aiops-challenge"
+    return result
 
 
 @app.get("/pipeline")
@@ -631,3 +643,25 @@ def delete_workflow_rule(rule_id: str) -> dict:
 def list_notifications() -> list[dict]:
     """Real history of every workflow rule firing - see automation.py."""
     return db.list_notifications()
+
+
+@app.get("/settings/status")
+def settings_status() -> dict:
+    """Real system status - which dataset is loaded, how many alerts are
+    actually persisted, and whether an LLM provider is genuinely reachable
+    (reuses the same check /debug/summarizer-check uses) - not a settings
+    form for things this backend doesn't actually have (users, roles, API
+    keys)."""
+    from . import summarizer
+
+    configured = summarizer._configured_providers()
+    return {
+        "dataset": _state.get("dataset", "none"),
+        "persisted_alert_count": len(db.load_alerts()),
+        "active_incident_count": len(_state.get("clusters", [])),
+        "provider_count": len(db.list_providers()),
+        "workflow_rule_count": len(db.list_workflow_rules()),
+        "llm_configured": bool(configured),
+        "llm_provider": configured[0][0] if configured else None,
+        "db_path": str(db.DB_PATH),
+    }

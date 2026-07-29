@@ -30,6 +30,8 @@ const ALERTLENS_ENDPOINTS = [
   "providers/abc-123/test",
   "workflows",
   "workflows/abc-123",
+  "notifications",
+  "settings/status",
 ];
 
 /** KeepHQ's own surface, which AlertLens's backend does not implement. */
@@ -42,12 +44,6 @@ const KEEP_ONLY_ENDPOINTS = [
   "preset",
   "tags",
   "auth/users",
-  "auth/roles",
-  "auth/groups",
-  "auth/permissions",
-  "auth/permissions/scopes",
-  "settings/apikeys",
-  "settings/tenant/configuration",
   "ai/stats",
   "alerts/query",
 ];

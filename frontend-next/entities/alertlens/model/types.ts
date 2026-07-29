@@ -304,3 +304,15 @@ export interface NotificationLogEntry {
   detail: string | null;
   created_at: string;
 }
+
+/** GET /settings/status — real system facts, not a settings form. */
+export interface SettingsStatus {
+  dataset: string;
+  persisted_alert_count: number;
+  active_incident_count: number;
+  provider_count: number;
+  workflow_rule_count: number;
+  llm_configured: boolean;
+  llm_provider: string | null;
+  db_path: string;
+}

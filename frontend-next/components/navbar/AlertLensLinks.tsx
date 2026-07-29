@@ -142,7 +142,6 @@ const SECTIONS: NavSection[] = [
         label: "Settings",
         icon: HiOutlineCog6Tooth,
         testId: "settings",
-        isDemo: true,
       },
     ],
   },
