@@ -9,6 +9,19 @@ import { useAlertActions } from "@/entities/alertlens";
 import type { Alert } from "@/entities/alertlens";
 import { formatTimestamp, timeAgo } from "@/entities/alertlens/lib/format";
 import { AlertIcon, ServiceChip } from "./AlertIcon";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+
+const STATUS_COLOR: Record<string, "red" | "orange" | "emerald" | "gray" | "blue"> = {
+  firing: "red",
+  pending: "orange",
+  resolved: "emerald",
+  suppressed: "gray",
+  acknowledged: "blue",
+};
+
+function getStatusColor(status: string): "red" | "orange" | "emerald" | "gray" | "blue" {
+  return STATUS_COLOR[status?.toLowerCase()] ?? "gray";
+}
 
 const Field = ({
   label,
@@ -61,7 +74,8 @@ export function AlertDetailDrawer({
   return (
     <Drawer isOpen={!!alert} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
+        {/* Header row with close button */}
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-gray-200">
           <div className="flex items-start gap-3 min-w-0">
             <AlertIcon
               alertname={alert.alertname}
@@ -76,14 +90,23 @@ export function AlertDetailDrawer({
               </Text>
             </div>
           </div>
-          <SeverityLabel severity={alert.severity as UISeverity} />
+          <div className="flex items-center gap-2 shrink-0">
+            <SeverityLabel severity={alert.severity as UISeverity} />
+            <button
+              onClick={onClose}
+              className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <Text>{alert.message}</Text>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Status">
-            <Badge size="xs" color="gray">
+            <Badge size="xs" color={getStatusColor(alert.status)}>
               {alert.status}
             </Badge>
           </Field>
