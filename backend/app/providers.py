@@ -13,11 +13,8 @@ import urllib.error
 import urllib.request
 
 
-def test_webhook(url: str) -> dict:
-    body = json.dumps({
-        "event": "alertlens.test",
-        "message": "Test notification from AlertLens - if you see this, the webhook works.",
-    }).encode("utf-8")
+def _post(url: str, payload: dict) -> dict:
+    body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url,
         data=body,
@@ -42,3 +39,16 @@ def test_webhook(url: str) -> dict:
         }
     except Exception as e:
         return {"status": "failed", "http_status": None, "detail": str(e)}
+
+
+def test_webhook(url: str) -> dict:
+    return _post(url, {
+        "event": "alertlens.test",
+        "message": "Test notification from AlertLens - if you see this, the webhook works.",
+    })
+
+
+def notify_webhook(url: str, payload: dict) -> dict:
+    """Same real-POST mechanics as test_webhook, but with a caller-supplied
+    payload - used by the workflow engine to notify on a real incident."""
+    return _post(url, payload)

@@ -8,7 +8,6 @@ import { AlertHistoryModal } from "@/features/alerts/alert-history";
 import { AlertAssignTicketModal } from "@/features/alerts/alert-assign-ticket";
 import { AlertNoteModal } from "@/features/alerts/alert-note";
 import { AlertMethodModal } from "@/features/alerts/alert-call-provider-method";
-import { ManualRunWorkflowModal } from "@/features/workflows/manual-run-workflow";
 import { AlertDismissModal } from "@/features/alerts/dismiss-alert";
 import { ViewAlertModal } from "@/features/alerts/view-raw-alert";
 import { AlertChangeStatusModal } from "@/features/alerts/alert-change-status";
@@ -238,10 +237,6 @@ export default function Alerts({ presetName, initialFacets }: AlertsProps) {
       <AlertNoteModal
         handleClose={() => setNoteModalAlert(null)}
         alert={noteModalAlert ?? null}
-      />
-      <ManualRunWorkflowModal
-        alert={runWorkflowModalAlert}
-        onClose={() => setRunWorkflowModalAlert(null)}
       />
       <ViewAlertModal
         alert={viewAlertModal}

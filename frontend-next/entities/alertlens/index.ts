@@ -22,3 +22,4 @@ export {
 } from "./model/useIncidentInsights";
 export { useAssistant } from "./model/useAssistant";
 export { PROVIDERS_KEY, useProviders, useProviderActions } from "./model/useProviders";
+export { WORKFLOWS_KEY, useWorkflowRules, useWorkflowRuleActions } from "./model/useWorkflowRules";

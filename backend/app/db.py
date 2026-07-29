@@ -205,6 +205,127 @@ def set_provider_enabled(provider_id: str, enabled: bool) -> dict | None:
         return _provider_dict(row)
 
 
+class WorkflowRuleRow(Base):
+    """A real trigger->action rule - not Keep's YAML step engine, just
+    "if this condition, do this one thing" - evaluated against every fresh
+    batch of clusters in run_pipeline()."""
+    __tablename__ = "workflow_rules"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    trigger_type = Column(String, nullable=False)  # "risk_threshold" | "new_critical_alert"
+    trigger_config = Column(String, nullable=False, default="{}")  # JSON-encoded
+    action_type = Column(String, nullable=False)  # "notify" | "auto_escalate"
+    action_config = Column(String, nullable=False, default="{}")  # JSON-encoded
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class NotificationLogRow(Base):
+    """One row per workflow rule firing - real execution history, and the
+    dedup key that stops a rule re-firing on the same incident every time
+    run_pipeline() reruns (e.g. after an unrelated ack/assign action)."""
+    __tablename__ = "notification_log"
+
+    id = Column(String, primary_key=True)
+    rule_id = Column(String, nullable=False)
+    incident_key = Column(String, nullable=False)  # root-cause alert id
+    provider_id = Column(String, nullable=True)
+    status = Column(String, nullable=False)  # "success" | "failed"
+    detail = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+def _workflow_rule_dict(row: WorkflowRuleRow) -> dict:
+    return {
+        "id": row.id,
+        "name": row.name,
+        "trigger_type": row.trigger_type,
+        "trigger_config": json.loads(row.trigger_config),
+        "action_type": row.action_type,
+        "action_config": json.loads(row.action_config),
+        "enabled": row.enabled,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+    }
+
+
+def list_workflow_rules() -> list[dict]:
+    with SessionLocal() as db:
+        rows = db.query(WorkflowRuleRow).order_by(WorkflowRuleRow.created_at.desc()).all()
+        return [_workflow_rule_dict(r) for r in rows]
+
+
+def get_workflow_rule(rule_id: str) -> dict | None:
+    with SessionLocal() as db:
+        row = db.get(WorkflowRuleRow, rule_id)
+        return _workflow_rule_dict(row) if row else None
+
+
+def create_workflow_rule(rule_id: str, name: str, trigger_type: str, trigger_config: dict,
+                          action_type: str, action_config: dict, enabled: bool = True) -> dict:
+    with SessionLocal() as db:
+        row = WorkflowRuleRow(
+            id=rule_id, name=name, trigger_type=trigger_type,
+            trigger_config=json.dumps(trigger_config), action_type=action_type,
+            action_config=json.dumps(action_config), enabled=enabled,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return _workflow_rule_dict(row)
+
+
+def set_workflow_rule_enabled(rule_id: str, enabled: bool) -> dict | None:
+    with SessionLocal() as db:
+        row = db.get(WorkflowRuleRow, rule_id)
+        if not row:
+            return None
+        row.enabled = enabled
+        db.commit()
+        db.refresh(row)
+        return _workflow_rule_dict(row)
+
+
+def delete_workflow_rule(rule_id: str) -> None:
+    with SessionLocal() as db:
+        row = db.get(WorkflowRuleRow, rule_id)
+        if row:
+            db.delete(row)
+            db.commit()
+
+
+def has_fired(rule_id: str, incident_key: str) -> bool:
+    with SessionLocal() as db:
+        return (
+            db.query(NotificationLogRow)
+            .filter_by(rule_id=rule_id, incident_key=incident_key)
+            .first()
+            is not None
+        )
+
+
+def log_notification(rule_id: str, incident_key: str, provider_id: str | None,
+                      status: str, detail: str | None) -> None:
+    with SessionLocal() as db:
+        db.add(NotificationLogRow(
+            id=f"{rule_id}:{incident_key}:{datetime.utcnow().timestamp()}",
+            rule_id=rule_id, incident_key=incident_key, provider_id=provider_id,
+            status=status, detail=detail,
+        ))
+        db.commit()
+
+
+def last_fired_at(rule_id: str) -> str | None:
+    with SessionLocal() as db:
+        row = (
+            db.query(NotificationLogRow)
+            .filter_by(rule_id=rule_id)
+            .order_by(NotificationLogRow.created_at.desc())
+            .first()
+        )
+        return row.created_at.isoformat() if row else None
+
+
 def delete_provider(provider_id: str) -> None:
     with SessionLocal() as db:
         row = db.get(ProviderRow, provider_id)

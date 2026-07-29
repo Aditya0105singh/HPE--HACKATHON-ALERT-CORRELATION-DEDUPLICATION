@@ -13,27 +13,10 @@ type Resolver = (path: string, search: URLSearchParams) => unknown;
  * DANGER: never add a prefix that shadows a real AlertLens endpoint. The
  * backend owns `/ingest`, `/demo/*`, `/pipeline`, `/alerts/{id}/ack|assign|
  * dismiss|escalate`, `/forecast/{id}`, `/incidents/{id}/comparison|
- * root_cause_confidence|playbook`, `/evaluation`, `/debug/*`, `/assistant*`
- * and `/providers` (CRUD + `/providers/{id}/test`). Shadowing any of those
- * would silently replace engine output with demo data.
+ * root_cause_confidence|playbook`, `/evaluation`, `/debug/*`, `/assistant*`,
+ * `/providers` (CRUD + `/providers/{id}/test`) and `/workflows` (CRUD).
+ * Shadowing any of those would silently replace engine output with demo data.
  */
-const WORKFLOW_FACETS = [
-  {
-    id: "wf-status",
-    property_path: "last_execution_status",
-    name: "Status",
-    is_static: true,
-    is_lazy: false,
-  },
-  {
-    id: "wf-disabled",
-    property_path: "disabled",
-    name: "Enabled",
-    is_static: true,
-    is_lazy: false,
-  },
-];
-
 const ROUTES: [string, Resolver][] = [
   // Keep's ApiClient probes this; a 404 makes every page show
   // "API server is not available".
@@ -42,48 +25,6 @@ const ROUTES: [string, Resolver][] = [
   // Provider logos live in Keep's own storage; no equivalent here. Real
   // provider CRUD (/providers, /providers/{id}/test) is served by FastAPI now.
   ["provider-images", () => []],
-
-  // Keep's workflows table POSTs a query and expects a paginated envelope.
-  [
-    "workflows/query",
-    () => ({
-      count: data.WORKFLOWS.length,
-      results: data.WORKFLOWS,
-      limit: 12,
-      offset: 0,
-    }),
-  ],
-  [
-    "workflows/facets/options",
-    () => ({
-      "wf-status": [
-        { display_name: "success", value: "success", matches_count: 3 },
-        { display_name: "error", value: "error", matches_count: 1 },
-      ],
-      "wf-disabled": [
-        { display_name: "Enabled", value: false, matches_count: 3 },
-        { display_name: "Disabled", value: true, matches_count: 1 },
-      ],
-    }),
-  ],
-  // Keep's server-side FacetsPanel expects a richer contract than the demo
-  // layer provides; an empty list renders the table without facet filters.
-  ["workflows/facets", () => []],
-  [
-    "workflows/templates/query",
-    () => ({ count: 0, results: [], limit: 12, offset: 0 }),
-  ],
-  ["workflows/executions", () => data.WORKFLOW_EXECUTIONS],
-  [
-    "workflows",
-    (path) => {
-      const rest = path.replace(/^workflows\/?/, "");
-      if (!rest) return data.WORKFLOWS;
-      if (rest.endsWith("/executions")) return data.WORKFLOW_EXECUTIONS;
-      const id = rest.split("/")[0];
-      return data.WORKFLOWS.find((w) => w.id === id) ?? data.WORKFLOWS;
-    },
-  ],
 
   ["maintenance", () => data.MAINTENANCE_RULES],
   ["rules", () => data.CORRELATION_RULES],

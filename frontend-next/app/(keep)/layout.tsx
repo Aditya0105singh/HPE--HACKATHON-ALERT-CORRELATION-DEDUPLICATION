@@ -18,7 +18,6 @@ import { ThemeScript, WatchUpdateTheme } from "@/shared/ui";
 import "@/app/globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import { PostHogPageView } from "@/shared/ui/PostHogPageView";
-import { WorkflowModalProvider } from "@/features/workflows/manual-run-workflow";
 
 // If loading a variable font, you don't need to specify the font weight
 const mulish = Mulish({
@@ -50,34 +49,32 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           <PHProvider>
             <NextAuthProvider session={session}>
               <TopologyPollingContextProvider>
-                <WorkflowModalProvider>
-                  {/* @ts-ignore-error Server Component */}
-                  <PostHogPageView />
-                  <Navbar />
-                  {/* https://discord.com/channels/752553802359505017/1068089513253019688/1117731746922893333 */}
-                  <main className="page-container flex flex-col col-start-3 overflow-auto">
-                    {/* Add the banner here, before the navbar */}
-                    {config.READ_ONLY && <ReadOnlyBanner />}
-                    <div className="flex-1">{children}</div>
-                    {/** footer */}
-                    {process.env.GIT_COMMIT_HASH &&
-                      process.env.SHOW_BUILD_INFO !== "false" && (
-                        <div className="pointer-events-none opacity-80 w-full p-2 text-slate-400 text-xs">
-                          <div className="w-full text-right">
-                            Version: {process.env.KEEP_VERSION} | Build:{" "}
-                            {process.env.GIT_COMMIT_HASH.slice(0, 6)}
-                          </div>
+                {/* @ts-ignore-error Server Component */}
+                <PostHogPageView />
+                <Navbar />
+                {/* https://discord.com/channels/752553802359505017/1068089513253019688/1117731746922893333 */}
+                <main className="page-container flex flex-col col-start-3 overflow-auto">
+                  {/* Add the banner here, before the navbar */}
+                  {config.READ_ONLY && <ReadOnlyBanner />}
+                  <div className="flex-1">{children}</div>
+                  {/** footer */}
+                  {process.env.GIT_COMMIT_HASH &&
+                    process.env.SHOW_BUILD_INFO !== "false" && (
+                      <div className="pointer-events-none opacity-80 w-full p-2 text-slate-400 text-xs">
+                        <div className="w-full text-right">
+                          Version: {process.env.KEEP_VERSION} | Build:{" "}
+                          {process.env.GIT_COMMIT_HASH.slice(0, 6)}
                         </div>
-                      )}
-                    <ToastContainer />
-                  </main>
-                  {/* Floating AlertLens assistant, available on every page. */}
-                  <AssistantChat />
-                  {/* Storm replay clock + transport, kept outside <main> so a
-                      replay survives page navigation. */}
-                  <StormEngine />
-                  <StormControls />
-                </WorkflowModalProvider>
+                      </div>
+                    )}
+                  <ToastContainer />
+                </main>
+                {/* Floating AlertLens assistant, available on every page. */}
+                <AssistantChat />
+                {/* Storm replay clock + transport, kept outside <main> so a
+                    replay survives page navigation. */}
+                <StormEngine />
+                <StormControls />
               </TopologyPollingContextProvider>
             </NextAuthProvider>
           </PHProvider>

@@ -276,3 +276,20 @@ export interface ProviderTestResult {
   http_status: number | null;
   detail: string;
 }
+
+/** A real trigger->action rule — not Keep's YAML step engine, one condition, one action. */
+export type WorkflowTriggerType = "risk_threshold" | "new_critical_alert";
+export type WorkflowActionType = "notify" | "auto_escalate";
+
+export interface WorkflowRule {
+  id: string;
+  name: string;
+  trigger_type: WorkflowTriggerType;
+  trigger_config: { min_risk?: number };
+  action_type: WorkflowActionType;
+  action_config: { provider_id?: string };
+  enabled: boolean;
+  created_at: string;
+  /** ISO timestamp of this rule's most recent real firing, or null if it never has. */
+  last_fired_at: string | null;
+}
