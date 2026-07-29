@@ -14,8 +14,9 @@ type Resolver = (path: string, search: URLSearchParams) => unknown;
  * backend owns `/ingest`, `/demo/*`, `/pipeline`, `/alerts/{id}/ack|assign|
  * dismiss|escalate`, `/forecast/{id}`, `/incidents/{id}/comparison|
  * root_cause_confidence|playbook`, `/evaluation`, `/debug/*`, `/assistant*`,
- * `/providers` (CRUD + `/providers/{id}/test`) and `/workflows` (CRUD).
- * Shadowing any of those would silently replace engine output with demo data.
+ * `/providers` (CRUD + `/providers/{id}/test`), `/workflows` (CRUD),
+ * `/notifications` and `/settings/status`. Shadowing any of those would
+ * silently replace engine output with demo data.
  */
 const ROUTES: [string, Resolver][] = [
   // Keep's ApiClient probes this; a 404 makes every page show
@@ -39,14 +40,12 @@ const ROUTES: [string, Resolver][] = [
   ],
   ["tags", () => data.TAGS],
 
-  ["auth/permissions/scopes", () => data.SCOPES],
-  ["auth/permissions", () => data.PERMISSIONS],
+  // Still real: alert-assignee.tsx (a live widget on Dashboard's preset
+  // alerts table) resolves assignee emails to a display name/picture via
+  // this. Everything else under auth/* and settings/* was fake RBAC with
+  // no real feature behind it, and has been removed along with the
+  // Settings page's old user/role/group/API-key management UI.
   ["auth/users", () => data.USERS],
-  ["auth/roles", () => data.ROLES],
-  ["auth/groups", () => data.GROUPS],
-
-  ["settings/apikeys", () => ({ apiKeys: [] })],
-  ["settings/tenant/configuration", () => data.TENANT_CONFIGURATION],
 
   // Keep's own alert search. Safe as an exact path: it cannot match
   // AlertLens's /alerts/{id}/ack|assign|dismiss|escalate, which stay on

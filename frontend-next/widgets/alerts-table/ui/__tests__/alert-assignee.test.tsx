@@ -1,8 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import AlertAssignee from "../alert-assignee";
-import { useUsers } from "@/entities/users/model/useUsers";
-import { User } from "@/app/(keep)/settings/models";
+import { useUsers, User } from "@/entities/users/model/useUsers";
 
 // Mock the useUsers hook
 jest.mock("@/entities/users/model/useUsers");
@@ -28,12 +27,7 @@ describe("AlertAssignee", () => {
   const createMockUser = (overrides: Partial<User> = {}): User => ({
     name: "John Doe",
     email: "john.doe@example.com",
-    role: "admin",
     picture: "https://example.com/avatar.jpg",
-    created_at: "2023-01-01T00:00:00Z",
-    last_login: "2023-12-01T00:00:00Z",
-    ldap: false,
-    groups: [],
     ...overrides,
   });
 

@@ -24,3 +24,4 @@ export { useAssistant } from "./model/useAssistant";
 export { PROVIDERS_KEY, useProviders, useProviderActions } from "./model/useProviders";
 export { WORKFLOWS_KEY, useWorkflowRules, useWorkflowRuleActions } from "./model/useWorkflowRules";
 export { NOTIFICATIONS_KEY, useNotificationLog } from "./model/useNotificationLog";
+export { SETTINGS_STATUS_KEY, useSettingsStatus } from "./model/useSettingsStatus";

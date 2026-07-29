@@ -129,54 +129,6 @@ export const USERS = [
   },
 ];
 
-export const ROLES = [
-  {
-    id: "admin",
-    name: "admin",
-    description: "Full access to every AlertLens surface.",
-    scopes: ["read:*", "write:*", "delete:*"],
-    predefined: true,
-  },
-  {
-    id: "viewer",
-    name: "viewer",
-    description: "Read-only access to alerts and incidents.",
-    scopes: ["read:*"],
-    predefined: true,
-  },
-];
-
-export const GROUPS = [
-  {
-    id: "platform",
-    name: "Platform",
-    roles: ["admin"],
-    members: ["demo@alertlens.local"],
-    memberCount: 1,
-  },
-];
-
-export const PERMISSIONS = [
-  {
-    id: "perm-1",
-    name: "incidents",
-    description: "Access incident data",
-    resource_id: "incidents",
-    resource_name: "Incidents",
-    resource_type: "incident",
-    permissions: [{ id: "admin", type: "user" }],
-  },
-];
-
-export const SCOPES = [
-  "read:alerts",
-  "write:alerts",
-  "read:incidents",
-  "write:incidents",
-  "read:workflows",
-  "write:workflows",
-];
-
 export const AI_STATS = {
   alerts_count: 130,
   first_alert_datetime: daysAgo(11),
@@ -184,7 +136,5 @@ export const AI_STATS = {
   is_mining_enabled: false,
   algorithm_configs: [],
 };
-
-export const TENANT_CONFIGURATION = {};
 
 export const EMPTY_ARRAY: unknown[] = [];
