@@ -15,7 +15,6 @@ import type {
 } from "@/entities/incidents/model";
 import React, { Dispatch, SetStateAction, useCallback, useState } from "react";
 import IncidentTableComponent from "./incident-table-component";
-import { ManualRunWorkflowModal } from "@/features/workflows/manual-run-workflow";
 import { Button, Link } from "@/components/ui";
 import { MergeIncidentsModal } from "@/features/incidents/merge-incidents";
 import { IncidentDropdownMenu } from "./incident-dropdown-menu";
@@ -387,10 +386,6 @@ export default function IncidentsTable({
           onStateChange={setPagination}
         />
       </div>
-      <ManualRunWorkflowModal
-        incident={runWorkflowModalIncident}
-        onClose={() => setRunWorkflowModalIncident(null)}
-      />
       {mergeOptions && (
         <MergeIncidentsModal
           incidents={mergeOptions.incidents}

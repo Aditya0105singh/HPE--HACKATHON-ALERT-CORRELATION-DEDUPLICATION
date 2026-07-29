@@ -23,7 +23,6 @@ export { PageTitle } from "./PageTitle";
 export { PageSubtitle } from "./PageSubtitle";
 export { MonacoEditor } from "./MonacoEditor";
 export { MonacoYAMLEditor } from "./MonacoYAMLEditor";
-export { WorkflowYAMLEditor } from "./WorkflowYAMLEditor";
 export { showErrorToast } from "./utils/showErrorToast";
 export { showSuccessToast } from "./utils/showSuccessToast";
 export { DebugJSON } from "./DebugJSON";

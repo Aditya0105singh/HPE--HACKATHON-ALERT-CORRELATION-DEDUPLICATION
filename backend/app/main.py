@@ -29,6 +29,7 @@ from synthetic_alert_generator import generate_batch  # noqa: E402
 from . import db
 from .assistant import IncidentAssistantRequest, WorkspaceAssistantRequest, ask_incident_assistant, ask_workspace_assistant
 from .alert_dna import AlertDNA
+from .automation import evaluate_workflow_rules
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .dedup import deduplicate
 from .forecast import compute_forecast
@@ -135,6 +136,24 @@ def run_pipeline(alerts: list[dict]) -> dict:
         "noise": groups.get(-1, []),
         "raw_alerts": sorted(alerts, key=lambda a: a["timestamp"], reverse=True),
     })
+    # Real workflow rules (see automation.py) evaluated against this batch's
+    # clusters - dedup'd per rule+incident, so this is safe to call on every
+    # rerun (ack/assign/dismiss/escalate all rerun the pipeline).
+    evaluate_workflow_rules(clusters)
+    # An auto_escalate action above persists straight to the DB, bypassing
+    # the alerts list already built into _state - patch the escalated flag
+    # onto it in place so a rule firing is visible in *this* response,
+    # rather than only showing up after some later, unrelated rerun.
+    actions = db.get_actions()
+    for alert in _state["raw_alerts"]:
+        action = actions.get(alert["id"])
+        if action and action["escalated"]:
+            alert["escalated"] = True
+    for cluster in _state["clusters"]:
+        for alert in cluster["alerts"]:
+            action = actions.get(alert["id"])
+            if action and action["escalated"]:
+                alert["escalated"] = True
     return {
         "raw_alerts": dedup_stats["raw_count"],
         "after_dedup": dedup_stats["unique_count"],
@@ -560,3 +579,49 @@ def test_provider(provider_id: str) -> dict:
     if not provider:
         raise HTTPException(status_code=404, detail=f"Provider {provider_id} not found")
     return test_webhook(provider["url"])
+
+
+class WorkflowRuleCreate(BaseModel):
+    name: str
+    trigger_type: str  # "risk_threshold" | "new_critical_alert"
+    trigger_config: dict = {}
+    action_type: str  # "notify" | "auto_escalate"
+    action_config: dict = {}
+    enabled: bool = True
+
+
+class WorkflowRuleUpdate(BaseModel):
+    enabled: bool
+
+
+def _with_last_fired(rule: dict) -> dict:
+    return {**rule, "last_fired_at": db.last_fired_at(rule["id"])}
+
+
+@app.get("/workflows")
+def list_workflow_rules() -> list[dict]:
+    return [_with_last_fired(r) for r in db.list_workflow_rules()]
+
+
+@app.post("/workflows")
+def create_workflow_rule(body: WorkflowRuleCreate) -> dict:
+    rule_id = uuid.uuid4().hex[:8]
+    rule = db.create_workflow_rule(
+        rule_id, body.name, body.trigger_type, body.trigger_config,
+        body.action_type, body.action_config, body.enabled,
+    )
+    return _with_last_fired(rule)
+
+
+@app.put("/workflows/{rule_id}")
+def update_workflow_rule(rule_id: str, body: WorkflowRuleUpdate) -> dict:
+    rule = db.set_workflow_rule_enabled(rule_id, body.enabled)
+    if not rule:
+        raise HTTPException(status_code=404, detail=f"Workflow rule {rule_id} not found")
+    return _with_last_fired(rule)
+
+
+@app.delete("/workflows/{rule_id}")
+def delete_workflow_rule(rule_id: str) -> dict:
+    db.delete_workflow_rule(rule_id)
+    return {"status": "deleted"}

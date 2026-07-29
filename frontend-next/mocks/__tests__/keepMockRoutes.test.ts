@@ -28,15 +28,13 @@ const ALERTLENS_ENDPOINTS = [
   "assistant/workspace",
   "providers",
   "providers/abc-123/test",
+  "workflows",
+  "workflows/abc-123",
 ];
 
 /** KeepHQ's own surface, which AlertLens's backend does not implement. */
 const KEEP_ONLY_ENDPOINTS = [
   "healthcheck",
-  "workflows",
-  "workflows/query",
-  "workflows/executions",
-  "workflows/facets",
   "maintenance",
   "rules",
   "deduplications",
@@ -93,29 +91,11 @@ describe("keep mock routing", () => {
       expect(resolveMock(path, search)).not.toBeNull();
     });
 
-    it("prefers the longest matching prefix", () => {
-      const list = resolveMock("workflows", search);
-      const paginated = resolveMock("workflows/query", search) as {
-        results: unknown[];
-      };
-      expect(Array.isArray(list)).toBe(true);
-      // /workflows/query must return the paginated envelope, not the raw list.
-      expect(Array.isArray(paginated)).toBe(false);
-      expect(Array.isArray(paginated.results)).toBe(true);
-    });
-
     it("returns alerts, not presets, for /preset/{name}/alerts", () => {
       const presets = resolveMock("preset", search) as unknown[];
       const alerts = resolveMock("preset/feed/alerts", search) as unknown[];
       expect(presets.length).toBeGreaterThan(0);
       expect(alerts).toEqual([]);
-    });
-
-    it("resolves a workflow by id", () => {
-      const one = resolveMock("workflows/escalate-critical", search) as {
-        id?: string;
-      };
-      expect(one.id).toBe("escalate-critical");
     });
   });
 

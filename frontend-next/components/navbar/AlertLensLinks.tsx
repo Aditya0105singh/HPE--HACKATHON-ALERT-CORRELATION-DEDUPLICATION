@@ -124,7 +124,6 @@ const SECTIONS: NavSection[] = [
         label: "Workflows",
         icon: LuWorkflow,
         testId: "workflows",
-        isDemo: true,
       },
       {
         href: "/providers",

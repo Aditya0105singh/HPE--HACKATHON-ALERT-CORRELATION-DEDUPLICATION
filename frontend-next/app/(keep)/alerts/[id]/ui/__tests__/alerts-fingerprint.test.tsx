@@ -73,10 +73,6 @@ jest.mock("@/features/alerts/alert-call-provider-method", () => ({
   AlertMethodModal: () => null,
 }));
 
-jest.mock("@/features/workflows/manual-run-workflow", () => ({
-  ManualRunWorkflowModal: () => null,
-}));
-
 jest.mock("@/features/alerts/dismiss-alert", () => ({
   AlertDismissModal: () => null,
 }));
