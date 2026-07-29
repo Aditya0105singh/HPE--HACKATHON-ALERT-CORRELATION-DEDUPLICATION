@@ -48,7 +48,7 @@ const DrawerOverlay = React.forwardRef<
       ref={forwardedRef}
       className={cx(
         // base
-        "fixed inset-0 z-50 overflow-y-auto",
+        "fixed inset-0 z-50",
         // background color
         "bg-black/30",
         // transition
@@ -58,7 +58,7 @@ const DrawerOverlay = React.forwardRef<
       {...props}
       style={{
         animationDuration: "400ms",
-        animationFillMode: "backwards",
+        animationFillMode: "forwards",
       }}
     />
   );
@@ -72,24 +72,23 @@ const DrawerContent = React.forwardRef<
 >(({ className, ...props }, forwardedRef) => {
   return (
     <DrawerPortal>
-      <DrawerOverlay>
-        <DrawerPrimitives.Content
-          ref={forwardedRef}
-          className={cx(
-            // base
-            "fixed z-50 mx-auto flex w-[95vw] flex-1 flex-col overflow-y-auto shadow-lg focus:outline-none inset-y-0 right-0 sm:max-w-lg",
-            // border color
-            "border-gray-200 dark:border-gray-900",
-            // background color
-            "bg-white dark:bg-[#090E1A]",
-            // transition
-            "data-[state=closed]:animate-drawerSlideRightAndFade data-[state=open]:animate-drawerSlideLeftAndFade",
-            focusRing,
-            className
-          )}
-          {...props}
-        />
-      </DrawerOverlay>
+      <DrawerOverlay />
+      <DrawerPrimitives.Content
+        ref={forwardedRef}
+        className={cx(
+          // base
+          "fixed z-50 mx-auto flex w-[95vw] flex-1 flex-col overflow-y-auto shadow-lg focus:outline-none inset-y-0 right-0 sm:max-w-lg",
+          // border color
+          "border-gray-200 dark:border-gray-900",
+          // background color
+          "bg-white dark:bg-[#090E1A]",
+          // transition
+          "data-[state=closed]:animate-drawerSlideRightAndFade data-[state=open]:animate-drawerSlideLeftAndFade",
+          focusRing,
+          className
+        )}
+        {...props}
+      />
     </DrawerPortal>
   );
 });

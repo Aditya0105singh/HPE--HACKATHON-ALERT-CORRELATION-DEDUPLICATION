@@ -138,6 +138,10 @@ module.exports = {
           from: { opacity: "1", transform: "translateX(0)" },
           to: { opacity: "0", transform: "translateX(100%)" },
         },
+        dialogOverlayShow: {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
       },
       animation: {
         "scroll-shadow-left":
@@ -157,6 +161,8 @@ module.exports = {
         drawerSlideLeftAndFade:
           "drawerSlideLeftAndFade 150ms cubic-bezier(0.16, 1, 0.3, 1)",
         drawerSlideRightAndFade: "drawerSlideRightAndFade 150ms ease-in",
+        dialogOverlayShow:
+          "dialogOverlayShow 200ms cubic-bezier(0.16, 1, 0.3, 1)",
       },
     },
   },
