@@ -43,7 +43,6 @@ const KEEP_ONLY_ENDPOINTS = [
   "preset",
   "tags",
   "auth/users",
-  "ai/stats",
   "alerts/query",
 ];
 

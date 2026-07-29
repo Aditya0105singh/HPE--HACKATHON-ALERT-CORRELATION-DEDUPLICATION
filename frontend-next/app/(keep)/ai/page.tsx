@@ -1,11 +1,10 @@
-import { AIPlugins } from "./ai-plugins";
+import AIPage from "./page.client";
 
 export default function Page() {
-  return <AIPlugins />;
+  return <AIPage />;
 }
 
 export const metadata = {
-  title: "AI Correlation | AlertLens",
-  description:
-    "Correlate Alerts and Incidents with AI to identify patterns and trends.",
+  title: "AI | AlertLens",
+  description: "Real LLM provider status and a live assistant test - not mock stats.",
 };

@@ -120,12 +120,4 @@ export const USERS = [
   },
 ];
 
-export const AI_STATS = {
-  alerts_count: 130,
-  first_alert_datetime: daysAgo(11),
-  incidents_count: 4,
-  is_mining_enabled: false,
-  algorithm_configs: [],
-};
-
 export const EMPTY_ARRAY: unknown[] = [];
