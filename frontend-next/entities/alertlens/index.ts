@@ -26,3 +26,8 @@ export { WORKFLOWS_KEY, useWorkflowRules, useWorkflowRuleActions } from "./model
 export { NOTIFICATIONS_KEY, useNotificationLog } from "./model/useNotificationLog";
 export { SETTINGS_STATUS_KEY, useSettingsStatus } from "./model/useSettingsStatus";
 export { RULES_CONFIG_KEY, useRulesConfig } from "./model/useRulesConfig";
+export {
+  MAINTENANCE_KEY,
+  useMaintenanceWindows,
+  useMaintenanceWindowActions,
+} from "./model/useMaintenanceWindows";

@@ -356,3 +356,93 @@ def delete_provider(provider_id: str) -> None:
         if row:
             db.delete(row)
             db.commit()
+
+
+class MaintenanceWindowRow(Base):
+    """A real time window during which alerts from a service (or every
+    service, if unset) are suppressed - evaluated against wall-clock time on
+    every run_pipeline() call, not a persisted per-alert action, so a window
+    stops applying the moment it ends."""
+    __tablename__ = "maintenance_windows"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    service = Column(String, nullable=True)  # None = applies to every service
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+def _maintenance_window_dict(row: MaintenanceWindowRow) -> dict:
+    now = datetime.utcnow()
+    return {
+        "id": row.id,
+        "name": row.name,
+        "service": row.service,
+        "start_time": row.start_time.isoformat(),
+        "end_time": row.end_time.isoformat(),
+        "enabled": row.enabled,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "active": bool(row.enabled and row.start_time <= now <= row.end_time),
+    }
+
+
+def list_maintenance_windows() -> list[dict]:
+    with SessionLocal() as db:
+        rows = (
+            db.query(MaintenanceWindowRow)
+            .order_by(MaintenanceWindowRow.start_time.desc())
+            .all()
+        )
+        return [_maintenance_window_dict(r) for r in rows]
+
+
+def list_active_maintenance_windows() -> list[dict]:
+    """Real, computed right now - not a cached "is active" flag that could
+    go stale between pipeline runs."""
+    now = datetime.utcnow()
+    with SessionLocal() as db:
+        rows = (
+            db.query(MaintenanceWindowRow)
+            .filter(
+                MaintenanceWindowRow.enabled == True,  # noqa: E712
+                MaintenanceWindowRow.start_time <= now,
+                MaintenanceWindowRow.end_time >= now,
+            )
+            .all()
+        )
+        return [_maintenance_window_dict(r) for r in rows]
+
+
+def create_maintenance_window(window_id: str, name: str, service: str | None,
+                               start_time: datetime, end_time: datetime,
+                               enabled: bool = True) -> dict:
+    with SessionLocal() as db:
+        row = MaintenanceWindowRow(
+            id=window_id, name=name, service=service,
+            start_time=start_time, end_time=end_time, enabled=enabled,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return _maintenance_window_dict(row)
+
+
+def set_maintenance_window_enabled(window_id: str, enabled: bool) -> dict | None:
+    with SessionLocal() as db:
+        row = db.get(MaintenanceWindowRow, window_id)
+        if not row:
+            return None
+        row.enabled = enabled
+        db.commit()
+        db.refresh(row)
+        return _maintenance_window_dict(row)
+
+
+def delete_maintenance_window(window_id: str) -> None:
+    with SessionLocal() as db:
+        row = db.get(MaintenanceWindowRow, window_id)
+        if row:
+            db.delete(row)
+            db.commit()

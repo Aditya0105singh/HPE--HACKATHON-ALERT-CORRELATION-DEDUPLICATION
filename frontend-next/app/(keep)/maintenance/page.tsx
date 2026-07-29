@@ -1,11 +1,10 @@
-import Maintenance from "./maintenance"; // Adjust the import based on the folder structure
+import MaintenancePage from "./page.client";
 
 export default function Page() {
-  return <Maintenance />;
+  return <MaintenancePage />;
 }
 
 export const metadata = {
-  title: "Maintenance Rules Management | AlertLens",
-  description:
-    "Manage maintenance windows to ignore alerts during scheduled downtimes.",
+  title: "Maintenance | AlertLens",
+  description: "Real time windows that suppress a service's alerts on a schedule.",
 };
