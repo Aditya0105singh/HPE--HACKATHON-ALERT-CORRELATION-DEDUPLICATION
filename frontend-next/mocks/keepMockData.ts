@@ -16,16 +16,6 @@ const now = () => new Date().toISOString();
 const daysAgo = (n: number) =>
   new Date(Date.now() - n * 86_400_000).toISOString();
 
-// Services borrowed from the AlertLens dataset so the demo pages feel
-// continuous with the real ones.
-const SERVICES = [
-  "api-gateway",
-  "order-api",
-  "auth-service",
-  "postgres-primary",
-  "payment-worker",
-];
-
 type MockProvider = Record<string, unknown>;
 
 const provider = (
@@ -207,80 +197,6 @@ export const WORKFLOW_EXECUTIONS = {
     logs: [],
   })),
 };
-
-export const MAPPING_RULES = [
-  {
-    id: 1,
-    tenant_id: "alertlens",
-    priority: 1,
-    name: "Service → owning team",
-    description: "Attaches the owning team and escalation channel to each alert.",
-    file_name: "service_owners.csv",
-    created_by: "demo@alertlens.local",
-    created_at: daysAgo(30),
-    disabled: false,
-    override: true,
-    condition: "",
-    type: "csv",
-    matchers: [["service"]],
-    rows: SERVICES.map((s, i) => ({
-      service: s,
-      team: ["Platform", "Orders", "Identity", "Data", "Payments"][i],
-      channel: `#oncall-${s}`,
-    })),
-    attributes: ["team", "channel"],
-  },
-  {
-    id: 2,
-    tenant_id: "alertlens",
-    priority: 2,
-    name: "Service → tier",
-    description: "Marks tier-1 services so they can be prioritised.",
-    file_name: "service_tiers.csv",
-    created_by: "demo@alertlens.local",
-    created_at: daysAgo(12),
-    disabled: false,
-    override: false,
-    condition: "",
-    type: "csv",
-    matchers: [["service"]],
-    rows: SERVICES.map((s, i) => ({ service: s, tier: i < 2 ? "1" : "2" })),
-    attributes: ["tier"],
-  },
-];
-
-export const EXTRACTION_RULES = [
-  {
-    id: 1,
-    tenant_id: "alertlens",
-    priority: 1,
-    name: "Parse latency from message",
-    description: "Pulls the p95/p99 latency value out of the alert message.",
-    created_by: "demo@alertlens.local",
-    created_at: daysAgo(18),
-    disabled: false,
-    pre: false,
-    condition: "",
-    attribute: "message",
-    regex: "p(?<percentile>\\d+) latency (?<latency>[0-9.]+)s",
-degenerate: false,
-  },
-  {
-    id: 2,
-    tenant_id: "alertlens",
-    priority: 2,
-    name: "Parse error rate",
-    description: "Extracts the HTTP 5xx percentage from the alert message.",
-    created_by: "demo@alertlens.local",
-    created_at: daysAgo(9),
-    disabled: false,
-    pre: false,
-    condition: "",
-    attribute: "message",
-    regex: "(?<error_rate>[0-9.]+)%",
-    degenerate: false,
-  },
-];
 
 export const MAINTENANCE_RULES = [
   {

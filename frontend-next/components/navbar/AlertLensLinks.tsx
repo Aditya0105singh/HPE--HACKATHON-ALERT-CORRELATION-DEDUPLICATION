@@ -16,9 +16,8 @@ import {
   AiOutlineGroup,
   AiOutlineHome,
 } from "react-icons/ai";
-import { MdOutlineNotificationsActive, MdOutlineRuleFolder } from "react-icons/md";
+import { MdOutlineNotificationsActive } from "react-icons/md";
 import { HiOutlineChartBar, HiOutlineCog6Tooth } from "react-icons/hi2";
-import { BsFileEarmarkArrowUp } from "react-icons/bs";
 
 type NavLink = {
   href: string;
@@ -139,20 +138,6 @@ const SECTIONS: NavSection[] = [
         label: "Notifications",
         icon: MdOutlineNotificationsActive,
         testId: "notifications-hub",
-        isDemo: true,
-      },
-      {
-        href: "/mapping",
-        label: "Mapping",
-        icon: MdOutlineRuleFolder,
-        testId: "mapping",
-        isDemo: true,
-      },
-      {
-        href: "/extraction",
-        label: "Extraction",
-        icon: BsFileEarmarkArrowUp,
-        testId: "extraction",
         isDemo: true,
       },
       {
