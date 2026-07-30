@@ -178,33 +178,58 @@ export function AlertFacets({
     0
   );
 
+  // Collapsed by default below lg: on a phone this panel used to render its
+  // full filter list above the actual alert table, so the table was the
+  // second screenful instead of the first thing visible. `lg:block` forces
+  // it open unconditionally at desktop widths regardless of this state.
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <Card className="p-3 w-full lg:w-64 shrink-0 self-start">
-      <div className="flex items-center justify-between gap-2 pb-1">
+      <button
+        type="button"
+        onClick={() => setMobileOpen((v) => !v)}
+        className="flex items-center justify-between gap-2 w-full pb-1 lg:pointer-events-none"
+      >
         <Text className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Filters
+          Filters{activeCount > 0 && ` (${activeCount})`}
         </Text>
-        {activeCount > 0 && (
-          <button
-            type="button"
-            onClick={onReset}
-            className="flex items-center gap-1 text-xs text-orange-500"
-          >
-            <LuRotateCcw className="w-3 h-3" />
-            Reset
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {activeCount > 0 && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onReset();
+              }}
+              onKeyDown={(e) => e.key === "Enter" && onReset()}
+              className="flex items-center gap-1 text-xs text-orange-500 lg:pointer-events-auto"
+            >
+              <LuRotateCcw className="w-3 h-3" />
+              Reset
+            </span>
+          )}
+          <LuChevronRight
+            className={clsx(
+              "w-3.5 h-3.5 shrink-0 transition-transform lg:hidden",
+              mobileOpen && "rotate-90"
+            )}
+          />
+        </div>
+      </button>
+      <div className={clsx(mobileOpen ? "block" : "hidden", "lg:block")}>
+        {FACET_FIELDS.map(({ key, label }) => (
+          <FacetGroup
+            key={key}
+            label={label}
+            facetKey={key}
+            alerts={alerts}
+            selections={selections}
+            onToggle={onToggle}
+          />
+        ))}
       </div>
-      {FACET_FIELDS.map(({ key, label }) => (
-        <FacetGroup
-          key={key}
-          label={label}
-          facetKey={key}
-          alerts={alerts}
-          selections={selections}
-          onToggle={onToggle}
-        />
-      ))}
     </Card>
   );
 }

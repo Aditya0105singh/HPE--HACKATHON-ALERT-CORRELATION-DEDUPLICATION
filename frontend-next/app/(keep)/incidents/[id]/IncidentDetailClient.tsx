@@ -147,14 +147,21 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
       </div>
 
       <TabGroup className="flex-1">
-        <TabList>
-          <Tab>Overview</Tab>
-          <Tab>Alerts ({incident.size})</Tab>
-          <Tab>Root cause</Tab>
-          <Tab>Forecast</Tab>
-          <Tab>History</Tab>
-          <Tab>Playbook</Tab>
-        </TabList>
+        {/* On a phone-width screen 6 tabs used to squeeze into equal flex
+            shares and clip their own labels ("Root cause" -> "Root ca").
+            Letting the row scroll horizontally instead keeps every label
+            fully readable - swipe to reach Playbook rather than guess at a
+            half-cut word. */}
+        <div className="overflow-x-auto">
+          <TabList className="flex-nowrap w-max min-w-full">
+            <Tab className="whitespace-nowrap">Overview</Tab>
+            <Tab className="whitespace-nowrap">Alerts ({incident.size})</Tab>
+            <Tab className="whitespace-nowrap">Root cause</Tab>
+            <Tab className="whitespace-nowrap">Forecast</Tab>
+            <Tab className="whitespace-nowrap">History</Tab>
+            <Tab className="whitespace-nowrap">Playbook</Tab>
+          </TabList>
+        </div>
         <TabPanels>
           {/* Overview — the at-a-glance answer before drilling in */}
           <TabPanel>
