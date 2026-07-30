@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Badge, Button, Text, Title } from "@tremor/react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Badge, Button, ProgressBar, Text, Title } from "@tremor/react";
 import { Drawer } from "@/shared/ui/Drawer";
 import { SeverityLabel, showErrorToast, showSuccessToast } from "@/shared/ui";
 import type { UISeverity } from "@/shared/ui";
-import { useAlertActions } from "@/entities/alertlens";
+import { useAlertActions, useClusters } from "@/entities/alertlens";
 import type { Alert } from "@/entities/alertlens";
-import { formatTimestamp, timeAgo } from "@/entities/alertlens/lib/format";
+import { formatTimestamp, riskColor, timeAgo } from "@/entities/alertlens/lib/format";
 import { AlertIcon, ServiceChip } from "./AlertIcon";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { LuArrowRight } from "react-icons/lu";
 
 const STATUS_COLOR: Record<string, "red" | "orange" | "emerald" | "gray" | "blue"> = {
   firing: "red",
@@ -47,7 +49,17 @@ export function AlertDetailDrawer({
 }) {
   const { ackAlert, assignAlert, dismissAlert, escalateAlert } =
     useAlertActions();
+  const { clusters } = useClusters();
   const [busy, setBusy] = useState<string | null>(null);
+
+  // Real cluster membership, not a placeholder - looked up from the same
+  // pipeline state the Incidents/Correlations pages use, so a click through
+  // to "View incident" lands on the actual correlated group this alert is
+  // part of right now.
+  const relatedCluster = useMemo(
+    () => clusters.find((c) => c.alerts.some((a) => a.id === alert?.id)) ?? null,
+    [clusters, alert]
+  );
 
   if (!alert) return null;
 
@@ -128,6 +140,53 @@ export function AlertDetailDrawer({
           <Field label="Assignee">{assignee ?? "Unassigned"}</Field>
           <Field label="Acknowledged">{isAcked ? "Yes" : "No"}</Field>
           <Field label="Escalated">{isEscalated ? "Yes" : "No"}</Field>
+        </div>
+
+        {/* Real cluster membership from the same pipeline state the
+            Incidents page reads — not filler content. */}
+        <div className="border-t border-gray-200 pt-3">
+          <Text className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+            Related incident
+          </Text>
+          {relatedCluster ? (
+            <Link
+              href={`/incidents/${relatedCluster.cluster_id}`}
+              className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 hover:border-orange-300 hover:bg-orange-50/50 transition-colors group"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-medium truncate group-hover:text-orange-600">
+                    {relatedCluster.root_cause.alertname}
+                  </div>
+                  <Text className="text-xs text-gray-500">
+                    Root cause on {relatedCluster.root_cause.service} ·{" "}
+                    {relatedCluster.size} alerts in this incident
+                  </Text>
+                </div>
+                <Badge size="xs" color={riskColor(relatedCluster.risk.level)}>
+                  {relatedCluster.risk.level} risk
+                </Badge>
+              </div>
+              <ProgressBar
+                value={relatedCluster.risk.score * 100}
+                color={riskColor(relatedCluster.risk.level)}
+              />
+              {relatedCluster.dna_match && (
+                <Text className="text-xs text-gray-500">
+                  Alert DNA · {relatedCluster.dna_match.similarity_pct}%
+                  similar to {relatedCluster.dna_match.incident_id}
+                </Text>
+              )}
+              <span className="flex items-center gap-1 text-xs font-medium text-orange-500">
+                View incident <LuArrowRight className="w-3 h-3" />
+              </span>
+            </Link>
+          ) : (
+            <Text className="text-sm text-gray-400">
+              Not correlated into any incident — still background noise, or
+              not yet clustered.
+            </Text>
+          )}
         </div>
 
         {/* Investigative actions — these change how the alert is tracked, not
