@@ -39,13 +39,16 @@ export function Drawer({
       {/* <DrawerTrigger asChild>
         <Button variant="secondary">Open Drawer</Button>
       </DrawerTrigger> */}
-      <DrawerContent className="max-w-full sm:max-w-[80%] lg:max-w-[50%]">
-        {/* <DrawerHeader>
-          <DrawerTitle>{title}</DrawerTitle>
-          <DrawerDescription className="mt-1 text-sm">
-            {description}
-          </DrawerDescription>
-        </DrawerHeader> */}
+      {/* Fixed width, not a viewport percentage - on a large monitor
+          lg:max-w-[50%] meant ~960px, genuinely covering roughly half the
+          screen and everything behind it, which read as content being cut
+          off rather than an intentional panel width. */}
+      <DrawerContent className="max-w-full sm:max-w-xl">
+        {/* Radix requires a DialogTitle for screen readers even when the
+            visible content (e.g. AlertDetailDrawer's own header) already
+            names what this is - sr-only keeps it out of the visual layout
+            while satisfying that requirement. */}
+        <DrawerTitle className="sr-only">{title || "Details"}</DrawerTitle>
         <DrawerBody>{children}</DrawerBody>
         {/* <DrawerFooter className="mt-6">
           <DrawerClose asChild>
