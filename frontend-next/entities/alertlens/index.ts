@@ -31,3 +31,5 @@ export {
   useMaintenanceWindows,
   useMaintenanceWindowActions,
 } from "./model/useMaintenanceWindows";
+export { useBrowserNotifications } from "./model/useBrowserNotifications";
+export { NotificationEngine } from "./ui/NotificationEngine";

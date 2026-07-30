@@ -1,9 +1,9 @@
 "use client";
 
-import { Badge, Card, Text } from "@tremor/react";
+import { Badge, Button, Card, Text } from "@tremor/react";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { EmptyStateCard, KeepLoader, PageSubtitle, PageTitle } from "@/shared/ui";
-import { useSettingsStatus } from "@/entities/alertlens";
+import { useBrowserNotifications, useSettingsStatus } from "@/entities/alertlens";
 import { useConfig } from "@/utils/hooks/useConfig";
 
 function StatusRow({
@@ -28,6 +28,7 @@ function StatusRow({
 export default function SettingsPage() {
   const { data: status, isLoading, error } = useSettingsStatus();
   const { data: config } = useConfig();
+  const { permission, requestPermission } = useBrowserNotifications();
 
   return (
     <div className="flex flex-col gap-4">
@@ -97,6 +98,22 @@ export default function SettingsPage() {
             <StatusRow
               label="Read-only mode"
               value={config?.READ_ONLY ? "enabled" : "disabled"}
+            />
+            <StatusRow
+              label="Browser notifications"
+              value={
+                permission === "granted" ? (
+                  <Badge color="emerald" size="xs">enabled</Badge>
+                ) : permission === "denied" ? (
+                  <Badge color="red" size="xs">blocked by browser</Badge>
+                ) : permission === "unsupported" ? (
+                  <Badge color="gray" size="xs">unsupported</Badge>
+                ) : (
+                  <Button size="xs" color="orange" onClick={requestPermission}>
+                    Enable
+                  </Button>
+                )
+              }
             />
           </Card>
         </div>

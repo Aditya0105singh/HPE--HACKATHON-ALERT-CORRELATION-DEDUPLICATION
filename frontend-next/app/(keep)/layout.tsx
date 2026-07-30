@@ -14,6 +14,7 @@ import {
   StormControls,
   StormEngine,
 } from "@/entities/alertlens/ui/StormControls";
+import { NotificationEngine } from "@/entities/alertlens/ui/NotificationEngine";
 import { auth } from "@/auth";
 import { ThemeScript, WatchUpdateTheme, PwaRegister } from "@/shared/ui";
 import "@/app/globals.css";
@@ -103,6 +104,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                     replay survives page navigation. */}
                 <StormEngine />
                 <StormControls />
+                {/* Real OS-level notifications for new high-risk incidents -
+                    watches the same pipeline state every page reads, so it
+                    fires regardless of which page is open. */}
+                <NotificationEngine />
               </TopologyPollingContextProvider>
             </NextAuthProvider>
           </PHProvider>
