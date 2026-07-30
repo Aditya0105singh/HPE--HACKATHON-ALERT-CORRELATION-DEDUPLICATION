@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import type { Metadata, Viewport } from "next";
 import { NextAuthProvider } from "../auth-provider";
 import { Mulish } from "next/font/google";
 import { ToastContainer } from "react-toastify";
@@ -14,7 +15,7 @@ import {
   StormEngine,
 } from "@/entities/alertlens/ui/StormControls";
 import { auth } from "@/auth";
-import { ThemeScript, WatchUpdateTheme } from "@/shared/ui";
+import { ThemeScript, WatchUpdateTheme, PwaRegister } from "@/shared/ui";
 import "@/app/globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import { PostHogPageView } from "@/shared/ui/PostHogPageView";
@@ -27,6 +28,25 @@ const mulish = Mulish({
 
 type RootLayoutProps = {
   children: ReactNode;
+};
+
+// Installable on any phone via "Add to Home Screen" - no app store, no
+// native build. manifest+icons cover Android/Chrome; apple-* covers iOS
+// Safari, which ignores the manifest and reads its own meta tags instead.
+export const metadata: Metadata = {
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AlertLens",
+  },
+  icons: {
+    apple: "/icons-pwa/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f97316",
 };
 
 export default async function RootLayout({ children }: RootLayoutProps) {
@@ -45,6 +65,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       <body className="h-screen flex flex-col lg:grid lg:grid-cols-[192px_30px_auto] xl:grid-cols-[220px_30px_auto] 2xl:grid-cols-[250px_30px_auto] lg:grid-rows-1 lg:has-[aside[data-minimized='true']]:grid-cols-[0px_30px_auto]">
         {/* ThemeScript must be the first thing to avoid flickering */}
         <ThemeScript />
+        <PwaRegister />
         <ConfigProvider config={config}>
           <PHProvider>
             <NextAuthProvider session={session}>

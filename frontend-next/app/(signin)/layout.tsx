@@ -5,6 +5,19 @@ export const metadata = {
   title: "AlertLens",
   description:
     "Alert correlation, deduplication and AI-driven incident analysis.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AlertLens",
+  },
+  icons: {
+    apple: "/icons-pwa/icon-192.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#f97316",
 };
 
 export default function RootLayout({
