@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { Badge, Button, Card, ProgressBar, Text } from "@tremor/react";
-import { DropdownMenu, showErrorToast, showSuccessToast } from "@/shared/ui";
-import { LuZap, LuPause, LuPlay, LuFastForward, LuShuffle, LuX } from "react-icons/lu";
+import { showErrorToast } from "@/shared/ui";
+import { LuZap, LuPause, LuPlay, LuX } from "react-icons/lu";
 import { useApi } from "@/shared/lib/hooks/useApi";
 import { usePipelineActions } from "@/entities/alertlens";
 import type { PipelineState } from "@/entities/alertlens";
@@ -14,6 +14,7 @@ import {
   STORM_SPEEDS,
   useStormStore,
 } from "@/entities/alertlens/model/useStormStore";
+import { ChaosInjectorModal } from "@/components/chaos/ChaosInjectorModal";
 
 const TICK_MS = 100;
 
@@ -94,8 +95,9 @@ export function StormEngine() {
 }
 
 /**
- * "Inject failure" — loads a scenario batch and replays it progressively so
- * you can watch correlation happen, rather than seeing the finished result.
+ * "Inject failure" — opens the Chaos Injector modal so the user picks a
+ * scenario, then loads it and replays it progressively so you can watch
+ * correlation happen in real time.
  */
 export function StormMenu() {
   const api = useApi();
@@ -103,16 +105,13 @@ export function StormMenu() {
   const start = useStormStore((s) => s.start);
   const isStorming = useStormStore((s) => s.full !== null);
   const [busy, setBusy] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const inject = async (scenario: string | null, replay: boolean) => {
+  const injectAndReplay = async (scenario: string) => {
     setBusy(true);
+    setModalOpen(false);
     try {
-      await loadDemo(scenario ? { scenario } : {});
-      if (!replay) {
-        showSuccessToast("Batch loaded");
-        return;
-      }
-      // Read the freshly-loaded batch, then reveal it over the replay window.
+      await loadDemo({ scenario });
       const full = await api.get<PipelineState>("/pipeline");
       start(full, scenario);
     } catch (e) {
@@ -123,30 +122,26 @@ export function StormMenu() {
   };
 
   return (
-    <DropdownMenu.Menu
-      icon={LuZap}
-      label={busy ? "Storm incoming…" : "Inject failure"}
-      disabled={busy || isStorming}
-    >
-      {STORM_SCENARIOS.map((s) => (
-        <DropdownMenu.Item
-          key={s.key}
-          icon={LuZap}
-          label={s.label}
-          onClick={() => inject(s.key, true)}
-        />
-      ))}
-      <DropdownMenu.Item
-        icon={LuShuffle}
-        label="Surprise me"
-        onClick={() => inject(null, true)}
+    <>
+      <Button
+        size="xs"
+        color="orange"
+        variant="secondary"
+        icon={LuZap}
+        loading={busy}
+        disabled={busy || isStorming}
+        onClick={() => setModalOpen(true)}
+        className="whitespace-nowrap"
+      >
+        {busy ? "Storm incoming…" : "Inject failure"}
+      </Button>
+
+      <ChaosInjectorModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onInject={injectAndReplay}
       />
-      <DropdownMenu.Item
-        icon={LuFastForward}
-        label="Instant load (no replay)"
-        onClick={() => inject(null, false)}
-      />
-    </DropdownMenu.Menu>
+    </>
   );
 }
 

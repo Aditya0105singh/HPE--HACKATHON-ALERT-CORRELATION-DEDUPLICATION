@@ -35,6 +35,9 @@ import { AlertDetailDrawer } from "@/entities/alertlens/ui/AlertDetailDrawer";
 import { AlertIcon, ServiceChip } from "@/entities/alertlens/ui/AlertIcon";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
 import { riskColor, timeAgo } from "@/entities/alertlens/lib/format";
+import { InteractiveTerminalModal } from "@/components/remediation/InteractiveTerminalModal";
+import { Button as TremorButton } from "@tremor/react";
+import { IoTerminal } from "react-icons/io5";
 
 const Panel = ({
   isLoading,
@@ -61,6 +64,11 @@ const Panel = ({
 export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
   const { incident, isLoading, error, notFound } = useIncident(incidentId);
   const [selected, setSelected] = useState<Alert | null>(null);
+  const [terminalState, setTerminalState] = useState<{
+    open: boolean;
+    title: string;
+    command: string;
+  }>({ open: false, title: "", command: "" });
 
   const forecast = useForecast(incidentId);
   const rootCause = useRootCauseConfidence(incidentId);
@@ -492,17 +500,35 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                   </Card>
                   {playbook.data?.steps?.map((s) => (
                     <Card key={s.step_number} className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-sm font-semibold shrink-0">
-                          {s.step_number}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-sm font-semibold shrink-0">
+                            {s.step_number}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium">{s.title}</div>
+                            <Text className="mt-1 text-sm">{s.description}</Text>
+                            <Text className="mt-1 text-xs text-gray-500">
+                              {s.estimated_duration}
+                            </Text>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-medium">{s.title}</div>
-                          <Text className="mt-1 text-sm">{s.description}</Text>
-                          <Text className="mt-1 text-xs text-gray-500">
-                            {s.estimated_duration}
-                          </Text>
-                        </div>
+                        <TremorButton
+                          size="xs"
+                          color="emerald"
+                          variant="secondary"
+                          icon={IoTerminal}
+                          onClick={() =>
+                            setTerminalState({
+                              open: true,
+                              title: s.title,
+                              command: `kubectl exec -n production deploy/${incident.root_cause.service} -- ${s.title.toLowerCase().replace(/ /g, "_")}.sh`,
+                            })
+                          }
+                          className="shrink-0"
+                        >
+                          Run in Terminal
+                        </TremorButton>
                       </div>
                     </Card>
                   ))}
@@ -514,6 +540,15 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
       </TabGroup>
 
       <AlertDetailDrawer alert={selected} onClose={() => setSelected(null)} />
+
+      <InteractiveTerminalModal
+        isOpen={terminalState.open}
+        onClose={() => setTerminalState({ open: false, title: "", command: "" })}
+        actionTitle={terminalState.title}
+        commandText={terminalState.command}
+        targetService={incident.root_cause.service}
+      />
     </div>
   );
 }
+
