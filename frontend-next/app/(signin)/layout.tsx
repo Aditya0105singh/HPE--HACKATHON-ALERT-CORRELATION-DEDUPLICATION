@@ -14,6 +14,9 @@ export const metadata = {
   icons: {
     apple: "/icons-pwa/icon-192.png",
   },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport = {

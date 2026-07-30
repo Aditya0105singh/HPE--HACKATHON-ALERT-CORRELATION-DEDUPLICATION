@@ -43,6 +43,13 @@ export const metadata: Metadata = {
   icons: {
     apple: "/icons-pwa/icon-192.png",
   },
+  // Next only emits the modern unprefixed "mobile-web-app-capable" tag from
+  // appleWebApp.capable. Older iOS Safari versions still key off the
+  // original Apple-prefixed name to drop browser chrome on launch, so it's
+  // added explicitly rather than trusting the modern tag alone.
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
