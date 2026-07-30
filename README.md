@@ -1,10 +1,56 @@
 <div align="center">
-  <h1>🚨 Alert Correlation & Dedup Engine</h1>
-  <p><strong>Synergy 2026 · HPE Problem Statement #10</strong></p>
-  <p>Turning infrastructure noise into actionable, prioritized intelligence.</p>
+
+# 🚨 AlertLens
+
+### Intelligent Alert Correlation & Deduplication Engine
+
+**Synergy 2026 · HPE Problem Statement #10**
+
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-AlertLens-f97316?style=for-the-badge)](https://hpe-hackathon-alert-correlation-ded-eta.vercel.app)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
+
+<br/>
+
+> _Turning infrastructure noise into actionable, prioritized intelligence._
+
+<br/>
+
+<kbd>
+<img src="https://img.shields.io/badge/STATUS-COMPLETE-brightgreen?style=flat-square" alt="Status: Complete"/>
+</kbd>
+&nbsp;
+<kbd>
+<img src="https://img.shields.io/badge/FEATURES-12_Pipeline_Stages-blue?style=flat-square" alt="12 Pipeline Stages"/>
+</kbd>
+&nbsp;
+<kbd>
+<img src="https://img.shields.io/badge/DATASETS-3_Real_World-purple?style=flat-square" alt="3 Datasets"/>
+</kbd>
+
 </div>
 
-<br />
+<br/>
+
+---
+
+## 📋 Table of Contents
+
+- [The Problem](#-the-problem-alert-storms)
+- [The Solution](#-the-solution-intelligent-alert-correlation)
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
+- [Pipeline Deep Dive](#-pipeline-deep-dive)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Deployment](#-deployment)
+- [Datasets](#-datasets)
+- [Feature Roadmap](#-feature-roadmap)
+
+---
 
 ## 🌩️ The Problem: Alert Storms
 
@@ -12,70 +58,134 @@ In modern microservice architectures, **one single infrastructure failure trigge
 
 Engineers spend the critical first 15 minutes of a major incident simply sifting through the noise, trying to figure out what actually broke. Existing systems rely on static rules that are hard to maintain and fail when novel incidents occur.
 
+<div align="center">
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    ONE DB CONNECTION FAILURE                  │
+│                            │                                 │
+│              ┌─────────────┼─────────────┐                   │
+│              ▼             ▼             ▼                   │
+│        ┌──────────┐ ┌──────────┐ ┌──────────┐               │
+│        │ API GW   │ │ Order    │ │ Payment  │               │
+│        │ Timeout  │ │ Service  │ │ Service  │               │
+│        │ ×24      │ │ 5xx ×18  │ │ Fail ×31 │               │
+│        └──────────┘ └──────────┘ └──────────┘               │
+│              │             │             │                   │
+│              ▼             ▼             ▼                   │
+│        150+ ALERTS IN 3 MINUTES — WHICH IS THE ROOT CAUSE?  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+</div>
+
+---
+
 ## 💡 The Solution: Intelligent Alert Correlation
 
-This engine doesn't just silence alerts; it collapses the flood into a handful of **actionable incidents**. We go several steps further than traditional correlation tools:
+AlertLens doesn't just silence alerts — it **collapses the flood into a handful of actionable incidents**, identifies the root cause, and tells you how to fix it.
 
-1. 📈 **Escalation Risk Score:** A real-time, explainable signal identifying which incident cluster is trending toward a larger failure based on alert growth rate, severity trend, and service spread. Correlation tells you what broke; this tells you what to look at _first_.
-2. 🧬 **Alert DNA:** Every new incident cluster is fingerprint-matched against a library of past incidents. If it resembles something seen before, the previous resolution is surfaced automatically: _"87% similar to INC-0412 — restarting the connection pool fixed it in 12 min."_
-3. 🤖 **AI Copilot (Cerebras):** Each incident is automatically summarized in plain English by an LLM, and an interactive chat copilot allows engineers to query the incident graph directly.
-4. 🔮 **Predictive Blast Radius Forecast:** Explains *"What is likely to happen NEXT if nobody intervenes?"* with 15-minute horizon step projections (+5m, +10m, +15m) for risk escalation, projected alert volume growth, and downstream service spread.
-5. ⏳ **Incident Time Machine:** Enterprise forensic replay tool to step through the chronological formation of an incident from first raw alert to deduplication, DBSCAN clustering, risk escalation, and DNA match.
-6. 🔍 **Historical Incident Comparator:** Pull-request style visual diff comparing the current cluster with historical institutional memory (similarity factor breakdown, side-by-side timeline alignment, property diffs, and resolution playbooks).
-7. 🎯 **Root Cause Confidence Graph (XAI):** Explainable AI decision-transparency dashboard detailing *WHY* a root cause was selected and why alternative candidate services were ranked lower or rejected across 5 normalized heuristic signals.
-8. 📋 **AI Remediation Playbook:** Step-by-step actionable SRE runbook detailing immediate recovery steps, duration, risk levels, post-fix health validation checklists, rollback contingency procedures, and interactive simulation mode.
+> **TL;DR:** Correlation tells you _what broke_. AlertLens tells you _what's about to break worse_, _how it was fixed last time_, _why the root cause was selected_, and provides a _step-by-step SRE runbook_ to resolve it.
 
-> **TL;DR:** Correlation tells you what broke. We tell you what's about to break worse, how it was fixed last time, why the root cause was selected, and provide a step-by-step SRE runbook to resolve it.
+---
+
+## ✨ Key Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🔬 Core Intelligence
+| # | Feature | What it does |
+|---|---------|-------------|
+| 1 | **Fingerprint Deduplication** | Collapses identical alerts via `(service, alertname, 5-min window)` hashing |
+| 2 | **TF-IDF + DBSCAN Correlation** | Semantically clusters related alerts using time-windowed density clustering |
+| 3 | **Root Cause Identification** | Pinpoints the earliest alert in each cluster — failures propagate forward in time |
+| 4 | **Escalation Risk Score** | Real-time 0→1 signal: `0.40·growth + 0.35·severity + 0.25·spread` |
+
+</td>
+<td width="50%">
+
+### 🧠 Advanced AI
+| # | Feature | What it does |
+|---|---------|-------------|
+| 5 | **Alert DNA Matching** | Cosine similarity against past incidents: _"87% similar to INC-0412"_ |
+| 6 | **LLM Copilot (Cerebras)** | Plain English summaries + interactive incident chat via Llama-3.3-70b |
+| 7 | **Predictive Blast Radius** | 15-min horizon forecasts for risk, alert volume, and service spread |
+| 8 | **Root Cause Confidence (XAI)** | Explainable ranking of candidate services with rejection reasons |
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 🛠️ Operational Tools
+| # | Feature | What it does |
+|---|---------|-------------|
+| 9 | **AI Remediation Playbook** | Step-by-step SRE runbooks with risk badges, rollback plans, health checks |
+| 10 | **Interactive Terminal** | Simulated execution environment for remediation commands |
+| 11 | **Chaos Injector** | 5 production failure scenarios to test the full pipeline end-to-end |
+| 12 | **Storm Replay Engine** | Replay alert batches at variable speed to observe cascade formation |
+
+</td>
+<td>
+
+### 📊 Forensic Analysis
+| # | Feature | What it does |
+|---|---------|-------------|
+| 13 | **Incident Time Machine** | Step-through forensic replay: raw → dedup → cluster → risk → DNA |
+| 14 | **Historical Comparator** | PR-style visual diff against institutional memory |
+| 15 | **Service Topology Map** | Interactive DAG visualization of service dependencies |
+| 16 | **Pipeline Evaluation** | Real-time accuracy metrics: precision, recall, F1-score |
+
+</td>
+</tr>
+</table>
 
 ---
 
 ## 🏗️ System Architecture
 
-Our solution is built on a scalable, modern architecture decoupling data generation, stream processing, and frontend visualization.
-
 ```mermaid
 graph TD
-    %% Hollow Neon Styling Definitions
     classDef frontend fill:none,stroke:#f97316,stroke-width:2px,color:#f97316,rx:5,ry:5
     classDef backend fill:none,stroke:#10b981,stroke-width:2px,color:#10b981,rx:5,ry:5
     classDef ml fill:none,stroke:#c084fc,stroke-width:2px,color:#c084fc,rx:5,ry:5
     classDef ai fill:none,stroke:#f87171,stroke-width:2px,color:#f87171,rx:5,ry:5
     classDef external fill:#f3f4f6,stroke:none,color:#111827,rx:5,ry:5
 
-    subgraph Data [External Data Ecosystem]
-        Loghub[Loghub HDFS_v1<br>Real Dataset]:::external
-        AIOps[AIOps Challenge 2020<br>Real Dataset]:::external
-        Prometheus[Prometheus & Datadog<br>Live Streams]:::external
-        Gen[Synthetic Alert<br>Generator]:::external
+    subgraph Data ["📦 Data Sources"]
+        Loghub["Loghub HDFS_v1<br>Real Dataset"]:::external
+        AIOps["AIOps Challenge 2020<br>Real Dataset"]:::external
+        Gen["Synthetic Generator<br>5 Failure Scenarios"]:::external
     end
 
-    subgraph Backend [FastAPI Alert Engine]
-        Dedup[Deduplication Layer]:::backend
-        Embed[TF-IDF Vectorization]:::ml
-        Cluster[Time-Windowed DBSCAN]:::ml
-        RootCause[Root Cause Identifier]:::backend
+    subgraph Backend ["⚙️ FastAPI Pipeline Engine"]
+        Dedup["Fingerprint<br>Deduplication"]:::backend
+        Embed["TF-IDF<br>Vectorization"]:::ml
+        Cluster["Time-Windowed<br>DBSCAN"]:::ml
+        RootCause["Root Cause<br>Identifier"]:::backend
 
         Dedup --> Embed
         Embed --> Cluster
         Cluster --> RootCause
     end
 
-    subgraph Intelligence [AI & ML Pipeline]
-        RiskScore[Escalation Risk Score<br>Heuristics]:::ml
-        DNA[Alert DNA Matching<br>Cosine Similarity]:::ml
-        Forecast[Predictive Forecast<br>15m Horizon Engine]:::ml
-        RCAConfidence[Root Cause Confidence<br>XAI Decision Model]:::ml
-        Playbook[AI Remediation Playbook<br>SRE Runbook Engine]:::ml
-        Summarizer[LLM Summarizer & Copilot<br>Cerebras / Groq Llama 3]:::ai
+    subgraph Intelligence ["🧠 AI & ML Intelligence Layer"]
+        RiskScore["Escalation Risk<br>Score Engine"]:::ml
+        DNA["Alert DNA<br>Cosine Matching"]:::ml
+        Forecast["Blast Radius<br>Forecast"]:::ml
+        RCAConfidence["Root Cause<br>XAI Confidence"]:::ml
+        Playbook["Remediation<br>Playbook Generator"]:::ml
+        Summarizer["LLM Copilot<br>Cerebras Llama-3.3"]:::ai
     end
 
-    subgraph Frontend [Frontend Client]
-        Dashboard[React / Vite Dashboard<br>Vercel Edge Network]:::frontend
+    subgraph Frontend ["🖥️ Next.js 15 Dashboard"]
+        Dashboard["AlertLens UI<br>Vercel Edge"]:::frontend
     end
 
     Loghub --> Dedup
     AIOps --> Dedup
-    Prometheus --> Dedup
     Gen --> Dedup
 
     RootCause --> RiskScore
@@ -92,47 +202,120 @@ graph TD
     Playbook --> Dashboard
     Summarizer --> Dashboard
 
-    %% Subgraph Styling
     style Data fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
     style Backend fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
     style Intelligence fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
     style Frontend fill:none,stroke:#6b7280,stroke-width:1px,stroke-dasharray: 5 5
 ```
 
-### ⚙️ Core Pipeline Stages
+---
 
-| Stage | Implementation Details | Location |
-|---|---|---|
-| **1. Ingestion & Generation** | Three switchable sources feed the same pipeline: (a) **Loghub HDFS_v1** — real alerts built from actual log lines whose block-level Normal/Anomaly label is the dataset's own human annotation; (b) **AIOps Challenge 2020** — real alerts built from the dataset's fault-injection log; (c) a multi-source synthetic alert generator simulating cascading incident scenarios + background noise. Switch between them via the **Dataset** dropdown in the TopBar. | `data/loghub_hdfs_loader.py`, `data/aiops_challenge_loader.py`, `backend/app/real_data.py`, `backend/app/real_data_aiops.py`, `data/synthetic_alert_generator.py` |
-| **2. Deduplication** | Fingerprint hashing of `(service, alertname, 5-min window)` to filter redundant spikes (Alertmanager-style). | `backend/app/dedup.py` |
-| **3. Embedding & Correlation** | Utilizes **TF-IDF vectorization + cosine similarity** for semantic matching. Clustered via DBSCAN (parameters grid-searched against ground truth). This lightweight approach replaces heavy transformer models, ensuring blazingly fast execution and low memory footprint. | `backend/app/clustering.py` |
-| **4. Root Cause Analysis** | Identifies the earliest alert in a cluster, operating on the principle that failures propagate forward in time. | `backend/app/clustering.py` |
-| **5. Escalation Risk Score** | Heuristic formula: `0.40·growth + 0.35·severity + 0.25·spread`. Fully normalized (0-1) and explainable. | `backend/app/risk_score.py` |
-| **6. Alert DNA Matching** | Computes cosine similarity between cluster centroids and past incident TF-IDF vectors to surface resolutions for novel-but-similar issues. | `backend/app/alert_dna.py` |
-| **7. LLM Summarization** | Translates complex, multi-service clusters into plain English incident summaries and powers the interactive AI Copilot (using **Cerebras / Llama-3.3-70b**). | `backend/app/summarizer.py`, `backend/app/assistant.py` |
-| **8. Predictive Blast Radius Forecast** | Heuristic engine generating 15-minute horizon step forecasts (+5m, +10m, +15m) for risk escalation, projected alert volume growth, and downstream service spread. | `backend/app/forecast.py`, `frontend/src/pages/Forecast.jsx` |
-| **9. Incident Time Machine** | Client-side forensic replay engine reconstructing incident formation keyframes from raw alert arrival to deduplication, DBSCAN clustering, risk escalation, and DNA match. | `frontend/src/pages/TimeMachine.jsx` |
-| **10. Historical Incident Comparator** | PR-style visual diff engine comparing current clusters with past institutional memory (similarity factor breakdown, side-by-side timeline alignment, property diffs, and playbook resolutions). | `backend/app/main.py`, `frontend/src/components/HistoricalComparator.jsx` |
-| **11. Root Cause Confidence Graph (XAI)** | Explainable AI decision-transparency dashboard ranking candidate services with normalized confidence scores (0-100%) and candidate rejection explanations. | `backend/app/root_cause_confidence.py`, `frontend/src/components/RootCauseConfidenceGraph.jsx` |
-| **12. AI Remediation Playbook** | Actionable SRE runbook generator with step-by-step response plans, duration/risk badges, post-fix health validation checklists, rollback procedures, and interactive simulation mode. | `backend/app/playbook.py`, `frontend/src/components/RemediationPlaybook.jsx` |
+## 🔍 Pipeline Deep Dive
+
+Each alert passes through a **12-stage pipeline** — from raw ingestion to actionable incident card:
+
+| Stage | Name | Implementation | Key Files |
+|:---:|------|----------------|-----------|
+| **1** | **Ingestion** | Three switchable sources: Loghub HDFS_v1, AIOps Challenge 2020, and a multi-source synthetic generator with 5 cascading failure scenarios. Switch live via the Dataset dropdown. | `data/loghub_hdfs_loader.py` · `data/aiops_challenge_loader.py` · `data/synthetic_alert_generator.py` |
+| **2** | **Deduplication** | Fingerprint hashing of `(service, alertname, 5-min window)` — Alertmanager-style. Collapses redundant spikes without losing signal. | `backend/app/dedup.py` |
+| **3** | **Vectorization** | TF-IDF embedding of alert message text. Lightweight alternative to transformer models — blazing fast with minimal memory footprint. | `backend/app/clustering.py` |
+| **4** | **Correlation** | Time-windowed DBSCAN clustering on TF-IDF vectors. Parameters grid-searched against ground truth labels. | `backend/app/clustering.py` |
+| **5** | **Root Cause Analysis** | Identifies the earliest alert in each cluster — failures propagate forward in time. | `backend/app/clustering.py` |
+| **6** | **Escalation Risk Score** | Heuristic formula: `0.40·growth + 0.35·severity + 0.25·spread`. Fully normalized (0→1), explainable. | `backend/app/risk_score.py` |
+| **7** | **Alert DNA Matching** | Cosine similarity between cluster centroids and past incident TF-IDF vectors. Surfaces historical resolutions for novel-but-similar issues. | `backend/app/alert_dna.py` |
+| **8** | **LLM Summarization** | Translates multi-service clusters into plain English. Powers the interactive AI Copilot via **Cerebras Llama-3.3-70b**. | `backend/app/summarizer.py` · `backend/app/assistant.py` |
+| **9** | **Blast Radius Forecast** | 15-minute horizon step projections (+5m, +10m, +15m) for risk escalation, alert volume growth, and downstream service spread. | `backend/app/forecast.py` |
+| **10** | **Root Cause Confidence (XAI)** | Explainable ranking of candidate services with normalized confidence scores (0→100%) and candidate rejection explanations across 5 heuristic signals. | `backend/app/root_cause_confidence.py` |
+| **11** | **Remediation Playbook** | AI-generated step-by-step SRE runbooks with duration/risk badges, health validation checklists, rollback procedures, and interactive simulation mode. | `backend/app/playbook.py` |
+| **12** | **Evaluation** | Real-time precision, recall, F1-score against ground truth. MTTR & triage time savings calculated per resolved incident. | `backend/app/main.py` |
 
 ---
 
 ## 🛠️ Technology Stack
 
-**Backend & Data Science**
+<table>
+<tr>
+<td valign="top" width="50%">
 
-- **Python 3 & FastAPI:** High-performance async API server.
-- **Scikit-Learn:** TF-IDF Vectorization and DBSCAN clustering algorithm.
-- **Pandas & NumPy:** Fast vector operations and data manipulation.
-- **Cerebras API:** Blazing fast Llama-3.3-70b inference for the AI Copilot and Incident Summarizer.
+### Backend & Data Science
+| Technology | Purpose |
+|-----------|---------|
+| **Python 3.9+** | Core language |
+| **FastAPI** | High-performance async API server |
+| **Scikit-Learn** | TF-IDF vectorization + DBSCAN clustering |
+| **NumPy** | Fast vector operations |
+| **SQLAlchemy** | Alert persistence & state management |
+| **Cerebras API** | Llama-3.3-70b inference (AI Copilot + Summarizer) |
+| **Pydantic v2** | Request/response validation |
 
-**Frontend UI**
+</td>
+<td valign="top" width="50%">
 
-- **React 19 & Vite:** Blazing fast modern frontend framework.
-- **TailwindCSS 4:** Utility-first styling for a sleek, dark-mode focused UI.
-- **React Flow / Dagre:** Interactive, dynamic Service Topology incident graphs.
-- **Framer Motion:** Micro-animations and layout transitions.
+### Frontend & Visualization
+| Technology | Purpose |
+|-----------|---------|
+| **Next.js 15** | React framework with App Router + Turbopack |
+| **TypeScript** | Type-safe component development |
+| **TailwindCSS** | Utility-first styling with dark mode |
+| **Tremor** | Data visualization components |
+| **Headless UI** | Accessible UI primitives (drawers, modals) |
+| **Dagre + React Flow** | Interactive service topology DAG |
+| **Vercel** | Edge deployment with API rewrites |
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📁 Project Structure
+
+```
+AlertLens/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                  # FastAPI app — all pipeline endpoints
+│   │   ├── dedup.py                 # Fingerprint deduplication layer
+│   │   ├── clustering.py            # TF-IDF + DBSCAN correlation engine
+│   │   ├── risk_score.py            # Escalation risk score calculator
+│   │   ├── alert_dna.py             # Historical incident DNA matching
+│   │   ├── forecast.py              # Blast radius 15-min forecast engine
+│   │   ├── root_cause_confidence.py # XAI confidence ranking
+│   │   ├── playbook.py              # AI remediation playbook generator
+│   │   ├── summarizer.py            # LLM summarization (Cerebras)
+│   │   ├── assistant.py             # Interactive AI Copilot
+│   │   ├── automation.py            # Workflow rule evaluation
+│   │   ├── db.py                    # SQLAlchemy alert persistence
+│   │   └── models.py               # Pydantic data models
+│   └── requirements.txt
+│
+├── data/
+│   ├── synthetic_alert_generator.py # Multi-scenario alert generator
+│   ├── loghub_hdfs_loader.py        # Loghub HDFS_v1 dataset loader
+│   ├── aiops_challenge_loader.py    # AIOps Challenge 2020 loader
+│   └── seed_incident_library.json   # Historical incident knowledge base
+│
+├── frontend-next/                   # Next.js 15 dashboard (production)
+│   ├── app/(keep)/                  # App Router pages
+│   │   ├── feed/                    # Alert Feed view
+│   │   ├── incidents/               # Incident detail + comparator
+│   │   ├── correlations/            # DBSCAN cluster visualization
+│   │   ├── deduplication/           # Dedup statistics
+│   │   ├── topology/               # Service dependency DAG
+│   │   ├── forecast/               # Blast radius predictions
+│   │   ├── timemachine/            # Forensic incident replay
+│   │   ├── evaluation/             # Pipeline accuracy metrics
+│   │   └── pipeline/               # End-to-end pipeline view
+│   ├── entities/alertlens/          # AlertLens domain layer
+│   └── components/
+│       ├── chaos/                   # Chaos injection scenarios
+│       └── remediation/             # Interactive terminal modal
+│
+├── notebooks/
+│   └── poc_clustering.ipynb         # Research notebook: clustering PoC
+│
+└── README.md
+```
 
 ---
 
@@ -140,76 +323,131 @@ graph TD
 
 ### Prerequisites
 
-- Python 3.9+
-- Node.js 18+ & npm/pnpm
-- Cerebras API Key (optional, for AI features)
+| Requirement | Version |
+|-------------|---------|
+| Python | 3.9+ |
+| Node.js | 18+ |
+| npm | 9+ |
+| Cerebras API Key | Optional (for AI features) |
 
-### 1. Backend Setup
+### 1️⃣ Backend Setup
 
 ```bash
+# Clone the repository
+git clone https://github.com/Aditya0105singh/HPE--HACKATHON-ALERT-CORRELATION-DEDUPLICATION.git
+cd HPE--HACKATHON-ALERT-CORRELATION-DEDUPLICATION
+
 # Install backend dependencies
 pip install -r backend/requirements.txt
 
-# Create a .env file and add your Cerebras API key (Optional but recommended)
+# (Optional) Set your Cerebras API key for AI features
 echo "CEREBRAS_API_KEY=your_key_here" > .env
 
-# One-time: build the real Loghub HDFS_v1 alert batch (downloads + caches
-# HDFS_v1.zip from Zenodo, ~187MB, then writes data/loghub_hdfs_alerts.json)
+# One-time: Build the Loghub HDFS_v1 alert batch
+# Downloads + caches HDFS_v1.zip from Zenodo (~187MB)
 python data/loghub_hdfs_loader.py
 
-# One-time: build the real AIOps Challenge 2020 alert batch (reads only the
-# real fault-injection CSV out of a 2.9GB archive via HTTP range requests)
+# One-time: Build the AIOps Challenge 2020 alert batch
+# Reads fault-injection CSV via HTTP range requests
 python data/aiops_challenge_loader.py
 
 # Start the FastAPI server
-uvicorn app.main:app --app-dir backend --reload
+uvicorn app.main:app --app-dir backend --reload --port 8001
 ```
 
-_API will be available at http://localhost:8000_
+> 🟢 API available at `http://localhost:8001` · Interactive docs at `http://localhost:8001/docs`
 
-### 2. Frontend Setup
+### 2️⃣ Frontend Setup
 
 ```bash
-# Navigate to the frontend directory
-cd frontend
+# Navigate to the frontend
+cd frontend-next
 
 # Install dependencies
 npm install
 
-# Start the Vite development server
+# Start the Next.js dev server (Turbopack)
 npm run dev
 ```
 
-_Dashboard will be available at http://localhost:5180_
+> 🟢 Dashboard available at `http://localhost:3000`
 
-### 3. Production Deployment
+### 3️⃣ Quick Test
 
-The application is architected for zero-cost deployment on modern PaaS platforms:
-
-- **Frontend (Vercel):** Connect the GitHub repository and deploy the `frontend/` directory using the Vite preset. API requests are automatically proxied to the backend via `vercel.json` rewrites to avoid CORS issues.
-- **Backend (Render):** Deploy the repository as a Python Web Service on Render's Free Tier. The pipeline's use of TF-IDF (instead of heavy neural networks) ensures the entire backend runs comfortably within Render's 512MB memory limit. Set the `CEREBRAS_API_KEY` environment variable in Render's dashboard.
+Once both servers are running:
+1. Open `http://localhost:3000`
+2. Click any **Dataset** button (Synthetic / Loghub / AIOps) on the Home page
+3. The full pipeline runs automatically — watch alerts collapse into correlated incidents in real time
 
 ---
 
-## 🗺️ Roadmap & Future Scope
+## 🌐 Deployment
+
+The application is architected for **zero-cost deployment** on modern PaaS platforms:
+
+| Layer | Platform | Details |
+|-------|----------|---------|
+| **Frontend** | **Vercel** | Connect the GitHub repo and deploy `frontend-next/`. API requests are proxied to the backend via middleware rewrites — zero CORS issues. |
+| **Backend** | **Render** | Deploy as a Python Web Service on Render's Free Tier. TF-IDF (not heavy neural nets) means the entire backend runs comfortably within **512MB RAM**. Set `CEREBRAS_API_KEY` in the dashboard. |
+
+**Live deployment:** [**hpe-hackathon-alert-correlation-ded-eta.vercel.app**](https://hpe-hackathon-alert-correlation-ded-eta.vercel.app)
+
+---
+
+## 📊 Datasets
+
+AlertLens supports **three switchable data sources**, all running through the same pipeline:
+
+| Dataset | Type | Size | Source |
+|---------|------|------|--------|
+| **Synthetic Generator** | Generated | ~120 alerts/batch | 5 cascading failure scenarios with ground-truth labels |
+| **Loghub HDFS_v1** | Real-world | ~11M log lines → alerts | [Zenodo / Loghub](https://zenodo.org/records/8196385) — real HDFS block-level anomaly labels |
+| **AIOps Challenge 2020** | Real-world | Fault-injection logs → alerts | [AIOps Challenge](http://iops.ai/competition_detail/?competition_id=15) — real production fault injection |
+
+> Switch between datasets live via the **Dataset** dropdown in the top bar — no restart needed.
+
+---
+
+## ✅ Feature Roadmap
 
 - [x] Synthetic multi-source alert generator with ground-truth labels
 - [x] Fingerprint deduplication layer
-- [x] Embedding + time-windowed DBSCAN correlation (TF-IDF tuned)
+- [x] TF-IDF + time-windowed DBSCAN correlation (grid-searched)
 - [x] Escalation Risk Score (explainable heuristic)
 - [x] Alert DNA past-incident matching
 - [x] FastAPI ingestion & pipeline endpoints
-- [x] **Frontend:** Full integration of the React Dashboard (Feed, Deduplication, Correlations, Incidents, Service Topology)
-- [x] **LLM Integration:** AI Copilot and Incident Summaries powered by Cerebras (Llama-3.3-70b).
-- [x] **Real AIOps Datasets:** Both of PS10's named data sources wired end-to-end through the same pipeline, switchable live via the top-bar Dataset selector.
-- [x] **Predictive Blast Radius Forecast:** 15-min horizon escalation & downstream blast radius prediction
-- [x] **Incident Time Machine:** Interactive forensic timeline replay
-- [x] **Historical Incident Comparator:** PR-style side-by-side visual diff for past incidents
-- [x] **Root Cause Confidence Graph (XAI):** Decision transparency ranking candidate services
-- [x] **AI Remediation Playbook:** Step-by-step SRE runbooks, validation, rollback, and simulation mode
-- [x] **MTTR & Triage Time Saved:** Real-time calculation of triage minutes saved per resolved incident
+- [x] Full Next.js 15 dashboard (Feed, Dedup, Correlations, Incidents, Topology)
+- [x] LLM Integration: AI Copilot + Incident Summaries (Cerebras Llama-3.3-70b)
+- [x] Real AIOps datasets: Loghub HDFS_v1 + AIOps Challenge 2020
+- [x] Predictive Blast Radius Forecast (15-min horizon)
+- [x] Incident Time Machine (forensic replay)
+- [x] Historical Incident Comparator (PR-style diff)
+- [x] Root Cause Confidence Graph (XAI decision transparency)
+- [x] AI Remediation Playbook (SRE runbooks + simulation mode)
+- [x] Chaos Injector (5 production failure scenarios)
+- [x] Interactive Terminal (simulated command execution)
+- [x] Storm Replay Engine (variable-speed alert replay)
+- [x] Pipeline Evaluation (precision, recall, F1, MTTR savings)
+- [x] SQLite persistence layer for alert state
+- [x] Workflow automation rule engine
+
+---
+
+## 👥 Team
+
+Built for **Synergy 2026 — HPE Problem Statement #10**
+
+---
+
+<div align="center">
 
 <br/>
-<div align="center">
-  <i>Built for Synergy 2026</i>
+
+**⚡ AlertLens** — _From 150 alerts to 1 actionable incident in under 2 seconds._
+
+<br/>
+
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Aditya0105singh/HPE--HACKATHON-ALERT-CORRELATION-DEDUPLICATION)
+[![Live Demo](https://img.shields.io/badge/🌐_Try_It_Live-AlertLens-f97316?style=for-the-badge)](https://hpe-hackathon-alert-correlation-ded-eta.vercel.app)
+
 </div>
