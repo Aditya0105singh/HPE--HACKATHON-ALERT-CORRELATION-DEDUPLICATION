@@ -76,8 +76,13 @@ const DrawerContent = React.forwardRef<
       <DrawerPrimitives.Content
         ref={forwardedRef}
         className={cx(
-          // base
-          "fixed z-50 mx-auto flex w-[95vw] flex-1 flex-col overflow-y-auto shadow-lg focus:outline-none inset-y-0 right-0 sm:max-w-lg",
+          // base - sized to content (max-h + overflow-y-auto), not forced to
+          // span the full viewport height. inset-y-0 made this a fixed
+          // 100vh panel regardless of how little content it held, so any
+          // alert with a short detail view (no incident, no history) left a
+          // large blank area below the buttons that read as broken rather
+          // than a real, deliberate panel size.
+          "fixed z-50 right-0 top-1/2 -translate-y-1/2 flex w-[95vw] max-h-[90vh] flex-col overflow-y-auto rounded-lg border shadow-lg focus:outline-none sm:max-w-lg sm:mr-4",
           // border color
           "border-gray-200 dark:border-gray-900",
           // background color
@@ -146,7 +151,7 @@ const DrawerBody = React.forwardRef<
   React.ComponentPropsWithoutRef<"div">
 >(({ className, ...props }, ref) => {
   return (
-    <div ref={ref} className={cx("flex-1 min-h-0", className)} {...props} />
+    <div ref={ref} className={cx("flex-1 min-h-0 p-4", className)} {...props} />
   );
 });
 DrawerBody.displayName = "Drawer.Body";
