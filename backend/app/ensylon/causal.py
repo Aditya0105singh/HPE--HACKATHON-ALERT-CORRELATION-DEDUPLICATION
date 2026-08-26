@@ -34,6 +34,7 @@ no model, no training, and no inference call, which is why this fits inside a
 from __future__ import annotations
 
 import re
+from typing import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -352,6 +353,21 @@ def _disjoint(a: list[str], b: list[str]) -> bool:
     return not (set(a) & set(b))
 
 
+def _explained_by_others(
+    service: str, candidates: Iterable[str], graph: DependencyGraph
+) -> bool:
+    """Would another failing candidate account for this one going down?
+
+    True when `service` transitively depends on some other candidate — i.e.
+    it sits in that candidate's blast radius, making it a plausible symptom
+    rather than an origin.
+    """
+    return any(
+        other != service and service in _dependents(graph, other)
+        for other in candidates
+    )
+
+
 # Words that appear in most service names and so distinguish nothing.
 _GENERIC_NAME_PARTS = {"service", "svc", "api", "app", "server", "cluster", "primary"}
 
@@ -416,35 +432,28 @@ def refine_clusters(
 
     for cluster in clusters:
         result = analyse(cluster, graph)
-        centres = [
-            c for c in result.candidates
-            if c.ablation_survived and c.uniquely_explains
-        ]
-        # Two centres are independent only if all three hold:
+        # A centre is a candidate that nothing else in the cluster explains.
         #
-        #   1. Their unique explanation sets are disjoint.
-        #   2. Neither explains the other. Disjointness alone is *not* enough:
-        #      in a cascade A→B→C every link uniquely explains the next, so
-        #      condition 1 is trivially true and a plain disjointness rule
-        #      shreds every genuine cascade into one incident per hop.
-        #   3. Their evidence disagrees. Topology cannot settle this on its
-        #      own — a database failing really could explain an auth failure —
-        #      so what separates "one cascade" from "two coincident faults" is
-        #      whether the two centres are describing the same kind of trouble.
+        # The earlier criterion — "uniquely explains something" — silently
+        # fails whenever two independent roots share dependents, which is the
+        # common case in any real estate. If a cache and a database both sit
+        # under the same API tier, everything the database explains the cache
+        # explains too, so neither uniquely explains anything and the split
+        # never fires. Being unexplained is the actual definition of a root,
+        # and it survives overlapping blast radii; in a genuine A->B->C
+        # cascade only A is unexplained, so cascades stay whole for free.
+        centres = [c for c in result.candidates if not _explained_by_others(
+            c.service, [x.service for x in result.candidates], graph
+        )]
+        # Being unexplained makes a candidate a root, but two unexplained
+        # roots are only two *incidents* if their evidence also disagrees.
+        # Topology alone cannot settle that — a missing trace edge can leave a
+        # genuine symptom looking unexplained — so the last word goes to
+        # whether the two are describing the same kind of trouble.
         selected: list[CandidateScore] = []
         for candidate in sorted(centres, key=lambda c: -c.rank_score):
-            independent = True
-            for chosen in selected:
-                if not _disjoint(candidate.uniquely_explains, chosen.uniquely_explains):
-                    independent = False
-                elif (candidate.service in chosen.uniquely_explains
-                      or chosen.service in candidate.uniquely_explains):
-                    independent = False  # cascade link, not a second incident
-                elif _evidence_agrees(cluster, candidate.service, chosen.service):
-                    independent = False
-                if not independent:
-                    break
-            if independent:
+            if all(not _evidence_agrees(cluster, candidate.service, chosen.service)
+                   for chosen in selected):
                 selected.append(candidate)
 
         if len(selected) < 2:

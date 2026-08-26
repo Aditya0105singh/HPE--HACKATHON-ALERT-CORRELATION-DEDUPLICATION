@@ -131,14 +131,21 @@ def blast_radius(
     return round(score, 3), detail
 
 
-def business_criticality(cluster: Cluster) -> tuple[float, str]:
+def business_criticality(
+    cluster: Cluster, registry: dict[str, float] | None = None
+) -> tuple[float, str]:
     """Highest-criticality service involved, not the average.
 
     Averaging would let a critical payment service be diluted by four noisy
     batch workers in the same incident — precisely inverting the priority.
+
+    `registry` lets a deployment supply its own service catalogue; the module
+    default only describes one estate and would score every other one as
+    uniformly average.
     """
+    table = registry or CRITICALITY
     ranked = sorted(
-        ((CRITICALITY.get(s, DEFAULT_CRITICALITY), s) for s in cluster.services),
+        ((table.get(s, DEFAULT_CRITICALITY), s) for s in cluster.services),
         reverse=True,
     )
     if not ranked:
@@ -246,9 +253,10 @@ def score_incident(
     causal: CausalResult,
     graph: DependencyGraph,
     maintenance: list[MaintenanceWindow] | None = None,
+    criticality: dict[str, float] | None = None,
 ) -> SeverityBreakdown:
     blast, blast_detail = blast_radius(cluster, causal, graph)
-    crit, crit_detail = business_criticality(cluster)
+    crit, crit_detail = business_criticality(cluster, criticality)
     trend, trend_detail = trend_direction(cluster)
     diversity, diversity_detail = signal_diversity(cluster)
 

@@ -131,6 +131,7 @@ def run(
     maintenance: list[MaintenanceWindow] | None = None,
     queue: ReviewQueue | None = None,
     use_llm: bool = True,
+    criticality: dict[str, float] | None = None,
 ) -> PipelineResult:
     """Run detect → correlate → causal → score → draft → queue."""
     report = PipelineReport(signals_ingested=len(signals))
@@ -169,7 +170,7 @@ def run(
     with _Timer(report, "causal_score_draft"):
         for cluster in clusters:
             result = causal_mod.analyse(cluster, graph)
-            severity = score_incident(cluster, result, graph, maintenance)
+            severity = score_incident(cluster, result, graph, maintenance, criticality)
             excluded = [
                 ExcludedSignal(
                     service=signal.service,

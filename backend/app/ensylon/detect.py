@@ -174,6 +174,14 @@ class DetectionReport:
 
 _ERROR_SEVERITIES = {Severity.CRITICAL, Severity.HIGH}
 
+# Severities allowed to trigger novelty and burst detection. Warnings are
+# included because plenty of real failures never emit an ERROR at all — a
+# replica falling further and further behind logs WARN the whole way down, and
+# a detector keyed purely on severity would watch that incident unfold in
+# silence. INFO is excluded: a healthy service repeats its heartbeat line
+# forever, so volume alone says nothing there.
+_NOTABLE_SEVERITIES = _ERROR_SEVERITIES | {Severity.WARNING}
+
 
 def detect(
     signals: list[Signal], state: DetectorState | None = None
@@ -295,14 +303,16 @@ def _judge_log(
     count = miner.template_counts.get(tid, 1)
     expected = state.template_rates.get(tid)
     is_error = signal.severity in _ERROR_SEVERITIES
+    notable = signal.severity in _NOTABLE_SEVERITIES
 
     # A template never seen before is inherently interesting — a brand-new
     # error message is exactly what a fresh failure mode looks like.
-    if expected is None and is_error:
+    if expected is None and notable:
         report.novel_templates += 1
         signal.is_anomaly = True
         signal.anomaly_score = 0.8
-        signal.detection_reason = f"novel error template {tid} not seen in baseline"
+        kind = "error" if is_error else "warning"
+        signal.detection_reason = f"novel {kind} template {tid} not seen in baseline"
         return
 
     # Burst detection. "Repeated a lot" is only evidence of a problem relative
@@ -319,11 +329,12 @@ def _judge_log(
                 f"log burst: template {tid} seen {count}× vs {expected:.1f} expected"
             )
             return
-        if expected is None and is_error:
+        if expected is None and notable:
             signal.is_anomaly = True
             signal.anomaly_score = min(count / 20.0 + 0.4, 1.0)
+            kind = "error" if is_error else "warning"
             signal.detection_reason = (
-                f"error burst: template {tid} seen {count}× (no baseline yet)"
+                f"{kind} burst: template {tid} seen {count}× (no baseline yet)"
             )
             return
 
