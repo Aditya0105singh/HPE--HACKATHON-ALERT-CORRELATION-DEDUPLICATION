@@ -27,6 +27,7 @@ unstored pairs as infinitely far apart — so the saving is real, not cosmetic.
 from __future__ import annotations
 
 import math
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -181,12 +182,38 @@ _BOILERPLATE = {
 }
 
 
-def _tokens(signal: Signal) -> set[str]:
-    import re
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+_WORD = re.compile(r"[a-z][a-z0-9]{2,}")
 
-    text = f"{signal.message} {signal.metric or ''} {signal.component or ''}".lower()
-    found = re.findall(r"[a-z][a-z0-9_.-]{2,}", text)
-    return {t for t in found if t not in _STOP and t not in _BOILERPLATE}
+
+def _tokens(signal: Signal) -> set[str]:
+    """Comparable vocabulary for a signal.
+
+    Metric names are camelCase identifiers, not prose: left whole,
+    `DatabaseConnections` shares no token with the log line "connection pool
+    exhausted" that describes the very same failure — so the strongest piece
+    of evidence linking a symptom to its cause scores exactly zero. Splitting
+    on case boundaries and normalising trivial plurals restores that link,
+    which is what lets a log burst be attributed to the right metric alarm
+    when a service depends on several failing things at once.
+    """
+    raw = f"{signal.message} {signal.metric or ''} {signal.component or ''}"
+    spaced = _CAMEL_BOUNDARY.sub(" ", raw).lower()
+    found = _WORD.findall(spaced)
+
+    tokens: set[str] = set()
+    for token in found:
+        if token in _STOP or token in _BOILERPLATE:
+            continue
+        # Fold simple plurals so "connections" matches "connection". Not a
+        # real stemmer - just enough to stop trivial morphology from hiding
+        # an obvious match, without the false merges aggressive stemming
+        # would cause.
+        if len(token) > 4 and token.endswith("s") and not token.endswith("ss"):
+            token = token[:-1]
+        if token not in _STOP and token not in _BOILERPLATE:
+            tokens.add(token)
+    return tokens
 
 
 @dataclass

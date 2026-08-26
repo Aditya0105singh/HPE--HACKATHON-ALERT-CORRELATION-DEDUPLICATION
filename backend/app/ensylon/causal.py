@@ -33,6 +33,7 @@ no model, no training, and no inference call, which is why this fits inside a
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -351,6 +352,16 @@ def _disjoint(a: list[str], b: list[str]) -> bool:
     return not (set(a) & set(b))
 
 
+# Words that appear in most service names and so distinguish nothing.
+_GENERIC_NAME_PARTS = {"service", "svc", "api", "app", "server", "cluster", "primary"}
+
+
+def _name_tokens(service: str) -> set[str]:
+    """Meaningful words in a service name, e.g. redis-cache -> {redis, cache}."""
+    parts = re.split(r"[^a-z0-9]+", (service or "").lower())
+    return {p for p in parts if len(p) > 2 and p not in _GENERIC_NAME_PARTS}
+
+
 # Above this, two centres are describing the same kind of failure and are
 # treated as one cascade. Deliberately low: the bar for *keeping* an incident
 # whole is low, because wrongly splitting one is the cheaper error to avoid
@@ -468,36 +479,79 @@ def _assign_to_centres(
     cluster: Cluster, centres: list[CandidateScore], graph: DependencyGraph
 ) -> list[list[Signal]]:
     """Partition a cluster's signals across its causal centres."""
-    from .correlate import template_similarity
+    from .correlate import _tokens, template_similarity
 
-    territory: dict[str, set[str]] = {
-        c.service: set(c.uniquely_explains) | {c.service} for c in centres
-    }
-    # A service claimed by more than one centre cannot seed either core.
-    contested = {
-        svc for svc in set().union(*territory.values())
-        if sum(1 for owned in territory.values() if svc in owned) > 1
-    }
-
-    cores: dict[str, list[Signal]] = {c.service: [] for c in centres}
+    # Seed each core with the centre's OWN signals only.
+    #
+    # The tempting alternative — seeding from everything the centre
+    # topologically explains — poisons the core exactly when it matters. Here
+    # redis-cache legitimately explains auth-service, so a territory-based
+    # core swallows auth-service's signals wholesale, including the ones
+    # belonging to a *different* concurrent incident. The core then "proves"
+    # the wrong answer, because the answer was assumed when building it.
+    #
+    # A centre's own signals are the one thing that cannot be contested: they
+    # are what made it a centre.
+    cores: dict[str, list[Signal]] = {}
     for centre in centres:
-        exclusive = territory[centre.service] - contested
-        cores[centre.service] = [s for s in cluster.signals if s.service in exclusive]
-        # Guarantee a non-empty core: the centre's own representative signal
-        # anchors it even when every one of its services is contested.
         own = [s for s in cluster.signals if s.service == centre.service]
-        if not cores[centre.service] and own:
-            cores[centre.service] = [_representative_signal(own)]
+        cores[centre.service] = own or [_representative_signal(cluster.signals)]
+
+    # The centre's service name is itself evidence — a log line mentioning
+    # "cache unavailable" is talking about redis-cache even when it shares no
+    # vocabulary with that service's metric alarm.
+    core_vocab: dict[str, set[str]] = {}
+    for centre in centres:
+        vocab: set[str] = set()
+        for member in cores[centre.service]:
+            vocab |= _tokens(member) | _name_tokens(member.service)
+        vocab |= _name_tokens(centre.service)
+        core_vocab[centre.service] = vocab
+
+    # A trace id is the strongest attribution evidence there is: it means the
+    # signals were emitted by literally the same request. Topology can only
+    # say a failure *could* propagate a certain way, and when two incidents
+    # overlap on a shared dependency that is not enough — auth-service really
+    # does call redis-cache, so a concurrent redis outage looks like a
+    # perfectly good explanation for an auth failure that has nothing to do
+    # with it. The trace says which request actually carried the error.
+    core_traces: dict[str, set[str]] = {
+        service: {s.trace_id for s in members if s.trace_id}
+        for service, members in cores.items()
+    }
 
     buckets: dict[str, list[Signal]] = {c.service: [] for c in centres}
     for signal in cluster.signals:
+        # The emitting service is part of what a signal is about. It matters
+        # most for metric alarms, whose text is pure CloudWatch boilerplate and
+        # whose metric name ("5XXError") often tokenizes to nothing usable —
+        # leaving the service name as the only evidence they carry at all.
+        #
+        # Deliberately applied only here, not in the shared tokenizer: adding
+        # service names to the global similarity would pull *every* same-service
+        # pair closer together, which is precisely the failure that merged
+        # concurrent incidents in the first place.
+        signal_tokens = _tokens(signal) | _name_tokens(signal.service)
         best_service, best_score = None, -1.0
         for centre in centres:
             core = cores[centre.service]
-            evidence = max((template_similarity(signal, m) for m in core), default=0.0)
+            trace = 1.0 if (
+                signal.trace_id and signal.trace_id in core_traces[centre.service]
+            ) else 0.0
+            # Two views of evidence: direct signal-to-signal similarity, and
+            # overlap with the centre's whole vocabulary. The second catches
+            # the case where no single core signal resembles this one but the
+            # subject matter plainly matches.
+            direct = max((template_similarity(signal, m) for m in core), default=0.0)
+            vocab = core_vocab[centre.service]
+            overlap = (
+                len(signal_tokens & vocab) / len(signal_tokens)
+                if signal_tokens and vocab else 0.0
+            )
+            evidence = max(direct, overlap)
             closeness = graph.closeness(signal.service, centre.service)
             same = 1.0 if signal.service == centre.service else 0.0
-            score = 0.55 * evidence + 0.30 * closeness + 0.15 * same
+            score = 0.35 * trace + 0.35 * evidence + 0.20 * closeness + 0.10 * same
             if score > best_score:
                 best_service, best_score = centre.service, score
         if best_service is not None:
