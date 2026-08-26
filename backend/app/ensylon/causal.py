@@ -353,19 +353,50 @@ def _disjoint(a: list[str], b: list[str]) -> bool:
     return not (set(a) & set(b))
 
 
+def _explainers_of(
+    service: str, candidates: Iterable[str], graph: DependencyGraph
+) -> list[str]:
+    """Candidates whose failure could topologically account for this one."""
+    return [
+        other for other in candidates
+        if other != service and service in _dependents(graph, other)
+    ]
+
+
 def _explained_by_others(
     service: str, candidates: Iterable[str], graph: DependencyGraph
 ) -> bool:
-    """Would another failing candidate account for this one going down?
+    return bool(_explainers_of(service, candidates, graph))
 
-    True when `service` transitively depends on some other candidate — i.e.
-    it sits in that candidate's blast radius, making it a plausible symptom
-    rather than an origin.
+
+def _is_independent_root(
+    service: str,
+    candidates: Iterable[str],
+    graph: DependencyGraph,
+    cluster: Cluster,
+) -> bool:
+    """Is this an origin in its own right, rather than someone else's symptom?
+
+    Sitting in another failing service's blast radius makes a candidate a
+    *plausible* symptom, not a certain one. Topology only establishes that a
+    failure could have propagated; it cannot tell whether it did. During
+    concurrent incidents that gap is the whole problem — one root is often
+    genuinely downstream of another, and collapsing them loses a real
+    incident inside someone else's ticket.
+
+    Evidence closes the gap. A true symptom looks like the thing that caused
+    it: a service broken by a saturated connection pool logs connection
+    errors. A service that is merely *downstream* of an unrelated fault while
+    failing for its own reasons does not — an API leaking memory logs GC
+    pauses whether or not its database is also lagging.
+
+    So a candidate stays a symptom only while its evidence agrees with at
+    least one of its explainers.
     """
-    return any(
-        other != service and service in _dependents(graph, other)
-        for other in candidates
-    )
+    explainers = _explainers_of(service, candidates, graph)
+    if not explainers:
+        return True
+    return not any(_evidence_agrees(cluster, service, e) for e in explainers)
 
 
 # Words that appear in most service names and so distinguish nothing.
@@ -378,11 +409,16 @@ def _name_tokens(service: str) -> set[str]:
     return {p for p in parts if len(p) > 2 and p not in _GENERIC_NAME_PARTS}
 
 
-# Above this, two centres are describing the same kind of failure and are
-# treated as one cascade. Deliberately low: the bar for *keeping* an incident
-# whole is low, because wrongly splitting one is the cheaper error to avoid
-# than wrongly merging two.
-EVIDENCE_AGREEMENT_THRESHOLD = 0.22
+# Above this, two services are describing the same kind of failure, so one is
+# treated as the other's symptom rather than a second incident.
+#
+# Calibrated by sweeping 0.02-0.30 on seeds {1,5,7} and evaluating on held-out
+# seeds {13,21,29,33,41}; 0.12 maximised F1 on the tuning set. The curve is a
+# straightforward precision/recall trade — raising it splits more (precision
+# up, recall down), lowering it merges more — so this is a chosen operating
+# point, not a natural optimum, and it is the first thing to retune against a
+# real estate's own vocabulary.
+EVIDENCE_AGREEMENT_THRESHOLD = 0.12
 
 
 def _evidence_agrees(cluster: Cluster, service_a: str, service_b: str) -> bool:
@@ -442,9 +478,11 @@ def refine_clusters(
         # never fires. Being unexplained is the actual definition of a root,
         # and it survives overlapping blast radii; in a genuine A->B->C
         # cascade only A is unexplained, so cascades stay whole for free.
-        centres = [c for c in result.candidates if not _explained_by_others(
-            c.service, [x.service for x in result.candidates], graph
-        )]
+        all_services = [x.service for x in result.candidates]
+        centres = [
+            c for c in result.candidates
+            if _is_independent_root(c.service, all_services, graph, cluster)
+        ]
         # Being unexplained makes a candidate a root, but two unexplained
         # roots are only two *incidents* if their evidence also disagrees.
         # Topology alone cannot settle that — a missing trace edge can leave a
@@ -560,7 +598,19 @@ def _assign_to_centres(
             evidence = max(direct, overlap)
             closeness = graph.closeness(signal.service, centre.service)
             same = 1.0 if signal.service == centre.service else 0.0
-            score = 0.35 * trace + 0.35 * evidence + 0.20 * closeness + 0.10 * same
+            # Evidence outweighs topology by design. Hop distance is a weak
+            # prior — a service sits near many things, and during concurrent
+            # incidents it is genuinely downstream of several failing ones at
+            # once, so proximity cannot say which one broke it. Shared
+            # vocabulary can: a log reading "connection pool exhausted" is
+            # talking about DatabaseConnections and not about a cache, whether
+            # the database is two hops away or four.
+            #
+            # Weighted the other way round, a 1-hop difference (0.45 vs 0.15
+            # closeness) silently overturns a decisive evidence match, which
+            # is exactly how 13 "connection pool exhausted" lines were
+            # attributed to a cache outage.
+            score = 0.30 * trace + 0.50 * evidence + 0.15 * closeness + 0.05 * same
             if score > best_score:
                 best_service, best_score = centre.service, score
         if best_service is not None:
