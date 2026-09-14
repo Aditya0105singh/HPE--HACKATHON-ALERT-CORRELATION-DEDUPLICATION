@@ -45,28 +45,6 @@ jest.mock("@/utils/hooks/useConfig", () => ({
   }),
 }));
 
-// Mock CreateOrUpdatePresetForm
-jest.mock("@/features/presets/create-or-update-preset", () => ({
-  CreateOrUpdatePresetForm: ({ onCancel }: any) => {
-    return React.createElement('div', { 'data-testid': 'create-or-update-preset-form' });
-  },
-}));
-
-// Mock PushAlertToServerModal
-jest.mock("@/features/alerts/simulate-alert", () => ({
-  PushAlertToServerModal: ({ isOpen, handleClose }: any) => {
-    return isOpen ? React.createElement('div', { 'data-testid': 'push-alert-modal' }) : null;
-  },
-}));
-
-// Mock AlertErrorEventModal
-jest.mock("@/features/alerts/alert-error-event-process", () => ({
-  AlertErrorEventModal: ({ isOpen, onClose }: any) => {
-    return isOpen ? React.createElement('div', { 'data-testid': 'error-alert-modal' }) : null;
-  },
-}));
-
-
 // Mock usePresets
 jest.mock("@/entities/presets/model/usePresets", () => ({
   usePresets: jest.fn(() => ({
@@ -96,7 +74,3 @@ jest.mock("react-icons/tb", () => ({
   TbSparkles: () => null,
 }));
 
-// Mock AlertsRulesBuilder to avoid navigation issues
-jest.mock("@/features/presets/presets-manager/ui/alerts-rules-builder", () => ({
-  AlertsRulesBuilder: () => React.createElement('div', { 'data-testid': 'alerts-rules-builder' }),
-}));
