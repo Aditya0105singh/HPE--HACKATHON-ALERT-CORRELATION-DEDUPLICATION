@@ -426,7 +426,8 @@ def _evidence_agrees(cluster: Cluster, service_a: str, service_b: str) -> bool:
 
     Compares the best evidence match between the two services' signals. A
     database exhaustion and a JWKS outage share almost no vocabulary once
-    alarm boilerplate is discounted; two symptoms of one cascade usually do.
+    boilerplate (alarm phrasing, log levels) is discounted; two symptoms of
+    one cascade usually do.
     """
     from .correlate import template_similarity
 

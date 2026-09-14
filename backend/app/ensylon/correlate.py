@@ -179,6 +179,11 @@ _BOILERPLATE = {
     "threshold", "crossed", "datapoint", "datapoints", "greater", "less",
     "than", "alarm", "state", "value", "values", "error", "errors", "failed",
     "failure", "exceeded", "exceeds",
+    # Log-level words. Every WARN line on earth contains the word "warn" —
+    # it says something about severity, nothing about what actually happened,
+    # so treating it as content evidence makes any two unrelated warnings
+    # look topically related purely because both are warnings.
+    "warn", "warning", "info", "debug", "notice", "trace",
 }
 
 

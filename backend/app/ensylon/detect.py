@@ -118,8 +118,16 @@ class LogTemplateMiner:
     def backend(self) -> str:
         return "drain3" if self._miner is not None else "regex-fallback"
 
-    def add(self, message: str) -> tuple[str, str]:
-        """Return (template_id, template_text) for one log line."""
+    def add(self, message: str, weight: int = 1) -> tuple[str, str]:
+        """Return (template_id, template_text) for one log line.
+
+        `weight` lets a caller feed an already-deduplicated signal (one
+        representative standing in for N collapsed originals) without
+        breaking burst detection downstream. DEDUPLICATE runs before DETECT,
+        so by the time a signal reaches here it may carry an occurrence_count
+        greater than one — counting it as a single observation would make a
+        genuine 12x burst look like a single, unremarkable log line.
+        """
         if not message:
             return "empty", ""
         if self._miner is not None:
@@ -129,7 +137,7 @@ class LogTemplateMiner:
         else:
             text = _crude_template(message)
             tid = f"T{abs(hash(text)) % 100000}"
-        self.template_counts[tid] = self.template_counts.get(tid, 0) + 1
+        self.template_counts[tid] = self.template_counts.get(tid, 0) + weight
         self.template_text[tid] = text
         return tid, text
 
@@ -201,7 +209,7 @@ def detect(
         if s.source in (SignalSource.APP_LOG, SignalSource.CLOUDWATCH_LOG)
     ]
     for signal in log_signals:
-        tid, text = miner.add(signal.message)
+        tid, text = miner.add(signal.message, weight=signal.occurrence_count)
         signal.template_id = tid
         signal.labels.setdefault("log_template", text)
 

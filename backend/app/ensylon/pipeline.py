@@ -20,6 +20,7 @@ from typing import Any
 
 from . import adapters, causal as causal_mod
 from .correlate import Cluster, DependencyGraph, correlate, near_misses
+from .dedup import deduplicate
 from .detect import DetectorState, detect
 from .drafting import ExcludedSignal, IncidentDraft, build_draft
 from .redaction import redact_all, redaction_backends
@@ -43,6 +44,10 @@ class PipelineReport:
     signals_ingested: int = 0
     redaction_counts: dict[str, int] = field(default_factory=dict)
     redaction_backends: dict[str, bool] = field(default_factory=dict)
+    unique_signals: int = 0
+    dedup_collapsed: int = 0
+    dedup_collapsed_pct: float = 0.0
+    dedup_bucket_minutes: float = 0.0
     anomalies_detected: int = 0
     within_baseline: int = 0
     incidents_formed: int = 0
@@ -133,7 +138,7 @@ def run(
     use_llm: bool = True,
     criticality: dict[str, float] | None = None,
 ) -> PipelineResult:
-    """Run detect → correlate → causal → score → draft → queue."""
+    """Run redact → deduplicate → detect → correlate → causal → score → draft → queue."""
     report = PipelineReport(signals_ingested=len(signals))
     queue = queue or ReviewQueue()
 
@@ -142,6 +147,14 @@ def run(
         signals, counts = redact_all(signals)
     report.redaction_counts = counts
     report.redaction_backends = redaction_backends()
+
+    # --- deduplicate: collapse repeated firings of the same condition ---
+    with _Timer(report, "deduplicate"):
+        signals, dedup_report = deduplicate(signals)
+    report.unique_signals = dedup_report.unique_signals
+    report.dedup_collapsed = dedup_report.collapsed
+    report.dedup_collapsed_pct = dedup_report.collapsed_pct
+    report.dedup_bucket_minutes = dedup_report.bucket_minutes
 
     # --- detect ---
     with _Timer(report, "detect"):
