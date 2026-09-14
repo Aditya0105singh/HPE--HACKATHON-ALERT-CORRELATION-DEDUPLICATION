@@ -142,8 +142,29 @@ module.exports = {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        // Ensylon page: entrance + ambient motion for the glass/glow treatment.
+        fadeInUp: {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        glowPulse: {
+          "0%, 100%": { opacity: "0.55", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.06)" },
+        },
+        auroraDrift: {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "50%": { transform: "translate(3%, -4%) scale(1.08)" },
+        },
+        shimmer: {
+          from: { backgroundPosition: "200% 0" },
+          to: { backgroundPosition: "-200% 0" },
+        },
       },
       animation: {
+        fadeInUp: "fadeInUp 480ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        glowPulse: "glowPulse 2.4s ease-in-out infinite",
+        auroraDrift: "auroraDrift 14s ease-in-out infinite",
+        shimmer: "shimmer 2.5s linear infinite",
         "scroll-shadow-left":
           "auto linear 0s 1 normal none running scroll-shadow-left",
         "scroll-shadow-right":

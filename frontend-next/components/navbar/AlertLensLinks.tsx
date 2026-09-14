@@ -21,7 +21,11 @@ import {
   MdOutlineRuleFolder,
   MdOutlineEventBusy,
 } from "react-icons/md";
-import { HiOutlineCog6Tooth, HiOutlineSparkles } from "react-icons/hi2";
+import {
+  HiOutlineCog6Tooth,
+  HiOutlineSparkles,
+  HiOutlineShieldCheck,
+} from "react-icons/hi2";
 
 type NavLink = {
   href: string;
@@ -118,6 +122,17 @@ const SECTIONS: NavSection[] = [
       },
       { href: "/pipeline", label: "Pipeline", icon: LuWorkflow, testId: "pipeline" },
       { href: "/ai", label: "AI", icon: HiOutlineSparkles, testId: "ai" },
+    ],
+  },
+  {
+    title: "ENSYLON AIOPS",
+    links: [
+      {
+        href: "/ensylon",
+        label: "Review Queue",
+        icon: HiOutlineShieldCheck,
+        testId: "ensylon",
+      },
     ],
   },
   {

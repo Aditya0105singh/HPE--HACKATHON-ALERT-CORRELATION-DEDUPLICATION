@@ -296,6 +296,12 @@ app = FastAPI(title="Alert Correlation & Dedup Engine", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
 
+# Ensylon AIOps engine (app/ensylon/) — a separate pipeline exposed under
+# its own prefix rather than folded into the routes above, so it can evolve
+# independently of the original AlertLens demo endpoints.
+from .ensylon_api import router as ensylon_router  # noqa: E402
+app.include_router(ensylon_router)
+
 
 @app.post("/ingest")
 def ingest(alerts: list[dict]) -> dict:
@@ -333,6 +339,15 @@ def demo_load_aiops() -> dict:
     result = run_pipeline(load_aiops_alerts())
     _state["dataset"] = "aiops-challenge"
     return result
+
+
+@app.post("/demo/inject-chaos")
+def demo_inject_chaos(scenario: str = "db_connection_exhaustion") -> dict:
+    """Live Chaos Engineering Fault Injector.
+    Forces a specific real-time infrastructure failure scenario into a fresh synthetic batch."""
+    return run_pipeline(generate_batch(n_incidents=4, n_noise=60, window_minutes=30,
+                                       force_scenario=scenario, noise_window_hours=24))
+
 
 
 @app.get("/pipeline")
