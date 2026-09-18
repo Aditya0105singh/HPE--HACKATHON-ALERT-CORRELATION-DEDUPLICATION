@@ -22,6 +22,9 @@ os.environ.setdefault("USE_TF", "0")
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "data"))
@@ -48,6 +51,7 @@ _state: dict = {"dedup_stats": None, "clusters": [], "noise": [], "raw_alerts": 
 # Rough triage-time model for the MTTR framing: minutes an on-call engineer
 # would spend manually reading and grouping this many raw alerts (~30s each),
 # minus the ~2 min it takes to read one correlated incident card.
+LLM_SUMMARY_LIMIT = 12
 TRIAGE_SEC_PER_ALERT = 30
 TRIAGE_MIN_PER_INCIDENT = 2
 
@@ -113,7 +117,17 @@ def _apply_maintenance_windows(alerts: list[dict]) -> list[dict]:
     return merged
 
 
+_pipeline_lock = threading.Lock()
+
+
 def run_pipeline(alerts: list[dict]) -> dict:
+    # The startup restore runs in a background thread; a request arriving
+    # meanwhile must not clear/re-save the same rows concurrently.
+    with _pipeline_lock:
+        return _run_pipeline(alerts)
+
+
+def _run_pipeline(alerts: list[dict]) -> dict:
     get_dna()
 
     # The DB always mirrors exactly the batch currently shown — each call
@@ -145,12 +159,23 @@ def run_pipeline(alerts: list[dict]) -> dict:
             "root_cause": root,
             "risk": risk,
             "dna_match": dna,
-            "summary": summarize(members, root, dna),
+            "summary": summarize(members, root, dna, use_llm=False),
             "est_triage_minutes_saved": saved,
             "alerts": sorted(members, key=lambda a: a["timestamp"]),
         })
 
     clusters.sort(key=lambda c: c["risk"]["score"], reverse=True)
+
+    # LLM-written summaries only for the highest-risk incidents, fetched in
+    # parallel; the rest keep the deterministic template so a large batch
+    # (dozens of incidents) doesn't mean dozens of sequential LLM calls.
+    top = clusters[:LLM_SUMMARY_LIMIT]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for cluster, text in zip(
+            top, pool.map(lambda c: summarize(c["alerts"], c["root_cause"], c["dna_match"]), top)
+        ):
+            cluster["summary"] = text
+
     _state.update({
         "dedup_stats": dedup_stats,
         "clusters": clusters,

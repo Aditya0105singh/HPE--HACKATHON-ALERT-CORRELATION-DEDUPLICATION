@@ -401,7 +401,7 @@ AlertLens supports **three switchable data sources**, all running through the sa
 | Dataset | Type | Size | Source |
 |---------|------|------|--------|
 | **Synthetic Generator** | Generated | ~120 alerts/batch | 5 cascading failure scenarios with ground-truth labels |
-| **Loghub HDFS_v1** | Real-world | ~11M log lines → alerts | [Zenodo / Loghub](https://zenodo.org/records/8196385) — real HDFS block-level anomaly labels |
+| **Loghub HDFS_v1** | Real-world | ~11M log lines → a 10,000-alert real sample (about 230 unique after dedup, ~38 incidents) | [Zenodo / Loghub](https://zenodo.org/records/8196385) — real HDFS block-level anomaly labels |
 | **AIOps Challenge 2020** | Real-world | Fault-injection logs → alerts | [AIOps Challenge](http://iops.ai/competition_detail/?competition_id=15) — real production fault injection |
 
 > Switch between datasets live via the **Dataset** dropdown in the top bar — no restart needed.

@@ -53,21 +53,28 @@ def init_db() -> None:
 
 
 def save_alerts(alerts: list[dict]) -> None:
-    """Upsert a batch of raw alerts (id is the natural key)."""
+    """Upsert a batch of raw alerts (id is the natural key). Existing rows are
+    looked up a chunk at a time rather than one query per alert."""
     if not alerts:
         return
     with SessionLocal() as db:
-        for a in alerts:
-            ts = a["timestamp"]
-            if isinstance(ts, str):
-                ts = datetime.fromisoformat(ts)
-            existing = db.get(AlertRow, a["id"])
-            payload = json.dumps(a, default=str)
-            if existing:
-                existing.payload = payload
-                existing.timestamp = ts
-            else:
-                db.add(AlertRow(id=a["id"], payload=payload, timestamp=ts))
+        for i in range(0, len(alerts), 500):
+            chunk = alerts[i : i + 500]
+            existing = {
+                r.id: r
+                for r in db.query(AlertRow).filter(AlertRow.id.in_([a["id"] for a in chunk]))
+            }
+            for a in chunk:
+                ts = a["timestamp"]
+                if isinstance(ts, str):
+                    ts = datetime.fromisoformat(ts)
+                payload = json.dumps(a, default=str)
+                row = existing.get(a["id"])
+                if row:
+                    row.payload = payload
+                    row.timestamp = ts
+                else:
+                    db.add(AlertRow(id=a["id"], payload=payload, timestamp=ts))
         db.commit()
 
 

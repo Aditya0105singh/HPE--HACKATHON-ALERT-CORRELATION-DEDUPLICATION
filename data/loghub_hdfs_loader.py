@@ -65,12 +65,11 @@ COMPONENT_SERVICE_MAP = {
     "dfs.NameSystem": "hdfs-namenode",
 }
 
-TARGET_ALERTS = 180  # kept small deliberately — the deployed backend runs on a
-# memory-constrained free-tier host; a smaller real sample avoids OOM-crashing
-# the whole process during embedding+clustering, while still being a real,
-# honest subset (not padded/fabricated) of the same public dataset.
+TARGET_ALERTS = 10000  # a real, honest subset of the public dataset (never
+# padded or fabricated). Clustering memory no longer grows with the square of
+# this (see backend/app/clustering.py sparse_distance_graph), so it can be large.
 MAX_LINES_PER_BLOCK = 6
-ANOMALY_BLOCK_CAP = 40
+ANOMALY_BLOCK_CAP = 1500
 
 
 def component_to_service(component: str) -> str:

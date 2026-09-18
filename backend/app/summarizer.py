@@ -15,6 +15,7 @@ untouched by this file.
 from __future__ import annotations
 
 import json
+import time
 import os
 import urllib.error
 import urllib.request
@@ -127,10 +128,18 @@ def _call_chat_api(api_key: str, url: str, model: str, prompt: str) -> str:
     return (data["choices"][0]["message"]["content"] or "").strip()
 
 
+# After every configured provider fails (quota, outage, timeouts), skip LLM
+# calls for a while: a large batch would otherwise pay the full failure
+# latency once per incident before falling back to the template anyway.
+_LLM_COOLDOWN_SEC = 60.0
+_llm_down_until = 0.0
+
+
 def _llm_summary(cluster_alerts: list[dict], root_cause: dict,
                   dna_match: dict | None) -> str | None:
+    global _llm_down_until
     providers = _configured_providers()
-    if not providers:
+    if not providers or time.monotonic() < _llm_down_until:
         return None
     prompt = _build_prompt(cluster_alerts, root_cause, dna_match)
     for provider, api_key, url, model in providers:
@@ -142,12 +151,13 @@ def _llm_summary(cluster_alerts: list[dict], root_cause: dict,
                 TimeoutError, ValueError) as e:
             print(f"[summarizer] {provider} call failed, trying next provider: {e}")
     print("[summarizer] all configured providers failed, falling back to template")
+    _llm_down_until = time.monotonic() + _LLM_COOLDOWN_SEC
     return None
 
 
 def summarize(cluster_alerts: list[dict], root_cause: dict,
-              dna_match: dict | None = None) -> str:
-    llm_text = _llm_summary(cluster_alerts, root_cause, dna_match)
+              dna_match: dict | None = None, use_llm: bool = True) -> str:
+    llm_text = _llm_summary(cluster_alerts, root_cause, dna_match) if use_llm else None
     if llm_text:
         return llm_text
     return _template_summary(cluster_alerts, root_cause, dna_match)

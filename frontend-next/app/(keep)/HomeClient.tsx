@@ -95,7 +95,7 @@ export function HomeClient() {
   const summary = useMemo(() => {
     const raw = state.dedup_stats?.raw_count ?? alerts.length;
     const unique = state.dedup_stats?.unique_count ?? alerts.length;
-    const noise = raw ? Math.round(100 * (1 - clusters.length / raw)) : 0;
+    const noise = raw ? Math.round(1000 * (1 - clusters.length / raw)) / 10 : 0;
     return { raw, unique, noise };
   }, [state.dedup_stats, alerts.length, clusters.length]);
 
