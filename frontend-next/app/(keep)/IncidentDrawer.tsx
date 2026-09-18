@@ -5,9 +5,13 @@ import Link from "next/link";
 import clsx from "clsx";
 import {
   HiOutlineArrowRight,
+  HiOutlineCheckCircle,
+  HiOutlineMinusCircle,
   HiOutlineSparkles,
+  HiOutlineXCircle,
   HiOutlineXMark,
 } from "react-icons/hi2";
+import { useCorrelationExplanation } from "@/entities/alertlens";
 import type { Alert, Cluster } from "@/entities/alertlens";
 import { AlertDetailDrawer } from "@/entities/alertlens/ui/AlertDetailDrawer";
 import { timeAgo } from "@/entities/alertlens/lib/format";
@@ -54,6 +58,9 @@ export function IncidentDrawer({
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [alert, setAlert] = useState<Alert | null>(null);
+  // Same explainability the Incidents page shows: recomputed on the engine's
+  // own distance, so the two views can't drift apart.
+  const { data: correlation } = useCorrelationExplanation(cluster?.cluster_id ?? null);
 
   useEffect(() => setTab("overview"), [cluster?.cluster_id]);
 
@@ -159,7 +166,30 @@ export function IncidentDrawer({
                 <Fact label="Triage time saved" value={`~${cluster.est_triage_minutes_saved}m`} full />
               </div>
 
-              {evidence.length > 0 && (
+              {correlation && (
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    Why this incident?
+                  </span>
+                  <span className="text-xs font-bold text-green-700">{correlation.confidence_pct}%</span>
+                </div>
+                <ul className="flex flex-col gap-1">
+                  {correlation.reasons.map((r, i) => (
+                    <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                      {r.ok ? (
+                        <HiOutlineCheckCircle className="text-green-600 shrink-0 mt-px" size={13} />
+                      ) : (
+                        <HiOutlineMinusCircle className="text-gray-300 shrink-0 mt-px" size={13} />
+                      )}
+                      <span className="break-words">{r.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {evidence.length > 0 && (
                 <div>
                   <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Key evidence</div>
                   <ul className="flex flex-col gap-1.5">
@@ -205,25 +235,84 @@ export function IncidentDrawer({
 
           {tab === "correlation" && (
             <div className="flex flex-col gap-3 text-xs">
-              <Fact label="Signals correlated" value={`${cluster.size} unique (${cluster.raw_alert_count} raw)`} full />
-              <Fact label="Services involved" value={String(services(cluster).length)} full />
+              {correlation ? (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                        Correlation confidence
+                      </span>
+                      <span className="text-sm font-bold text-green-700">{correlation.confidence_pct}%</span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {correlation.factors.map((f) => (
+                        <div key={f.key}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-gray-600">{f.label}</span>
+                            <span className="font-medium text-gray-800 tabular-nums">{f.score.toFixed(2)}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mt-1">
+                            <div className="h-full rounded-full bg-green-600" style={{ width: `${Math.round(f.score * 100)}%` }} />
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-0.5 break-words">{f.detail}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-2">
+                      Measured on the engine&apos;s own distance (eps {correlation.params.eps.toFixed(2)}, min_samples{" "}
+                      {correlation.params.min_samples}, {correlation.params.time_scale_min}-minute time scale).
+                    </p>
+                  </div>
+
+                  {correlation.excluded.length > 0 && (
+                    <div>
+                      <span className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                        Considered &amp; excluded ({correlation.excluded.length})
+                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        {correlation.excluded.map((e) => (
+                          <div key={e.id} className="rounded-lg border border-gray-100 p-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-medium text-gray-700 break-words min-w-0">{e.alertname}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 shrink-0">
+                                d={e.distance.toFixed(2)}
+                              </span>
+                            </div>
+                            <ul className="mt-1 flex flex-col gap-0.5">
+                              {e.reasons.map((r, i) => (
+                                <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-500">
+                                  <HiOutlineXCircle className="text-gray-300 shrink-0 mt-px" size={12} />
+                                  <span className="break-words">{r}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="block text-xs text-gray-400">Loading correlation detail…</span>
+              )}
+
               {cluster.dna_match ? (
                 <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
-                  <div className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide mb-1">
+                  <span className="block text-[11px] font-semibold text-blue-700 uppercase tracking-wide mb-1">
                     Resembles a past incident - {cluster.dna_match.similarity_pct}% similar
-                  </div>
-                  <div className="text-xs text-blue-900">
+                  </span>
+                  <span className="block text-xs text-blue-900">
                     {cluster.dna_match.incident_id}: {cluster.dna_match.title}
-                  </div>
+                  </span>
                   {cluster.dna_match.resolution && (
-                    <div className="text-xs text-blue-800 mt-1.5">
+                    <span className="block text-xs text-blue-800 mt-1">
                       Previous fix: {cluster.dna_match.resolution}
                       {cluster.dna_match.resolution_minutes ? ` (${cluster.dna_match.resolution_minutes} min)` : ""}
-                    </div>
+                    </span>
                   )}
                 </div>
               ) : (
-                <div className="text-gray-400">No historical match found for this pattern.</div>
+                <span className="block text-xs text-gray-400">No historical match found for this pattern.</span>
               )}
             </div>
           )}
