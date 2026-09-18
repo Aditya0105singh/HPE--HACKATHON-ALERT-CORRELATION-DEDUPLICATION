@@ -34,13 +34,6 @@ export const usePipelineActions = () => {
     [api, refreshPipeline]
   );
 
-  /** POST /demo/load-real — Loghub HDFS_v1 dataset. */
-  const loadReal = useCallback(async () => {
-    const result = await api.post<PipelineRunSummary>("/demo/load-real");
-    await refreshPipeline();
-    return result;
-  }, [api, refreshPipeline]);
-
   /** POST /demo/load-bgl — Loghub BGL (BlueGene/L) 10k-alert sample. */
   const loadBgl = useCallback(async () => {
     const result = await api.post<PipelineRunSummary>("/demo/load-bgl");
@@ -65,5 +58,5 @@ export const usePipelineActions = () => {
     [api, refreshPipeline]
   );
 
-  return { loadDemo, loadReal, loadBgl, loadAiops, ingest, refreshPipeline };
+  return { loadDemo, loadBgl, loadAiops, ingest, refreshPipeline };
 };

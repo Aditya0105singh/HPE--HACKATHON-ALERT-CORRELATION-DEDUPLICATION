@@ -4,10 +4,10 @@ days), converted into the same Alert schema the other loaders produce.
 
 OFFLINE preprocessing script, not part of the live app. It downloads and
 caches BGL.zip (57.5 MB, Zenodo record 8196385 - the same Loghub record the
-HDFS loader uses) and writes data/loghub_bgl_alerts.json, which
+other Loghub loader used) and writes data/loghub_bgl_alerts.json, which
 backend/app/real_data_bgl.py reads at request time.
 
-Why BGL: unlike HDFS_v1 (almost all INFO, two services), BGL has six real
+Why BGL: it has six real
 severity levels, nine real subsystems and 41 real alert categories, and its
 alerts arrive in genuine bursts - so the batch shows a lot happening at once.
 

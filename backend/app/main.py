@@ -3,7 +3,6 @@
 POST /ingest        run the full chain on a JSON list of alerts
 GET  /pipeline      latest processed state (clusters, dedup stats, noise)
 POST /demo/load     generate a fresh synthetic batch and run it (demo/dev)
-POST /demo/load-real load the real Loghub HDFS_v1 batch (PS10 data source)
 
 On startup the app loads one synthetic batch so the dashboard always has data.
 """
@@ -40,7 +39,6 @@ from .forecast import compute_forecast
 from .root_cause_confidence import build_root_cause_confidence
 from .playbook import generate_playbook
 from .providers import test_webhook
-from .real_data import load_loghub_alerts
 from .real_data_aiops import load_aiops_alerts
 from .real_data_bgl import load_bgl_alerts
 from .risk_score import escalation_risk
@@ -349,15 +347,6 @@ def demo_load(incidents: int = 4, noise: int = 80, seed: int | None = None,
     return run_pipeline(generate_batch(incidents, noise, 45, seed=seed,
                                        noise_window_hours=48, force_scenario=scenario),
                         dataset="synthetic")
-
-
-@app.post("/demo/load-real")
-def demo_load_real() -> dict:
-    """Loads the real Loghub HDFS_v1 batch (PS10's named data source) through
-    the same pipeline as the synthetic path. See data/loghub_hdfs_loader.py
-    and app/real_data.py for how these alerts are derived from the dataset's
-    own log content and human-annotated Normal/Anomaly block labels."""
-    return run_pipeline(load_loghub_alerts(), dataset="loghub-hdfs")
 
 
 @app.post("/demo/load-bgl")

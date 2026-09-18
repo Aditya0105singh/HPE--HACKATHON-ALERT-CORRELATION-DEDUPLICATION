@@ -8,7 +8,7 @@ venv/
 .env
 backend/.env
 
-# Large downloaded/cached datasets — regenerate via data/loghub_hdfs_loader.py
+# Large downloaded/cached datasets — regenerate via data/loghub_bgl_loader.py
 data/.cache/
 
 # Local persistence — regenerated on first request, not shared state
