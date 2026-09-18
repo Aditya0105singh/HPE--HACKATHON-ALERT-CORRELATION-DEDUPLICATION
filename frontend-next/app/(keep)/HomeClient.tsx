@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import clsx from "clsx";
 import {
@@ -25,6 +24,7 @@ import type { Cluster } from "@/entities/alertlens";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
 import { timeAgo } from "@/entities/alertlens/lib/format";
+import { IncidentDrawer } from "./IncidentDrawer";
 
 // ---------------------------------------------------------------------------
 // Everything below is derived from the real pipeline / settings responses.
@@ -78,12 +78,12 @@ function greeting(): string {
 // ---------------------------------------------------------------------------
 
 export function HomeClient() {
-  const router = useRouter();
   const { data: session } = useSession();
   const { state, isLoading, error } = usePipelineState();
   const { data: status } = useSettingsStatus();
   const { data: evaluation } = useEvaluation();
   const [riskFilter, setRiskFilter] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
   const { loadBgl } = usePipelineActions();
   const autoLoaded = useRef(false);
 
@@ -427,8 +427,16 @@ export function HomeClient() {
                       return (
                         <tr
                           key={c.cluster_id}
-                          onClick={() => router.push(`/incidents/${c.cluster_id}`)}
-                          className="cursor-pointer border-b border-gray-50 last:border-0 hover:bg-green-50/40 transition-colors"
+                          onClick={() => setOpenId(c.cluster_id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setOpenId(c.cluster_id);
+                            }
+                          }}
+                          tabIndex={0}
+                          aria-label={`Open incident ${c.root_cause.alertname}`}
+                          className="cursor-pointer border-b border-gray-50 last:border-0 hover:bg-green-50/40 focus:outline-none focus-visible:bg-green-50 transition-colors"
                         >
                           <td className="px-3.5 py-2.5 text-gray-400 text-xs">{i + 1}</td>
                           <td className="px-3.5 py-2.5">
@@ -564,6 +572,14 @@ export function HomeClient() {
           </Panel>
         </div>
       </div>
+      <IncidentDrawer
+        cluster={clusters.find((c) => c.cluster_id === openId) ?? null}
+        status={(() => {
+          const c = clusters.find((x) => x.cluster_id === openId);
+          return c ? deriveStatus(c) : "";
+        })()}
+        onClose={() => setOpenId(null)}
+      />
     </div>
   );
 }
