@@ -2,6 +2,7 @@ import useSWR, { SWRConfiguration } from "swr";
 import useSWRImmutable from "swr/immutable";
 import { useApi } from "@/shared/lib/hooks/useApi";
 import type {
+  CorrelationExplanation,
   Evaluation,
   Forecast,
   IncidentComparison,
@@ -59,6 +60,19 @@ export const useRootCauseConfidence = (
   const api = useApi();
   return useSWR<RootCauseConfidence>(
     incidentKey(incidentId, "root_cause_confidence", api.isReady()),
+    (url: string) => api.get(url),
+    { revalidateOnFocus: false, ...options }
+  );
+};
+
+/** GET /incidents/{incident_id}/correlation — why these alerts were grouped. */
+export const useCorrelationExplanation = (
+  incidentId: IncidentId,
+  options: SWRConfiguration = {}
+) => {
+  const api = useApi();
+  return useSWR<CorrelationExplanation>(
+    incidentKey(incidentId, "correlation", api.isReady()),
     (url: string) => api.get(url),
     { revalidateOnFocus: false, ...options }
   );

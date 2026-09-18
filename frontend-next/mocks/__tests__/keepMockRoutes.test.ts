@@ -19,6 +19,7 @@ const ALERTLENS_ENDPOINTS = [
   "alerts/abc-123/escalate",
   "forecast/3",
   "incidents/3/comparison",
+  "incidents/3/correlation",
   "incidents/3/root_cause_confidence",
   "incidents/3/playbook",
   "evaluation",

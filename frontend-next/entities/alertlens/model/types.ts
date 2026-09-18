@@ -186,6 +186,43 @@ export interface RootCauseConfidence {
 }
 
 /** GET /incidents/{incident_id}/playbook */
+/** GET /incidents/{id}/correlation — why the clusterer grouped these alerts,
+ * recomputed with the same distance the run used. */
+export interface CorrelationFactor {
+  key: string;
+  label: string;
+  score: number;
+  detail: string;
+}
+
+export interface CorrelationReason {
+  ok: boolean;
+  text: string;
+}
+
+export interface ExcludedAlert {
+  id: string;
+  alertname: string;
+  service: string;
+  severity: string;
+  timestamp: string;
+  distance: number;
+  reasons: string[];
+}
+
+export interface CorrelationExplanation {
+  confidence_pct: number;
+  factors: CorrelationFactor[];
+  reasons: CorrelationReason[];
+  excluded: ExcludedAlert[];
+  params: {
+    eps: number;
+    min_samples: number;
+    time_scale_min: number;
+    time_penalty?: number;
+  };
+}
+
 export interface PlaybookStep {
   step_number: number;
   title: string;

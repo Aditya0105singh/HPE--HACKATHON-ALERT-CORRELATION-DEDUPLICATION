@@ -16,6 +16,7 @@ export {
   useForecast,
   useIncidentComparison,
   useRootCauseConfidence,
+  useCorrelationExplanation,
   usePlaybook,
   useEvaluation,
   useSummarizerCheck,

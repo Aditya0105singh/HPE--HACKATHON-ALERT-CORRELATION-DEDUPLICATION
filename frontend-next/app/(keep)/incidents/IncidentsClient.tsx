@@ -1,22 +1,90 @@
 "use client";
 
-import { Card } from "@tremor/react";
-import {
-  EmptyStateCard,
-  KeepLoader,
-  PageSubtitle,
-  PageTitle,
-} from "@/shared/ui";
+import { useMemo, useState } from "react";
+import clsx from "clsx";
 import { MdOutlineNotificationsActive } from "react-icons/md";
-import { useClusters } from "@/entities/alertlens";
-import { ClusterCard } from "@/entities/alertlens/ui/ClusterCard";
+import {
+  HiOutlineBell,
+  HiOutlineChevronRight,
+  HiOutlineDocumentText,
+  HiOutlineShare,
+  HiOutlineShieldCheck,
+} from "react-icons/hi2";
+import { EmptyStateCard, KeepLoader, PageSubtitle, PageTitle } from "@/shared/ui";
+import { usePipelineState } from "@/entities/alertlens";
+import type { Cluster } from "@/entities/alertlens";
+import { StatCard } from "@/entities/alertlens/ui/StatCard";
+import { timeAgo } from "@/entities/alertlens/lib/format";
+import { IncidentPanel } from "./IncidentPanel";
+
+type SortKey = "risk" | "size" | "recent";
+
+const SORTS: [SortKey, string][] = [
+  ["risk", "Risk"],
+  ["size", "Alerts"],
+  ["recent", "Most recent"],
+];
+
+const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"];
+const RISK_COLOR: Record<string, string> = { high: "#ef4444", medium: "#f97316", low: "#3b82f6" };
+const STATUS_STYLE: Record<string, { pill: string; dot: string }> = {
+  Open: { pill: "text-red-600 bg-red-50", dot: "bg-red-500" },
+  Investigating: { pill: "text-orange-600 bg-orange-50", dot: "bg-orange-500" },
+  Resolved: { pill: "text-blue-600 bg-blue-50", dot: "bg-blue-500" },
+};
+
+function deriveStatus(c: Cluster): string {
+  const root = c.root_cause;
+  if (root.dismissed) return "Resolved";
+  if (root.escalated || (root.assignee && root.assignee !== "n/a")) return "Investigating";
+  return "Open";
+}
+
+const lastSeen = (c: Cluster) => {
+  const stamps = c.alerts.map((a) => a.timestamp).sort();
+  return stamps[stamps.length - 1] ?? c.root_cause.timestamp;
+};
 
 export function IncidentsClient() {
-  const { clusters, isLoading, error } = useClusters();
+  const { state, isLoading, error } = usePipelineState();
+  const [severity, setSeverity] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortKey>("risk");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  if (isLoading) {
-    return <KeepLoader loadingText="Loading incidents..." />;
-  }
+  const clusters = state.clusters;
+
+  const stats = useMemo(() => {
+    const raw = state.dedup_stats?.raw_count ?? state.raw_alerts.length;
+    const unique = state.dedup_stats?.unique_count ?? state.raw_alerts.length;
+    const noise = raw && clusters.length ? Math.round(1000 * (1 - clusters.length / raw)) / 10 : 0;
+    return { raw, unique, noise };
+  }, [state.dedup_stats, state.raw_alerts.length, clusters.length]);
+
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of clusters) {
+      const s = c.root_cause.severity;
+      m.set(s, (m.get(s) ?? 0) + 1);
+    }
+    return m;
+  }, [clusters]);
+
+  const visible = useMemo(() => {
+    const filtered = clusters.filter((c) => !severity || c.root_cause.severity === severity);
+    const by: Record<SortKey, (a: Cluster, b: Cluster) => number> = {
+      risk: (a, b) => b.risk.score - a.risk.score,
+      size: (a, b) => b.size - a.size,
+      recent: (a, b) => lastSeen(b).localeCompare(lastSeen(a)),
+    };
+    return [...filtered].sort(by[sort]);
+  }, [clusters, severity, sort]);
+
+  const selected = useMemo(
+    () => visible.find((c) => c.cluster_id === selectedId) ?? visible[0] ?? null,
+    [visible, selectedId]
+  );
+
+  if (isLoading) return <KeepLoader loadingText="Loading incidents..." />;
 
   if (error) {
     return (
@@ -31,31 +99,146 @@ export function IncidentsClient() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 h-full">
+    <div className="flex flex-col gap-4 p-4">
       <div>
         <PageTitle>Incidents</PageTitle>
         <PageSubtitle>
-          Correlated incidents ranked by escalation risk. Select one to see its
-          root-cause analysis, forecast and remediation playbook.
+          Correlated incidents with root cause, impact and recommended actions.
         </PageSubtitle>
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Raw alerts" value={stats.raw} icon={HiOutlineBell} color="green" />
+        <StatCard label="Unique after dedup" value={stats.unique} icon={HiOutlineShare} color="green" />
+        <StatCard label="Actionable incidents" value={clusters.length} icon={HiOutlineDocumentText} color="green" />
+        <StatCard
+          label="Noise reduction"
+          value={clusters.length ? `${stats.noise}%` : "—"}
+          icon={HiOutlineShieldCheck}
+          color="green"
+        />
+      </div>
+
       {clusters.length === 0 ? (
-        <Card>
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
           <EmptyStateCard
             noCard
             icon={MdOutlineNotificationsActive}
             title="No incidents"
             description="No alert batch is loaded, or nothing correlated into an incident."
           />
-        </Card>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3">
-          {clusters.map((cluster) => (
-            <ClusterCard key={cluster.cluster_id} cluster={cluster} />
-          ))}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)] gap-3 items-start">
+          {/* Incident list */}
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden min-w-0">
+            <div className="p-3 border-b border-gray-100 flex flex-col gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Pill active={severity === null} onClick={() => setSeverity(null)}>
+                  All {clusters.length}
+                </Pill>
+                {SEVERITY_ORDER.filter((s) => counts.get(s)).map((s) => (
+                  <Pill key={s} active={severity === s} onClick={() => setSeverity(severity === s ? null : s)}>
+                    <span className="capitalize">{s}</span> {counts.get(s)}
+                  </Pill>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                <span>Sort by:</span>
+                {SORTS.map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSort(key)}
+                    className={clsx(
+                      "px-1.5 py-0.5 rounded font-medium",
+                      sort === key ? "text-green-700 bg-green-50" : "hover:text-gray-600"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <ul className="divide-y divide-gray-50 max-h-[70vh] overflow-y-auto">
+              {visible.map((c) => {
+                const st = deriveStatus(c);
+                const isSel = selected?.cluster_id === c.cluster_id;
+                const risk = Math.round(c.risk.score * 100);
+                return (
+                  <li key={c.cluster_id}>
+                    <button
+                      onClick={() => setSelectedId(c.cluster_id)}
+                      aria-current={isSel}
+                      className={clsx(
+                        "w-full text-left p-3 flex flex-col gap-1.5 transition-colors",
+                        isSel ? "bg-green-50/70" : "hover:bg-gray-50"
+                      )}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-gray-900 line-clamp-2 break-words">
+                            {c.root_cause.alertname}
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-0.5">
+                            #{c.cluster_id} · {c.root_cause.service} · {timeAgo(lastSeen(c))}
+                          </div>
+                        </div>
+                        <HiOutlineChevronRight className="text-gray-300 shrink-0 mt-1" size={14} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={clsx(
+                            "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap",
+                            STATUS_STYLE[st]?.pill
+                          )}
+                        >
+                          <span className={clsx("w-1.5 h-1.5 rounded-full", STATUS_STYLE[st]?.dot)} />
+                          {st}
+                        </span>
+                        <span className="text-[11px] text-gray-500 whitespace-nowrap">{c.size} alerts</span>
+                        <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                          <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${risk}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af" }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-gray-500 w-8 text-right">{risk}%</span>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {selected && <IncidentPanel key={selected.cluster_id} cluster={selected} status={deriveStatus(selected)} />}
         </div>
       )}
     </div>
+  );
+}
+
+function Pill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={clsx(
+        "text-[11px] px-2 py-1 rounded-md font-medium transition-colors",
+        active ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+      )}
+    >
+      {children}
+    </button>
   );
 }

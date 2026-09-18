@@ -34,6 +34,7 @@ from .assistant import IncidentAssistantRequest, WorkspaceAssistantRequest, ask_
 from .alert_dna import AlertDNA
 from .automation import evaluate_workflow_rules
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
+from .correlation_explain import build_correlation_explanation
 from .dedup import deduplicate
 from .forecast import compute_forecast
 from .root_cause_confidence import build_root_cause_confidence
@@ -551,6 +552,18 @@ def get_root_cause_confidence(incident_id: str) -> dict:
     if not cluster:
         raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found in pipeline state")
     return build_root_cause_confidence(cluster)
+
+
+@app.get("/incidents/{incident_id}/correlation")
+def get_incident_correlation(incident_id: str) -> dict:
+    """Why these alerts were grouped: the real factor scores, the checks that
+    passed, and the near-miss alerts the clusterer left out - all recomputed
+    with the same distance the run used. See app/correlation_explain.py."""
+    clusters = _state.get("clusters", [])
+    cluster = next((c for c in clusters if str(c.get("cluster_id")) == str(incident_id)), None)
+    if not cluster:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found in pipeline state")
+    return build_correlation_explanation(cluster, clusters, _state.get("noise", []))
 
 
 @app.get("/incidents/{incident_id}/playbook")
