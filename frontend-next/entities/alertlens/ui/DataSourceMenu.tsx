@@ -4,10 +4,10 @@ import { useState } from "react";
 import { Button } from "@tremor/react";
 import { DropdownMenu, showErrorToast, showSuccessToast } from "@/shared/ui";
 import { HiOutlineCircleStack } from "react-icons/hi2";
-import { LuFlaskConical, LuSparkles, LuDatabase, LuCheck } from "react-icons/lu";
+import { LuActivity, LuFlaskConical, LuSparkles, LuDatabase, LuCheck } from "react-icons/lu";
 import { usePipelineActions, useSettingsStatus } from "@/entities/alertlens";
 
-export type DataSourceKey = "loghub" | "aiops" | "synthetic";
+export type DataSourceKey = "bgl" | "loghub" | "aiops" | "synthetic";
 
 export const DATA_SOURCES: {
   key: DataSourceKey;
@@ -16,9 +16,15 @@ export const DATA_SOURCES: {
   icon: React.ElementType;
 }[] = [
   {
+    key: "bgl",
+    label: "Loghub BGL",
+    sub: "Real supercomputer log, 10k alerts",
+    icon: LuActivity,
+  },
+  {
     key: "loghub",
     label: "Loghub HDFS_v1",
-    sub: "Real dataset",
+    sub: "Real dataset, 10k alerts",
     icon: LuSparkles,
   },
   {
@@ -38,6 +44,7 @@ export const DATA_SOURCES: {
 /** Maps the backend's real `dataset` status string to a DataSourceKey, so
  * the UI can highlight what's actually loaded instead of guessing. */
 function keyForDataset(dataset: string | undefined): DataSourceKey | null {
+  if (dataset === "loghub-bgl") return "bgl";
   if (dataset === "loghub-hdfs") return "loghub";
   if (dataset === "aiops-challenge") return "aiops";
   if (dataset === "synthetic") return "synthetic";
@@ -53,7 +60,7 @@ export function DataSourceMenu({
 }: {
   onLoaded?: (key: DataSourceKey) => void;
 }) {
-  const { loadDemo, loadReal, loadAiops } = usePipelineActions();
+  const { loadDemo, loadReal, loadBgl, loadAiops } = usePipelineActions();
   const { data: status, mutate: refreshStatus } = useSettingsStatus();
   const [busy, setBusy] = useState<DataSourceKey | null>(null);
   const [active, setActive] = useState<DataSourceKey | null>(null);
@@ -64,7 +71,9 @@ export function DataSourceMenu({
     const label = DATA_SOURCES.find((d) => d.key === key)?.label ?? key;
     try {
       const result =
-        key === "loghub"
+        key === "bgl"
+          ? await loadBgl()
+          : key === "loghub"
           ? await loadReal()
           : key === "aiops"
             ? await loadAiops()
@@ -102,13 +111,14 @@ export function DataSourceMenu({
 
 /** Inline button row variant, for pages that want the choices visible. */
 export function DataSourceButtons() {
-  const { loadDemo, loadReal, loadAiops } = usePipelineActions();
+  const { loadDemo, loadReal, loadBgl, loadAiops } = usePipelineActions();
   const { data: status, mutate: refreshStatus } = useSettingsStatus();
   const [busy, setBusy] = useState<DataSourceKey | null>(null);
   const [active, setActive] = useState<DataSourceKey | null>(null);
   const resolvedActive = active ?? keyForDataset(status?.dataset);
 
   const loaders: Record<DataSourceKey, () => Promise<unknown>> = {
+    bgl: loadBgl,
     loghub: loadReal,
     aiops: loadAiops,
     synthetic: () => loadDemo(),

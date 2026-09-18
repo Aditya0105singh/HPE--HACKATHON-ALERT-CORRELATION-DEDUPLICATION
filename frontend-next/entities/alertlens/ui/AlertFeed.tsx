@@ -42,8 +42,10 @@ const OPTIONAL_COLUMNS: { id: string; label: string }[] = [
 
 /** Orders severity meaningfully rather than alphabetically. */
 const SEVERITY_RANK: Record<string, number> = {
-  critical: 3,
-  high: 2,
+  critical: 5,
+  high: 4,
+  medium: 3,
+  low: 2,
   info: 1,
 };
 

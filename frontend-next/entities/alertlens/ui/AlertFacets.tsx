@@ -29,6 +29,8 @@ export const emptySelections = (): FacetSelections => ({
 const DOT_COLOR: Record<string, string> = {
   critical: "bg-red-500",
   high: "bg-orange-500",
+  medium: "bg-yellow-500",
+  low: "bg-green-500",
   info: "bg-blue-500",
   firing: "bg-red-500",
   suppressed: "bg-gray-400",

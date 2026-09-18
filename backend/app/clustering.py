@@ -47,7 +47,7 @@ MIN_SAMPLES = 3
 TIME_SCALE_MIN = 6.0
 TIME_PENALTY = 2.0
 
-SEVERITY_RANK = {"critical": 0, "high": 1, "info": 2}
+SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
 
 
 def _ts(alert: dict) -> datetime:
@@ -132,7 +132,7 @@ def cluster_alerts(alerts: list[dict]) -> tuple[np.ndarray, np.ndarray]:
 
 def pick_root_cause(cluster_alerts: list[dict]) -> dict:
     return min(cluster_alerts,
-               key=lambda a: (_ts(a), SEVERITY_RANK.get(a["severity"], 3)))
+               key=lambda a: (_ts(a), SEVERITY_RANK.get(a["severity"], 5)))
 
 
 def group_by_label(alerts: list[dict], labels: np.ndarray) -> dict[int, list[dict]]:

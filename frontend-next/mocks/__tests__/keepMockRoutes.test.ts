@@ -12,6 +12,7 @@ const ALERTLENS_ENDPOINTS = [
   "ingest",
   "demo/load",
   "demo/load-real",
+  "demo/load-bgl",
   "demo/load-aiops",
   "pipeline",
   "alerts/abc-123/ack",

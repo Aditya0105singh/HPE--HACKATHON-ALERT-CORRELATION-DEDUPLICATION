@@ -216,7 +216,7 @@ Each alert passes through a **12-stage pipeline** — from raw ingestion to acti
 
 | Stage | Name | Implementation | Key Files |
 |:---:|------|----------------|-----------|
-| **1** | **Ingestion** | Three switchable sources: Loghub HDFS_v1, AIOps Challenge 2020, and a multi-source synthetic generator with 5 cascading failure scenarios. Switch live via the Dataset dropdown. | `data/loghub_hdfs_loader.py` · `data/aiops_challenge_loader.py` · `data/synthetic_alert_generator.py` |
+| **1** | **Ingestion** | Four switchable sources: Loghub BGL (10k real supercomputer alerts), Loghub HDFS_v1, AIOps Challenge 2020, and a multi-source synthetic generator with 5 cascading failure scenarios. Switch live via the Dataset dropdown. | `data/loghub_bgl_loader.py` · `data/loghub_hdfs_loader.py` · `data/aiops_challenge_loader.py` · `data/synthetic_alert_generator.py` |
 | **2** | **Deduplication** | Fingerprint hashing of `(service, alertname, 5-min window)` — Alertmanager-style. Collapses redundant spikes without losing signal. | `backend/app/dedup.py` |
 | **3** | **Vectorization** | TF-IDF embedding of alert message text. Lightweight alternative to transformer models — blazing fast with minimal memory footprint. | `backend/app/clustering.py` |
 | **4** | **Correlation** | Time-windowed DBSCAN clustering on TF-IDF vectors. Parameters grid-searched against ground truth labels. | `backend/app/clustering.py` |
@@ -401,6 +401,7 @@ AlertLens supports **three switchable data sources**, all running through the sa
 | Dataset | Type | Size | Source |
 |---------|------|------|--------|
 | **Synthetic Generator** | Generated | ~120 alerts/batch | 5 cascading failure scenarios with ground-truth labels |
+| **Loghub BGL** | Real-world | 4.7M supercomputer log lines → a 10,000-alert real sample (six real days, 5 severity levels, 9 subsystems, 19 alert categories; ~1,450 unique after dedup, ~117 incidents) | [Zenodo / Loghub](https://zenodo.org/records/8196385) — real BlueGene/L RAS log with alert tags; sampling and severity mapping disclosed in `data/loghub_bgl_loader.py` |
 | **Loghub HDFS_v1** | Real-world | ~11M log lines → a 10,000-alert real sample (about 230 unique after dedup, ~38 incidents) | [Zenodo / Loghub](https://zenodo.org/records/8196385) — real HDFS block-level anomaly labels |
 | **AIOps Challenge 2020** | Real-world | Fault-injection logs → alerts | [AIOps Challenge](http://iops.ai/competition_detail/?competition_id=15) — real production fault injection |
 

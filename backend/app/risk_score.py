@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-SEVERITY_WEIGHT = {"info": 0.2, "high": 0.6, "critical": 1.0}
+SEVERITY_WEIGHT = {"info": 0.2, "low": 0.3, "medium": 0.45, "high": 0.6, "critical": 1.0}
 CAP_ALERTS_PER_MIN = 5.0
 CAP_SERVICES = 5
 

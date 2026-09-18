@@ -3,6 +3,7 @@ export enum UISeverity {
   Critical = "critical",
   High = "high",
   Warning = "warning",
+  Medium = "medium",
   Low = "low",
   Info = "info",
   Error = "error",
@@ -15,6 +16,7 @@ export const getSeverityBgClassName = (severity?: UISeverity) => {
     case "high":
     case "error":
       return "bg-orange-500";
+    case "medium":
     case "warning":
       return "bg-yellow-500";
     case "info":
@@ -31,6 +33,7 @@ export const getSeverityLabelClassName = (severity?: UISeverity) => {
     case "high":
     case "error":
       return "bg-orange-100";
+    case "medium":
     case "warning":
       return "bg-yellow-100";
     case "info":
@@ -47,6 +50,7 @@ export const getSeverityTextClassName = (severity?: UISeverity) => {
     case "high":
     case "error":
       return "text-orange-500";
+    case "medium":
     case "warning":
       return "text-amber-900";
     case "info":

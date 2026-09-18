@@ -84,6 +84,8 @@ const ICON_RULES: [string, IconType][] = [
 const SEVERITY_CLASS: Record<string, string> = {
   critical: "bg-red-50 border-red-200 text-red-500",
   high: "bg-orange-50 border-orange-200 text-orange-500",
+  medium: "bg-yellow-50 border-yellow-200 text-yellow-600",
+  low: "bg-green-50 border-green-200 text-green-600",
   info: "bg-blue-50 border-blue-200 text-blue-500",
 };
 

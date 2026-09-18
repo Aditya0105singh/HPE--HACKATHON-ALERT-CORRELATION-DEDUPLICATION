@@ -41,6 +41,13 @@ export const usePipelineActions = () => {
     return result;
   }, [api, refreshPipeline]);
 
+  /** POST /demo/load-bgl — Loghub BGL (BlueGene/L) 10k-alert sample. */
+  const loadBgl = useCallback(async () => {
+    const result = await api.post<PipelineRunSummary>("/demo/load-bgl");
+    await refreshPipeline();
+    return result;
+  }, [api, refreshPipeline]);
+
   /** POST /demo/load-aiops — AIOps Challenge 2020 dataset. */
   const loadAiops = useCallback(async () => {
     const result = await api.post<PipelineRunSummary>("/demo/load-aiops");
@@ -58,5 +65,5 @@ export const usePipelineActions = () => {
     [api, refreshPipeline]
   );
 
-  return { loadDemo, loadReal, loadAiops, ingest, refreshPipeline };
+  return { loadDemo, loadReal, loadBgl, loadAiops, ingest, refreshPipeline };
 };

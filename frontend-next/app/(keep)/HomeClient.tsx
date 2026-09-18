@@ -61,6 +61,13 @@ function lastSeen(cluster: Cluster): string {
   return stamps[stamps.length - 1] ?? cluster.root_cause.timestamp;
 }
 
+function fmtBucket(ms: number, span: number): string {
+  const d = new Date(ms);
+  const p2 = (n: number) => String(n).padStart(2, "0");
+  if (span <= 24 * 3600000) return `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  return `${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}h`;
+}
+
 function greeting(): string {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -77,17 +84,17 @@ export function HomeClient() {
   const { data: status } = useSettingsStatus();
   const { data: evaluation } = useEvaluation();
   const [riskFilter, setRiskFilter] = useState<string | null>(null);
-  const { loadDemo } = usePipelineActions();
+  const { loadBgl } = usePipelineActions();
   const autoLoaded = useRef(false);
 
-  // First visit with nothing loaded: load the scripted demo once instead of
+  // First visit with nothing loaded: load the BGL sample once instead of
   // leaving a blank page. Only when the backend truly reports no dataset.
   const nothingLoaded = !isLoading && !state.dedup_stats && status?.dataset === "none";
   useEffect(() => {
     if (!nothingLoaded || autoLoaded.current) return;
     autoLoaded.current = true;
-    loadDemo().catch(() => {});
-  }, [nothingLoaded, loadDemo]);
+    loadBgl().catch(() => {});
+  }, [nothingLoaded, loadBgl]);
 
   const alerts = state.raw_alerts;
   const clusters = state.clusters;
@@ -99,22 +106,32 @@ export function HomeClient() {
     return { raw, unique, noise };
   }, [state.dedup_stats, alerts.length, clusters.length]);
 
-  // Per-minute arrival volume, split into alerts that ended up in an incident
-  // (correlated) vs everything ingested.
+  // Arrival volume over the whole batch, split into alerts that ended up in an
+  // incident (correlated) vs everything ingested. The bucket width adapts to
+  // the batch's span (minutes for a short batch, hours for a multi-day one) and
+  // empty buckets are kept so quiet stretches between bursts stay visible.
   const buckets = useMemo(() => {
+    if (!alerts.length) return [] as { label: string; total: number; correlated: number }[];
     const clusteredIds = new Set(clusters.flatMap((c) => c.alerts.map((a) => a.id)));
-    const map = new Map<string, { total: number; correlated: number }>();
-    for (const a of alerts) {
-      const key = a.timestamp.slice(11, 16);
-      const b = map.get(key) ?? { total: 0, correlated: 0 };
+    const points = alerts.map((a) => ({ t: new Date(a.timestamp).getTime(), corr: clusteredIds.has(a.id) }));
+    const min = Math.min(...points.map((p) => p.t));
+    const max = Math.max(...points.map((p) => p.t));
+    const span = Math.max(max - min, 1);
+    const widths = [1, 5, 15, 30, 60, 180, 360, 720, 1440].map((m) => m * 60000);
+    const width = widths.find((w) => span / w <= 30) ?? widths[widths.length - 1];
+    const start = Math.floor(min / width) * width;
+    const count = Math.floor((max - start) / width) + 1;
+    const out = Array.from({ length: count }, (_, i) => ({
+      label: fmtBucket(start + i * width, span),
+      total: 0,
+      correlated: 0,
+    }));
+    for (const p of points) {
+      const b = out[Math.floor((p.t - start) / width)];
       b.total += 1;
-      if (clusteredIds.has(a.id)) b.correlated += 1;
-      map.set(key, b);
+      if (p.corr) b.correlated += 1;
     }
-    return [...map.entries()]
-      .sort((x, y) => x[0].localeCompare(y[0]))
-      .slice(-24)
-      .map(([label, v]) => ({ label, ...v }));
+    return out;
   }, [alerts, clusters]);
 
   const severityCounts = useMemo(() => {

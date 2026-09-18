@@ -42,6 +42,7 @@ from .playbook import generate_playbook
 from .providers import test_webhook
 from .real_data import load_loghub_alerts
 from .real_data_aiops import load_aiops_alerts
+from .real_data_bgl import load_bgl_alerts
 from .risk_score import escalation_risk
 from .summarizer import summarize
 
@@ -120,11 +121,15 @@ def _apply_maintenance_windows(alerts: list[dict]) -> list[dict]:
 _pipeline_lock = threading.Lock()
 
 
-def run_pipeline(alerts: list[dict]) -> dict:
+def run_pipeline(alerts: list[dict], dataset: str | None = None) -> dict:
     # The startup restore runs in a background thread; a request arriving
-    # meanwhile must not clear/re-save the same rows concurrently.
+    # meanwhile must not clear/re-save the same rows concurrently. The dataset
+    # label is set inside the lock so it always matches the batch just run.
     with _pipeline_lock:
-        return _run_pipeline(alerts)
+        result = _run_pipeline(alerts)
+        if dataset:
+            _state["dataset"] = dataset
+        return result
 
 
 def _run_pipeline(alerts: list[dict]) -> dict:
@@ -288,17 +293,22 @@ def _initial_load() -> None:
     # A prior run's batch survives a backend restart in alertlens.db — reload
     # it instead of generating a brand new synthetic batch so acks/dismissed/
     # assignee actions (and whatever dataset was loaded) aren't silently lost
-    # every time the server restarts.
-    persisted = db.load_alerts()
-    if persisted:
-        run_pipeline(persisted)
-        # Which dataset these came from wasn't itself persisted, so this is
-        # deliberately honest rather than guessed.
-        _state["dataset"] = "restored-from-db"
-        return
-    run_pipeline(generate_batch(n_incidents=4, n_noise=80, window_minutes=45,
-                                seed=7, noise_window_hours=48))
-    _state["dataset"] = "synthetic"
+    # every time the server restarts. Holds the pipeline lock for the whole
+    # decision and yields to any request that already loaded a batch, so a
+    # slow restore can never overwrite what the user just chose.
+    with _pipeline_lock:
+        if _state["dataset"] != "none":
+            return
+        persisted = db.load_alerts()
+        if persisted:
+            _run_pipeline(persisted)
+            # Which dataset these came from wasn't itself persisted, so this
+            # is deliberately honest rather than guessed.
+            _state["dataset"] = "restored-from-db"
+            return
+        _run_pipeline(generate_batch(n_incidents=4, n_noise=80, window_minutes=45,
+                                     seed=7, noise_window_hours=48))
+        _state["dataset"] = "synthetic"
 
 
 @asynccontextmanager
@@ -330,18 +340,15 @@ app.include_router(ensylon_router)
 
 @app.post("/ingest")
 def ingest(alerts: list[dict]) -> dict:
-    result = run_pipeline(alerts)
-    _state["dataset"] = "custom-ingest"
-    return result
+    return run_pipeline(alerts, dataset="custom-ingest")
 
 
 @app.post("/demo/load")
 def demo_load(incidents: int = 4, noise: int = 80, seed: int | None = None,
               scenario: str | None = None) -> dict:
-    result = run_pipeline(generate_batch(incidents, noise, 45, seed=seed,
-                                         noise_window_hours=48, force_scenario=scenario))
-    _state["dataset"] = "synthetic"
-    return result
+    return run_pipeline(generate_batch(incidents, noise, 45, seed=seed,
+                                       noise_window_hours=48, force_scenario=scenario),
+                        dataset="synthetic")
 
 
 @app.post("/demo/load-real")
@@ -350,9 +357,15 @@ def demo_load_real() -> dict:
     the same pipeline as the synthetic path. See data/loghub_hdfs_loader.py
     and app/real_data.py for how these alerts are derived from the dataset's
     own log content and human-annotated Normal/Anomaly block labels."""
-    result = run_pipeline(load_loghub_alerts())
-    _state["dataset"] = "loghub-hdfs"
-    return result
+    return run_pipeline(load_loghub_alerts(), dataset="loghub-hdfs")
+
+
+@app.post("/demo/load-bgl")
+def demo_load_bgl() -> dict:
+    """Loads the 10,000-alert real Loghub BGL (BlueGene/L supercomputer) sample
+    through the same pipeline. See data/loghub_bgl_loader.py for the disclosed
+    sampling and severity mapping."""
+    return run_pipeline(load_bgl_alerts(), dataset="loghub-bgl")
 
 
 @app.post("/demo/load-aiops")
@@ -361,9 +374,7 @@ def demo_load_aiops() -> dict:
     source) through the same pipeline. See data/aiops_challenge_loader.py and
     app/real_data_aiops.py for how these alerts are derived from the
     dataset's own real fault-injection log."""
-    result = run_pipeline(load_aiops_alerts())
-    _state["dataset"] = "aiops-challenge"
-    return result
+    return run_pipeline(load_aiops_alerts(), dataset="aiops-challenge")
 
 
 @app.post("/demo/inject-chaos")
