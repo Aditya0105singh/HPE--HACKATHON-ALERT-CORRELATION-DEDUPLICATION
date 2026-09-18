@@ -4,11 +4,14 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import {
+  HiCheckCircle,
   HiOutlineArrowTopRightOnSquare,
-  HiOutlineCheckCircle,
+  HiOutlineBolt,
+  HiOutlineCircleStack,
   HiOutlineClipboard,
   HiOutlineExclamationTriangle,
   HiOutlineMinusCircle,
+  HiOutlineServerStack,
   HiOutlineSparkles,
 } from "react-icons/hi2";
 import {
@@ -49,11 +52,10 @@ const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"];
 const RISK_COLOR: Record<string, string> = { high: "#ef4444", medium: "#f97316", low: "#3b82f6" };
 const SIGNAL_CAP = 6;
 
-// ISO local timestamp -> HH:MM:SS.
 const clockOf = (ts: string) => ts.slice(11, 19) || formatTimestamp(ts);
 
 const offsetLabel = (sec: number) => {
-  if (sec <= 0) return "T0";
+  if (sec <= 0) return "same second";
   if (sec < 60) return `+${Math.round(sec)}s`;
   if (sec < 3600) return `+${Math.floor(sec / 60)}m`;
   return `+${Math.floor(sec / 3600)}h`;
@@ -82,9 +84,8 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
     for (const a of sorted) {
       const cur = byService.get(a.service);
       const at = new Date(a.timestamp).getTime();
-      if (!cur) {
-        byService.set(a.service, { first: at, count: 1, worst: a.severity });
-      } else {
+      if (!cur) byService.set(a.service, { first: at, count: 1, worst: a.severity });
+      else {
         cur.count += 1;
         if (SEVERITY_ORDER.indexOf(a.severity) < SEVERITY_ORDER.indexOf(cur.worst)) cur.worst = a.severity;
       }
@@ -119,64 +120,64 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white flex flex-col min-w-0">
+    <div className="rounded-2xl border border-gray-200 bg-gray-50/60 flex flex-col min-w-0 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-5 bg-white border-b border-gray-100">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-gray-400">#{id}</span>
-          <span className={clsx("text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 capitalize", SEVERITY_PILL[sev] ?? "bg-gray-50 text-gray-600 ring-gray-100")}>
+          <span className="text-xs font-semibold text-gray-500 tracking-wide">#{id}</span>
+          <span className={clsx("text-[11px] font-semibold px-2 py-0.5 rounded-md ring-1 capitalize", SEVERITY_PILL[sev] ?? "bg-gray-50 text-gray-600 ring-gray-100")}>
             {sev}
           </span>
           <Link
             href={`/incidents/${id}`}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 transition-colors"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3.5 py-2 shadow-sm transition-colors"
           >
             Open full incident <HiOutlineArrowTopRightOnSquare size={13} />
           </Link>
         </div>
 
-        <div className="flex items-start gap-3 mt-2.5">
-          <span
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{
-              background: `${RISK_COLOR[cluster.risk.level] ?? "#9ca3af"}1a`,
-              color: RISK_COLOR[cluster.risk.level] ?? "#9ca3af",
-            }}
-          >
-            <HiOutlineExclamationTriangle size={20} />
+        <div className="flex items-start gap-3 mt-3">
+          <span className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+            <HiOutlineExclamationTriangle size={22} />
           </span>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-gray-900 break-words leading-snug">
+            <h2 className="text-xl font-bold text-gray-900 break-words leading-tight">
               {cluster.root_cause.alertname}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 mt-1">
               {cluster.root_cause.service}
               {downstream.length > 0 && <> causing issues across {downstream.length} downstream service(s)</>}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap mt-3">
+        <div className="flex items-center gap-2 flex-wrap mt-4">
           {playbook?.priority && <Chip tone="amber">{playbook.priority}</Chip>}
-          <Chip tone="red">Risk {risk}%</Chip>
-          {correlation && <Chip tone="green">Confidence {correlation.confidence_pct}%</Chip>}
-          <Chip>{cascade.length} services</Chip>
+          <Chip tone="red">
+            Risk <b className="font-bold">{risk}%</b>
+          </Chip>
+          {correlation && (
+            <Chip tone="green">
+              Confidence <b className="font-bold">{correlation.confidence_pct}%</b>
+            </Chip>
+          )}
+          <Chip>{cascade.length} Services</Chip>
           <Chip>
-            {cluster.size} signals <span className="text-gray-400">({cluster.raw_alert_count} raw)</span>
+            {cluster.size} Signals <span className="text-gray-400 font-normal">({cluster.raw_alert_count} collapsed)</span>
           </Chip>
-          <Chip tone="gray">
-            <span className={clsx("inline-block w-1.5 h-1.5 rounded-full mr-1", status === "Open" ? "bg-red-500" : status === "Investigating" ? "bg-orange-500" : "bg-blue-500")} />
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-600">
+            <span className={clsx("w-1.5 h-1.5 rounded-full", status === "Open" ? "bg-red-500" : status === "Investigating" ? "bg-orange-500" : "bg-blue-500")} />
             {status}
-          </Chip>
+          </span>
         </div>
 
-        <div className="flex gap-1 mt-3 -mb-4 overflow-x-auto">
+        <div className="flex gap-4 mt-4 -mb-5 overflow-x-auto">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={clsx(
-                "text-xs px-3 py-2 border-b-2 -mb-px font-medium whitespace-nowrap transition-colors",
+                "text-[13px] pb-2.5 border-b-2 -mb-px font-medium whitespace-nowrap transition-colors",
                 tab === key
                   ? "border-green-600 text-green-700"
                   : "border-transparent text-gray-400 hover:text-gray-600"
@@ -188,62 +189,65 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
         </div>
       </div>
 
-      <div className="p-4 pt-5 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-4">
         {tab === "overview" && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <Section title="Root cause (AI)">
-                <div className="flex items-start gap-2.5">
-                  <span className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shrink-0">
-                    <HiOutlineExclamationTriangle size={16} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <Card title="Root Cause (AI)">
+                <div className="flex items-start gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                    <HiOutlineCircleStack size={19} />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-900 break-words">
+                    <div className="text-sm font-bold text-gray-900 break-words">
                       {cluster.root_cause.service}
                     </div>
-                    <div className="text-[11px] text-gray-500 mt-0.5 break-words line-clamp-3">
+                    <div className="text-xs text-gray-500 mt-1 break-words line-clamp-3">
                       {cluster.root_cause.message || cluster.root_cause.alertname}
                     </div>
                   </div>
                 </div>
-                <div className="mt-2.5 rounded-lg bg-gray-50 px-2.5 py-1.5 text-[11px] text-gray-600">
-                  Earliest of {cluster.size} signals · {clockOf(cluster.root_cause.timestamp)}
+                <div className="mt-3 rounded-lg bg-gray-50 border border-gray-100 px-3 py-2 text-xs font-medium text-gray-700">
+                  {cluster.size} of {cluster.raw_alert_count} signals · first at {clockOf(cluster.root_cause.timestamp)}
                 </div>
-              </Section>
+              </Card>
 
-              <Section title="Why this incident?" tone="green">
+              <Card title="Why this incident?" tint="green">
                 {correlation ? (
-                  <ul className="flex flex-col gap-1.5">
+                  <ul className="flex flex-col gap-2">
                     {correlation.reasons.map((r, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-700">
+                      <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
                         {r.ok ? (
-                          <HiOutlineCheckCircle className="text-green-600 shrink-0 mt-px" size={13} />
+                          <HiCheckCircle className="text-green-500 shrink-0 mt-px" size={15} />
                         ) : (
-                          <HiOutlineMinusCircle className="text-gray-300 shrink-0 mt-px" size={13} />
+                          <HiOutlineMinusCircle className="text-gray-300 shrink-0 mt-px" size={15} />
                         )}
-                        <span className="break-words">{r.text}</span>
+                        <span className="break-words leading-snug">{r.text}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
                   <Loading />
                 )}
-              </Section>
+              </Card>
 
-              <Section title="Correlation confidence">
+              <Card title="Correlation confidence">
                 {correlation ? (
                   <>
-                    <div className="text-2xl font-bold text-gray-900 leading-none">
+                    <div className="text-3xl font-bold text-gray-900 leading-none">
                       {correlation.confidence_pct}%
                     </div>
-                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mt-2 mb-2.5">
-                      <div className="h-full rounded-full bg-green-600" style={{ width: `${correlation.confidence_pct}%` }} />
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden mt-3 mb-3.5">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600"
+                        style={{ width: `${correlation.confidence_pct}%` }}
+                      />
                     </div>
-                    <dl className="flex flex-col gap-1">
+                    <dl className="flex flex-col gap-1.5">
                       {correlation.factors.map((f) => (
-                        <div key={f.key} className="flex items-center justify-between gap-2 text-[11px]">
+                        <div key={f.key} className="flex items-center justify-between gap-2 text-xs">
                           <dt className="text-gray-500 truncate" title={f.detail}>{f.label}</dt>
-                          <dd className="font-semibold text-gray-800 tabular-nums">{f.score.toFixed(2)}</dd>
+                          <dd className="font-bold text-gray-900 tabular-nums">{f.score.toFixed(2)}</dd>
                         </div>
                       ))}
                     </dl>
@@ -251,95 +255,125 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
                 ) : (
                   <Loading />
                 )}
-              </Section>
+              </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <Section title="Service impact">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card title="Service Impact Graph">
                 {rootNode ? (
-                  <div className="flex flex-col items-center gap-0">
-                    <ServiceNode
-                      name={rootNode.service}
-                      role="Root cause"
-                      count={rootNode.count}
-                      severity={rootNode.worst}
-                      primary
-                    />
-                    {downstream.length > 0 && (
-                      <>
-                        <span className="w-px h-4 bg-gray-200" />
-                        <span className="text-[10px] text-gray-400 mb-1">
-                          then, in order of first alert
-                        </span>
-                        <div className="flex flex-wrap justify-center gap-2 w-full">
-                          {downstream.map((d) => (
-                            <ServiceNode
-                              key={d.service}
-                              name={d.service}
-                              role={offsetLabel(d.offset)}
-                              count={d.count}
-                              severity={d.worst}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                    <p className="text-[10px] text-gray-400 mt-3 text-center">
-                      Ordering is the real first-alert time per service in this incident.
+                  <>
+                    <div className="flex flex-col items-center pt-1">
+                      <GraphNode
+                        name={rootNode.service}
+                        role="Root cause"
+                        count={rootNode.count}
+                        severity={rootNode.worst}
+                        primary
+                      />
+                      {downstream.length > 0 && (
+                        <>
+                          <Connector />
+                          <div className="flex justify-center w-full">
+                            {downstream.map((d, i) => (
+                              <div
+                                key={d.service}
+                                className="relative flex justify-center px-1.5 pt-5 min-w-0"
+                              >
+                                {/* horizontal bus across siblings */}
+                                {downstream.length > 1 && (
+                                  <span
+                                    className={clsx(
+                                      "absolute top-0 h-px bg-gray-300",
+                                      i === 0
+                                        ? "left-1/2 right-0"
+                                        : i === downstream.length - 1
+                                          ? "left-0 right-1/2"
+                                          : "left-0 right-0"
+                                    )}
+                                  />
+                                )}
+                                {/* drop line + arrowhead */}
+                                <span className="absolute top-0 left-1/2 w-px h-4 bg-gray-300" />
+                                <span className="absolute top-[15px] left-1/2 -translate-x-1/2 w-0 h-0 border-x-[3.5px] border-x-transparent border-t-[5px] border-t-gray-300" />
+                                <GraphNode
+                                  name={d.service}
+                                  role={offsetLabel(d.offset)}
+                                  count={d.count}
+                                  severity={d.worst}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-4 text-center">
+                      Branches are ordered by each service&apos;s real first-alert time in this incident.
                     </p>
-                  </div>
+                  </>
                 ) : (
                   <Loading />
                 )}
-              </Section>
+              </Card>
 
-              <Section
-                title={`Related signals (${cluster.size})`}
-                right={
+              <Card
+                title={`Related Signals (${cluster.size})`}
+                action={
                   cluster.size > SIGNAL_CAP ? (
-                    <button onClick={() => setTab("timeline")} className="text-[11px] font-medium text-green-700 hover:underline">
+                    <button onClick={() => setTab("timeline")} className="text-xs font-semibold text-green-700 hover:underline">
                       View all →
                     </button>
                   ) : undefined
                 }
               >
-                <ul className="flex flex-col gap-0.5">
+                <ul className="flex flex-col">
                   {sorted.slice(0, SIGNAL_CAP).map((a) => (
                     <li key={a.id}>
                       <button
                         onClick={() => setAlert(a)}
-                        className="w-full text-left flex items-center gap-2 text-[11px] py-1 px-1 rounded hover:bg-green-50/60"
+                        className="w-full text-left flex items-center gap-2.5 text-xs py-1.5 px-1.5 rounded-lg hover:bg-green-50/70 transition-colors"
                       >
-                        <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", SEVERITY_DOT[a.severity] ?? "bg-gray-300")} />
-                        <span className="font-mono text-gray-400 shrink-0">{clockOf(a.timestamp)}</span>
+                        <span className={clsx("w-2 h-2 rounded-full shrink-0", SEVERITY_DOT[a.severity] ?? "bg-gray-300")} />
+                        <span className="font-mono text-[11px] text-gray-400 shrink-0">{clockOf(a.timestamp)}</span>
                         <span className="text-gray-700 truncate flex-1">{a.alertname}</span>
-                        <span className="text-gray-400 shrink-0 truncate max-w-[80px]">{a.service}</span>
+                        <span className="text-[11px] text-gray-400 shrink-0 truncate max-w-[90px]">{a.service}</span>
                       </button>
                     </li>
                   ))}
                 </ul>
-              </Section>
+              </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {correlation && correlation.excluded.length > 0 ? (
-                <Section title={`Considered & excluded (${correlation.excluded.length})`}>
-                  <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card
+                title={
+                  correlation?.excluded.length
+                    ? `Considered & Excluded (${correlation.excluded.length})`
+                    : "Considered & Excluded"
+                }
+              >
+                {correlation && correlation.excluded.length > 0 ? (
+                  <div className="flex flex-col gap-2.5">
                     {correlation.excluded.map((e) => (
-                      <div key={e.id} className="rounded-lg border border-gray-100 p-2.5">
-                        <div className="flex items-start gap-2">
-                          <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0 mt-1.5", SEVERITY_DOT[e.severity] ?? "bg-gray-300")} />
+                      <div key={e.id} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                        <div className="flex items-start gap-2.5">
+                          <span className="w-9 h-9 rounded-lg bg-white border border-gray-200 text-gray-400 flex items-center justify-center shrink-0">
+                            <HiOutlineServerStack size={16} />
+                          </span>
                           <div className="min-w-0 flex-1">
-                            <div className="text-[11px] font-medium text-gray-700 break-words">{e.alertname}</div>
-                            <ul className="mt-1 flex flex-col gap-0.5">
+                            <div className="text-xs font-semibold text-gray-800 break-words">{e.alertname}</div>
+                            <ul className="mt-1.5 flex flex-col gap-1">
                               {e.reasons.map((r, i) => (
-                                <li key={i} className="text-[10px] text-gray-500 break-words">· {r}</li>
+                                <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-500">
+                                  <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0 mt-1.5" />
+                                  <span className="break-words">{r}</span>
+                                </li>
                               ))}
                             </ul>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-200/70 text-gray-600">
                             Excluded
                           </span>
                           <span className="text-[10px] text-gray-400">distance {e.distance.toFixed(2)}</span>
@@ -347,99 +381,96 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
                       </div>
                     ))}
                   </div>
-                </Section>
-              ) : (
-                <Section title="Considered & excluded">
-                  <p className="text-[11px] text-gray-400">
-                    No near-miss alerts: everything else in the batch sat well outside this
-                    incident&apos;s boundary.
+                ) : (
+                  <p className="text-xs text-gray-400">
+                    No near-miss alerts: everything else sat well outside this incident&apos;s boundary.
                   </p>
-                </Section>
-              )}
+                )}
+              </Card>
 
-              <div className="flex flex-col gap-3">
-                <Section
-                  title="Incident summary"
-                  right={
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 rounded-full px-2 py-0.5">
-                      <HiOutlineSparkles size={11} /> From verified facts
+              <div className="flex flex-col gap-4">
+                <Card
+                  title="Incident Summary (AI)"
+                  action={
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 ring-1 ring-green-100 rounded-full px-2 py-0.5">
+                      <HiOutlineSparkles size={11} /> Generated from verified facts
                     </span>
                   }
                 >
-                  <p className="text-[11px] text-gray-700 leading-relaxed break-words">{cluster.summary}</p>
+                  <p className="text-xs text-gray-600 leading-relaxed break-words">{cluster.summary}</p>
                   {cluster.dna_match && (
-                    <div className="rounded-lg bg-blue-50 border border-blue-100 p-2 mt-2">
-                      <div className="text-[10px] font-semibold text-blue-700">
+                    <div className="rounded-lg bg-blue-50 border border-blue-100 p-2.5 mt-2.5">
+                      <div className="text-[11px] font-semibold text-blue-700">
                         Resembles {cluster.dna_match.incident_id} ({cluster.dna_match.similarity_pct}% similar)
                       </div>
                       {cluster.dna_match.resolution && (
-                        <div className="text-[10px] text-blue-800 mt-0.5">
+                        <div className="text-[11px] text-blue-800 mt-0.5">
                           Previous fix: {cluster.dna_match.resolution}
                         </div>
                       )}
                     </div>
                   )}
-                </Section>
+                </Card>
 
-                <Section
-                  title="Suggested next steps"
-                  right={
-                    playbook?.steps?.length ? (
-                      <button
-                        onClick={copySteps}
-                        className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-600 hover:text-green-700 border border-gray-200 rounded px-1.5 py-0.5"
-                      >
-                        <HiOutlineClipboard size={11} /> {copied ? "Copied" : "Copy"}
-                      </button>
-                    ) : undefined
-                  }
-                >
+                <Card title="Suggested Next Steps">
                   {playbook ? (
-                    <ol className="flex flex-col gap-1.5">
-                      {playbook.steps.slice(0, 3).map((s, i) => (
-                        <li key={s.step_number} className="flex items-start gap-2 text-[11px]">
-                          <span className="text-gray-400 shrink-0">{i + 1}.</span>
-                          <span className="text-gray-700 break-words">{s.title}</span>
-                        </li>
-                      ))}
-                      {playbook.steps.length > 3 && (
-                        <li>
-                          <button onClick={() => setTab("playbook")} className="text-[11px] font-medium text-green-700 hover:underline">
+                    <>
+                      <ol className="flex flex-col gap-2">
+                        {playbook.steps.slice(0, 3).map((s, i) => (
+                          <li key={s.step_number} className="flex items-start gap-2.5 text-xs">
+                            <span className="text-gray-400 font-medium shrink-0">{i + 1}.</span>
+                            <span className="text-gray-700 break-words leading-snug">{s.title}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      <div className="flex items-center justify-between gap-2 mt-3">
+                        {playbook.steps.length > 3 ? (
+                          <button onClick={() => setTab("playbook")} className="text-xs font-semibold text-green-700 hover:underline">
                             All {playbook.steps.length} steps →
                           </button>
-                        </li>
-                      )}
-                    </ol>
+                        ) : (
+                          <span />
+                        )}
+                        <button
+                          onClick={copySteps}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 hover:text-green-700 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm transition-colors"
+                        >
+                          <HiOutlineClipboard size={12} /> {copied ? "Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </>
                   ) : (
                     <Loading />
                   )}
-                </Section>
+                </Card>
               </div>
             </div>
           </>
         )}
 
         {tab === "correlation" && (
-          <Section title="How this group was formed">
+          <Card title="How this group was formed">
             {correlation ? (
-              <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {correlation.factors.map((f) => (
-                    <div key={f.key} className="rounded-lg bg-green-50/60 border border-green-100 px-2.5 py-2">
-                      <div className="text-base font-bold text-green-800 leading-none">{f.score.toFixed(2)}</div>
-                      <div className="text-[10px] text-gray-500 mt-1">{f.label}</div>
+                    <div key={f.key} className="rounded-xl bg-green-50 border border-green-100 px-3 py-2.5">
+                      <div className="text-lg font-bold text-green-800 leading-none">{f.score.toFixed(2)}</div>
+                      <div className="text-[10px] text-gray-500 mt-1.5">{f.label}</div>
                     </div>
                   ))}
                 </div>
-                <ul className="flex flex-col gap-1.5">
+                <ul className="flex flex-col gap-2">
                   {correlation.factors.map((f) => (
                     <li key={f.key} className="text-xs text-gray-600">
-                      <span className="font-medium text-gray-800">{f.label}:</span> {f.detail}
+                      <span className="font-semibold text-gray-800">{f.label}:</span> {f.detail}
                     </li>
                   ))}
                 </ul>
-                <div className="rounded-lg border border-gray-100 p-3 text-xs text-gray-600">
-                  <div className="font-medium text-gray-800 mb-1">Engine parameters</div>
+                <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-600">
+                  <div className="font-semibold text-gray-800 mb-1 flex items-center gap-1.5">
+                    <HiOutlineBolt size={13} className="text-gray-400" /> Engine parameters
+                  </div>
                   eps {correlation.params.eps.toFixed(2)} · min_samples {correlation.params.min_samples} · time scale{" "}
                   {correlation.params.time_scale_min} min · time penalty {correlation.params.time_penalty ?? "-"}
                   <div className="text-[11px] text-gray-400 mt-1">
@@ -450,28 +481,28 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
             ) : (
               <Loading />
             )}
-          </Section>
+          </Card>
         )}
 
         {tab === "evidence" && (
-          <Section title="Root-cause candidates">
+          <Card title="Root-cause candidates">
             {confidence ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 {confidence.candidates.map((c) => (
                   <div
                     key={c.service}
                     className={clsx(
-                      "rounded-lg border p-3",
-                      c.is_selected ? "border-green-200 bg-green-50/50" : "border-gray-100"
+                      "rounded-xl border p-3.5",
+                      c.is_selected ? "border-green-200 bg-green-50/60" : "border-gray-100 bg-gray-50/40"
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-gray-900 break-words">{c.service}</span>
-                      <span className={clsx("text-xs font-bold", c.is_selected ? "text-green-700" : "text-gray-400")}>
+                      <span className="text-sm font-bold text-gray-900 break-words">{c.service}</span>
+                      <span className={clsx("text-sm font-bold", c.is_selected ? "text-green-700" : "text-gray-400")}>
                         {c.confidence}%
                       </span>
                     </div>
-                    <ul className="mt-1.5 flex flex-col gap-0.5">
+                    <ul className="mt-2 flex flex-col gap-1">
                       {c.explanation.map((e, i) => (
                         <li key={i} className="text-[11px] text-gray-600 break-words">{e}</li>
                       ))}
@@ -482,51 +513,51 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
             ) : (
               <Loading />
             )}
-          </Section>
+          </Card>
         )}
 
         {tab === "timeline" && (
-          <Section title={`All signals (${cluster.size})`}>
+          <Card title={`All signals (${cluster.size})`}>
             <ol className="flex flex-col">
               {sorted.map((a, i) => (
-                <li key={a.id} className="flex gap-2.5">
+                <li key={a.id} className="flex gap-3">
                   <div className="flex flex-col items-center pt-1.5">
-                    <span className={clsx("w-2 h-2 rounded-full shrink-0", SEVERITY_DOT[a.severity] ?? "bg-gray-300")} />
+                    <span className={clsx("w-2.5 h-2.5 rounded-full shrink-0 ring-4 ring-white", SEVERITY_DOT[a.severity] ?? "bg-gray-300")} />
                     {i < sorted.length - 1 && <span className="w-px flex-1 bg-gray-200 min-h-[18px]" />}
                   </div>
-                  <button onClick={() => setAlert(a)} className="text-left pb-3 min-w-0 flex-1 group">
+                  <button onClick={() => setAlert(a)} className="text-left pb-3.5 min-w-0 flex-1 group">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[11px] text-gray-400">{clockOf(a.timestamp)}</span>
-                      <span className={clsx("text-[10px] px-1.5 rounded-full capitalize", SEVERITY_PILL[a.severity] ?? "bg-gray-100 text-gray-600")}>
+                      <span className={clsx("text-[10px] px-1.5 rounded-md capitalize font-medium", SEVERITY_PILL[a.severity] ?? "bg-gray-100 text-gray-600")}>
                         {a.severity}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-800 group-hover:text-green-700 break-words">{a.alertname}</div>
+                    <div className="text-xs text-gray-800 group-hover:text-green-700 break-words mt-0.5">{a.alertname}</div>
                     <div className="text-[11px] text-gray-400">{a.service} · {timeAgo(a.timestamp)}</div>
                   </button>
                 </li>
               ))}
             </ol>
-          </Section>
+          </Card>
         )}
 
         {tab === "severity" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <Section title="Severity mix">
-              <ul className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card title="Severity mix">
+              <ul className="flex flex-col gap-3">
                 {severityCounts.map((s) => (
                   <li key={s.severity}>
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-2">
                         <span className={clsx("w-2 h-2 rounded-full", SEVERITY_DOT[s.severity])} />
                         <span className="capitalize text-gray-600">{s.severity}</span>
                       </span>
-                      <span className="text-gray-800 font-medium">
+                      <span className="text-gray-900 font-bold">
                         {s.count}{" "}
-                        <span className="text-gray-400">({Math.round((100 * s.count) / cluster.size)}%)</span>
+                        <span className="text-gray-400 font-normal">({Math.round((100 * s.count) / cluster.size)}%)</span>
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mt-1">
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden mt-1.5">
                       <div
                         className={clsx("h-full rounded-full", SEVERITY_DOT[s.severity])}
                         style={{ width: `${(100 * s.count) / cluster.size}%` }}
@@ -535,33 +566,33 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
                   </li>
                 ))}
               </ul>
-            </Section>
-            <Section title="Risk breakdown">
-              <div className="text-2xl font-bold text-gray-900 leading-none">{risk}%</div>
-              <div className="text-[11px] text-gray-400 mt-1 capitalize">{cluster.risk.level} risk of escalation</div>
-              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mt-2">
+            </Card>
+            <Card title="Risk breakdown">
+              <div className="text-3xl font-bold text-gray-900 leading-none">{risk}%</div>
+              <div className="text-xs text-gray-400 mt-1.5 capitalize">{cluster.risk.level} risk of escalation</div>
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden mt-3">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${risk}%`, background: RISK_COLOR[cluster.risk.level] ?? "#9ca3af" }}
                 />
               </div>
-              <dl className="flex flex-col gap-1 mt-3 text-[11px]">
+              <dl className="flex flex-col gap-2 mt-4 text-xs">
                 <Row label="Signals" value={`${cluster.size} (${cluster.raw_alert_count} raw)`} />
                 <Row label="Services" value={String(cascade.length)} />
                 <Row label="Triage time saved" value={`~${cluster.est_triage_minutes_saved}m`} />
               </dl>
-            </Section>
+            </Card>
           </div>
         )}
 
         {tab === "playbook" && (
-          <Section
+          <Card
             title="Suggested next steps"
-            right={
+            action={
               playbook?.steps?.length ? (
                 <button
                   onClick={copySteps}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 hover:text-green-700 border border-gray-200 rounded-lg px-2 py-1"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 hover:text-green-700 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm"
                 >
                   <HiOutlineClipboard size={12} /> {copied ? "Copied" : "Copy"}
                 </button>
@@ -569,23 +600,23 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
             }
           >
             {playbook ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Chip tone="amber">{playbook.priority}</Chip>
                   <span>Est. {playbook.estimated_resolution}</span>
                 </div>
-                <ol className="flex flex-col gap-2">
+                <ol className="flex flex-col gap-2.5">
                   {playbook.steps.map((s) => (
-                    <li key={s.step_number} className="rounded-lg border border-gray-100 p-3">
-                      <div className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold flex items-center justify-center shrink-0">
+                    <li key={s.step_number} className="rounded-xl border border-gray-100 bg-gray-50/40 p-3.5">
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-6 h-6 rounded-full bg-green-100 text-green-700 text-[11px] font-bold flex items-center justify-center shrink-0">
                           {s.step_number}
                         </span>
                         <div className="min-w-0">
-                          <div className="text-xs font-semibold text-gray-900 break-words">{s.title}</div>
-                          <div className="text-[11px] text-gray-600 mt-0.5 break-words">{s.description}</div>
+                          <div className="text-xs font-bold text-gray-900 break-words">{s.title}</div>
+                          <div className="text-[11px] text-gray-600 mt-1 break-words leading-relaxed">{s.description}</div>
                           {s.estimated_duration && (
-                            <div className="text-[11px] text-gray-400 mt-1">~{s.estimated_duration}</div>
+                            <div className="text-[11px] text-gray-400 mt-1.5">~{s.estimated_duration}</div>
                           )}
                         </div>
                       </div>
@@ -596,7 +627,7 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
             ) : (
               <Loading />
             )}
-          </Section>
+          </Card>
         )}
       </div>
 
@@ -605,34 +636,42 @@ export function IncidentPanel({ cluster, status }: { cluster: Cluster; status: s
   );
 }
 
-function Section({
+function Card({
   title,
-  right,
-  tone,
+  action,
+  tint,
   children,
 }: {
   title: string;
-  right?: React.ReactNode;
-  tone?: "green";
+  action?: React.ReactNode;
+  tint?: "green";
   children: React.ReactNode;
 }) {
   return (
     <div
       className={clsx(
-        "rounded-xl border p-3.5 min-w-0",
-        tone === "green" ? "border-green-100 bg-green-50/40" : "border-gray-100 bg-white"
+        "rounded-2xl border p-4 min-w-0 shadow-sm",
+        tint === "green" ? "border-green-100 bg-green-50/50" : "border-gray-200 bg-white"
       )}
     >
-      <div className="flex items-center justify-between gap-2 mb-2.5">
-        <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{title}</h3>
-        {right}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+        {action}
       </div>
       {children}
     </div>
   );
 }
 
-function ServiceNode({
+function Connector() {
+  return (
+    <div className="flex flex-col items-center">
+      <span className="w-px h-5 bg-gray-300" />
+    </div>
+  );
+}
+
+function GraphNode({
   name,
   role,
   count,
@@ -648,16 +687,27 @@ function ServiceNode({
   return (
     <div
       className={clsx(
-        "rounded-lg border px-3 py-2 min-w-[140px] max-w-full",
+        "rounded-xl border px-3 py-2.5 min-w-[130px] max-w-full shadow-sm",
         primary ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"
       )}
     >
-      <div className="flex items-center gap-1.5">
-        <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", SEVERITY_DOT[severity] ?? "bg-gray-300")} />
-        <span className="text-xs font-semibold text-gray-900 truncate">{name}</span>
+      <div className="flex items-center gap-2">
+        <span
+          className={clsx(
+            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+            primary ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
+          )}
+        >
+          {primary ? <HiOutlineCircleStack size={13} /> : <HiOutlineExclamationTriangle size={13} />}
+        </span>
+        <span className="text-xs font-bold text-gray-900 truncate">{name}</span>
       </div>
-      <div className="text-[10px] text-gray-500 mt-0.5">
-        {role} · {count} alert{count === 1 ? "" : "s"}
+      <div className={clsx("text-[10px] mt-1.5 font-medium", primary ? "text-red-600" : "text-amber-700")}>
+        {role}
+      </div>
+      <div className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+        <span className={clsx("w-1.5 h-1.5 rounded-full", SEVERITY_DOT[severity] ?? "bg-gray-300")} />
+        {count} alert{count === 1 ? "" : "s"}
       </div>
     </div>
   );
@@ -665,14 +715,14 @@ function ServiceNode({
 
 function Chip({ children, tone = "slate" }: { children: React.ReactNode; tone?: string }) {
   const tones: Record<string, string> = {
-    slate: "bg-gray-50 text-gray-600 ring-gray-200",
+    slate: "bg-white text-gray-600 ring-gray-200",
     green: "bg-green-50 text-green-700 ring-green-200",
     red: "bg-red-50 text-red-600 ring-red-200",
     amber: "bg-amber-50 text-amber-700 ring-amber-200",
     gray: "bg-gray-100 text-gray-600 ring-gray-200",
   };
   return (
-    <span className={clsx("text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 whitespace-nowrap", tones[tone] ?? tones.slate)}>
+    <span className={clsx("text-[11px] font-medium px-2.5 py-1 rounded-lg ring-1 whitespace-nowrap", tones[tone] ?? tones.slate)}>
       {children}
     </span>
   );
@@ -682,7 +732,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <dt className="text-gray-400">{label}</dt>
-      <dd className="text-gray-700 font-medium">{value}</dd>
+      <dd className="text-gray-800 font-semibold">{value}</dd>
     </div>
   );
 }
