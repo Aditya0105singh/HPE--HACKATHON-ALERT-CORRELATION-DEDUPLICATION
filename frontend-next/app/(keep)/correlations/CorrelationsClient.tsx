@@ -97,7 +97,7 @@ export function CorrelationsClient() {
           value={clusters.length}
           hint="Correlated alert groups"
           icon={TbChartDots3}
-          color="orange"
+          color="emerald"
         />
         <StatCard
           label="Alerts correlated"
@@ -131,8 +131,8 @@ export function CorrelationsClient() {
             className={clsx(
               "flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors",
               view === key
-                ? "bg-orange-500 border-orange-500 text-white font-medium"
-                : "border-gray-200 text-gray-600 hover:border-orange-300"
+                ? "bg-green-500 border-green-500 text-white font-medium"
+                : "border-gray-200 text-gray-600 hover:border-green-300"
             )}
           >
             {Icon && <Icon className="w-3.5 h-3.5" />}
@@ -184,7 +184,7 @@ export function CorrelationsClient() {
                       {cluster ? (
                         <Link
                           href={`/incidents/${cluster.cluster_id}`}
-                          className="text-orange-500 text-xs hover:underline"
+                          className="text-green-500 text-xs hover:underline"
                         >
                           {cluster.root_cause.alertname}
                         </Link>

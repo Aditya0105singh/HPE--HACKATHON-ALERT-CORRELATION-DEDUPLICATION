@@ -135,7 +135,7 @@ export function DataSourceButtons() {
         <Button
           key={key}
           size="xs"
-          color="orange"
+          color="emerald"
           variant={resolvedActive === key ? "primary" : "secondary"}
           loading={busy === key}
           disabled={busy !== null}

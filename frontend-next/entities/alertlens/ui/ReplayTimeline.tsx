@@ -91,7 +91,7 @@ export function ReplayTimeline({ cluster }: { cluster: Cluster }) {
         <div className="flex items-center gap-2">
           <Button
             size="xs"
-            color="orange"
+            color="emerald"
             variant={isPlaying ? "secondary" : "primary"}
             icon={atEnd ? LuRotateCcw : isPlaying ? LuPause : LuPlay}
             onClick={() => {
@@ -114,7 +114,7 @@ export function ReplayTimeline({ cluster }: { cluster: Cluster }) {
                 className={clsx(
                   "text-xs px-2 py-1 rounded border",
                   speed === s
-                    ? "border-orange-400 text-orange-600"
+                    ? "border-green-400 text-green-600"
                     : "border-gray-200 text-gray-500"
                 )}
               >
@@ -125,7 +125,7 @@ export function ReplayTimeline({ cluster }: { cluster: Cluster }) {
         </div>
       </div>
 
-      <ProgressBar value={progress} color="orange" />
+      <ProgressBar value={progress} color="emerald" />
 
       <div className="flex items-center gap-2">
         <Button
@@ -176,7 +176,7 @@ export function ReplayTimeline({ cluster }: { cluster: Cluster }) {
                 className={clsx(
                   "flex items-start gap-2 text-left rounded px-2 py-1.5 border transition-colors",
                   isActive
-                    ? "border-orange-400 bg-orange-50"
+                    ? "border-green-400 bg-green-50"
                     : "border-transparent hover:bg-gray-50",
                   !isActive && !isPast && "opacity-55"
                 )}

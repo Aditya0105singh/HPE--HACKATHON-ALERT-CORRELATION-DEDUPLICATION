@@ -97,7 +97,7 @@ function LiveTestBox() {
   return (
     <Card className="flex flex-col h-[26rem]">
       <div className="flex items-center gap-2 mb-2">
-        <HiOutlineSparkles className="w-4 h-4 text-orange-500" />
+        <HiOutlineSparkles className="w-4 h-4 text-green-500" />
         <Title className="text-sm">Live test</Title>
       </div>
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
@@ -112,7 +112,7 @@ function LiveTestBox() {
             key={i}
             className={
               m.role === "user"
-                ? "self-end max-w-[85%] rounded-lg bg-orange-500 text-white px-3 py-2 text-sm"
+                ? "self-end max-w-[85%] rounded-lg bg-green-500 text-white px-3 py-2 text-sm"
                 : "self-start max-w-[95%] rounded-lg bg-gray-100 px-3 py-2 text-sm"
             }
           >
@@ -143,7 +143,7 @@ function LiveTestBox() {
         />
         <Button
           size="xs"
-          color="orange"
+          color="emerald"
           icon={LuSend}
           loading={isAsking}
           disabled={!input.trim()}
@@ -181,7 +181,7 @@ export default function AIPage() {
               <strong>{status.active_incident_count}</strong> active incident
               {status.active_incident_count === 1 ? "" : "s"} across{" "}
               <strong>{status.persisted_alert_count}</strong> persisted alerts
-              (<Badge color="orange" size="xs">{status.dataset}</Badge>).
+              (<Badge color="emerald" size="xs">{status.dataset}</Badge>).
               When the LLM is unreachable, questions still get a real answer
               computed directly from this data instead of failing.
             </Text>

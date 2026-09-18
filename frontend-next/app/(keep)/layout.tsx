@@ -4,6 +4,7 @@ import { NextAuthProvider } from "../auth-provider";
 import { Mulish } from "next/font/google";
 import { ToastContainer } from "react-toastify";
 import Navbar from "components/navbar/Navbar";
+import { Topbar } from "components/navbar/Topbar";
 import { TopologyPollingContextProvider } from "@/app/(keep)/topology/model/TopologyPollingContext";
 import { getConfig } from "@/shared/lib/server/getConfig";
 import { ConfigProvider } from "../config-provider";
@@ -83,6 +84,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 <Navbar />
                 {/* https://discord.com/channels/752553802359505017/1068089513253019688/1117731746922893333 */}
                 <main className="page-container flex flex-col col-start-3 overflow-auto">
+                  <Topbar session={session} />
                   {/* Add the banner here, before the navbar */}
                   {config.READ_ONLY && <ReadOnlyBanner />}
                   <div className="flex-1">{children}</div>

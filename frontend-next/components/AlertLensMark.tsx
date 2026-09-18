@@ -18,19 +18,19 @@ export const AlertLensMark = ({ className }: AlertLensMarkProps) => (
       cx="14"
       cy="14"
       r="9.5"
-      stroke="rgb(249 115 22)"
+      stroke="rgb(21 128 61)"
       strokeWidth="2.5"
     />
     <path
       d="M9.5 14.5l2.5 0 1.75-4 2.25 7.5 1.75-3.5h2.25"
-      stroke="rgb(249 115 22)"
+      stroke="rgb(21 128 61)"
       strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M21.5 21.5l6 6"
-      stroke="rgb(249 115 22)"
+      stroke="rgb(21 128 61)"
       strokeWidth="3"
       strokeLinecap="round"
     />

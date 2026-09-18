@@ -41,7 +41,7 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
   const canChangePassword = configData?.AUTH_TYPE === AuthType.DB;
   return (
     <Menu as="li" ref={refs.setReference} className="min-w-0 flex-1">
-      <Menu.Button className="flex items-center justify-between w-full text-sm pl-2.5 pr-2 py-1 text-gray-700 hover:bg-stone-200/50 font-medium rounded-lg hover:text-orange-400 focus:ring focus:ring-orange-300 group capitalize">
+      <Menu.Button className="flex items-center justify-between w-full text-sm pl-2.5 pr-2 py-1 text-gray-700 hover:bg-stone-200/50 font-medium rounded-lg hover:text-green-600 focus:ring focus:ring-green-300 group capitalize">
         <span className="space-x-3 flex items-center min-w-0 flex-1">
           <span className="flex-shrink-0">
             <UserAvatar image={image} name={name ?? email} />
@@ -62,7 +62,7 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
               <Menu.Item
                 as={Link}
                 href="/settings"
-                className="ui-active:bg-orange-400 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
+                className="ui-active:bg-green-600 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
               >
                 Settings
               </Menu.Item>
@@ -72,7 +72,7 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
             <li>
               <Menu.Item
                 as="button"
-                className="ui-active:bg-orange-400 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
+                className="ui-active:bg-green-600 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
                 onClick={() => setIsChangePasswordOpen(true)}
               >
                 Change Password
@@ -83,7 +83,7 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
             <li>
               <Menu.Item
                 as="button"
-                className="ui-active:bg-orange-400 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
+                className="ui-active:bg-green-600 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
                 onClick={signOut}
               >
                 Sign out
@@ -104,9 +104,20 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
 
 type UserInfoProps = {
   session: Session | null;
+  /** Compact horizontal layout for the topbar - just the user menu and theme
+   * toggle, no "Pipeline Status" link (redundant with the sidebar nav there). */
+  inline?: boolean;
 };
 
-export const UserInfo = ({ session }: UserInfoProps) => {
+export const UserInfo = ({ session, inline = false }: UserInfoProps) => {
+  if (inline) {
+    return (
+      <div className="flex items-center gap-1.5">
+        {session && <UserDropdown session={session} />}
+        <ThemeControl className="text-sm size-9 flex-shrink-0 flex items-center justify-center font-medium rounded-full focus:ring focus:ring-green-300 hover:!bg-gray-100" />
+      </div>
+    );
+  }
   return (
     <>
       <ul className="space-y-2 p-2">
@@ -117,7 +128,7 @@ export const UserInfo = ({ session }: UserInfoProps) => {
         </li>
         <div className="flex items-center gap-2">
           {session && <UserDropdown session={session} />}
-          <ThemeControl className="text-sm size-10 flex-shrink-0 flex items-center justify-center font-medium rounded-lg focus:ring focus:ring-orange-300 hover:!bg-stone-200/50" />
+          <ThemeControl className="text-sm size-10 flex-shrink-0 flex items-center justify-center font-medium rounded-lg focus:ring focus:ring-green-300 hover:!bg-stone-200/50" />
         </div>
       </ul>
     </>

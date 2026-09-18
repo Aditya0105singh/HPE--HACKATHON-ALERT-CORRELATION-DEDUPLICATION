@@ -125,7 +125,7 @@ export function StormMenu() {
     <>
       <Button
         size="xs"
-        color="orange"
+        color="emerald"
         variant="secondary"
         icon={LuZap}
         loading={busy}
@@ -164,9 +164,9 @@ export function StormControls() {
     <Card className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[min(30rem,calc(100vw-2.5rem))] p-3 shadow-2xl">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <LuZap className="w-4 h-4 text-orange-500 shrink-0" />
+          <LuZap className="w-4 h-4 text-green-500 shrink-0" />
           <Text className="font-medium truncate">{label}</Text>
-          <Badge size="xs" color="orange">
+          <Badge size="xs" color="emerald">
             replaying
           </Badge>
         </div>
@@ -180,13 +180,13 @@ export function StormControls() {
         </button>
       </div>
 
-      <ProgressBar value={progress} color="orange" />
+      <ProgressBar value={progress} color="emerald" />
 
       <div className="flex items-center justify-between gap-2 mt-2">
         <Button
           size="xs"
           variant="secondary"
-          color="orange"
+          color="emerald"
           icon={paused ? LuPlay : LuPause}
           onClick={togglePause}
         >
@@ -200,7 +200,7 @@ export function StormControls() {
               onClick={() => setSpeed(s)}
               className={`text-xs px-2 py-1 rounded border ${
                 speed === s
-                  ? "border-orange-400 text-orange-600"
+                  ? "border-green-400 text-green-600"
                   : "border-gray-200 text-gray-500"
               }`}
             >

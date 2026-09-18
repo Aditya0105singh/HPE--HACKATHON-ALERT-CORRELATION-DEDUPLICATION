@@ -27,14 +27,14 @@ function StageCard({
   return (
     <Card
       className={`p-4 cursor-pointer transition-shadow ${
-        isOpen ? "ring-2 ring-orange-400" : "hover:shadow-md"
+        isOpen ? "ring-2 ring-green-400" : "hover:shadow-md"
       }`}
       onClick={onToggle}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs font-semibold flex items-center justify-center shrink-0">
+            <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 text-xs font-semibold flex items-center justify-center shrink-0">
               {index + 1}
             </span>
             <span className="font-medium truncate">{stage.label}</span>
@@ -42,7 +42,7 @@ function StageCard({
           <div className="mt-2 text-2xl font-semibold">{stage.metric}</div>
           <Text className="text-xs text-gray-500">{stage.metricLabel}</Text>
           {stage.subMetric && (
-            <Badge size="xs" color="orange" className="mt-1">
+            <Badge size="xs" color="emerald" className="mt-1">
               {stage.subMetric}
             </Badge>
           )}

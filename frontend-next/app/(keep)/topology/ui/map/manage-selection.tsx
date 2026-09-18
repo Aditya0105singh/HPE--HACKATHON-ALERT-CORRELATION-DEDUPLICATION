@@ -191,7 +191,7 @@ export function ManageSelection({
         <p className="text-lg font-bold">{selectedApplication.name}</p>
         <div className="flex gap-2">
           <Button
-            color="orange"
+            color="emerald"
             size="xs"
             variant="secondary"
             onClick={() => setIsModalOpen(true)}
@@ -223,7 +223,7 @@ export function ManageSelection({
         <div className="">
           {selectedServices.length === 1 && selectedServices[0].is_manual && (
             <Button
-              color="orange"
+              color="emerald"
               size="xs"
               variant="secondary"
               className="mr-3"
@@ -248,7 +248,7 @@ export function ManageSelection({
               </Button>
             )}
           <Button
-            color="orange"
+            color="emerald"
             size="xs"
             variant="primary"
             onClick={() => setIsModalOpen(true)}
@@ -297,7 +297,7 @@ export function ManageSelection({
         <div></div>
         <div className="flex gap-2">
           <Button
-            color="orange"
+            color="emerald"
             size="xs"
             variant="secondary"
             onClick={() => editEdgeProtocol(selectedEdges[0])}

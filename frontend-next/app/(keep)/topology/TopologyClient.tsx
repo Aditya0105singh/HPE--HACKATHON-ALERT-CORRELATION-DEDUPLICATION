@@ -212,7 +212,7 @@ export function TopologyClient() {
           value={stats.edges}
           hint="Incident-derived dependencies"
           icon={TbTopologyRing}
-          color="orange"
+          color="emerald"
         />
       </div>
 

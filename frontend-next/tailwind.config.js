@@ -26,10 +26,10 @@ module.exports = {
         // light mode
         tremor: {
           brand: {
-            faint: "rgb(255 247 237)", // orange-50
-            muted: "rgb(255 237 213)", // orange-200
-            subtle: "rgb(251 146 60)", // orange-400
-            DEFAULT: "rgb(249 115 22)", // orange-500
+            faint: "rgb(240 253 244)", // green-50
+            muted: "rgb(187 247 208)", // green-200
+            subtle: "rgb(74 222 128)", // green-400
+            DEFAULT: "rgb(22 163 74)", // green-600
             emphasis: "#374151", //  gray-700
             inverted: "#ffffff", // white
           },

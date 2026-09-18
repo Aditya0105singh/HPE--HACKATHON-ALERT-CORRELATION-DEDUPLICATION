@@ -382,7 +382,7 @@ export function TopologyMap({
     const newEdges = [...edges];
     const currentEdge = newEdges.find((e) => e.id === edge.id);
     if (currentEdge) {
-      currentEdge.style = eventType === "enter" ? { stroke: "orange" } : {};
+      currentEdge.style = eventType === "enter" ? { stroke: "rgb(22 163 74)" } : {};
       currentEdge.labelBgStyle =
         eventType === "enter" ? edgeLabelBgStyleHover : edgeLabelBgStyleNoHover;
       currentEdge.markerEnd =
@@ -602,7 +602,7 @@ export function TopologyMap({
           <div className="flex gap-2">
             <Button
               onClick={() => setIsSidePanelOpen(true)}
-              color="orange"
+              color="emerald"
               variant="primary"
               size="md"
               icon={PlusIcon}
@@ -690,7 +690,7 @@ export function TopologyMap({
                     >
                       <div className="flex gap-2">
                         <Button
-                          color="orange"
+                          color="emerald"
                           variant="secondary"
                           size="md"
                           onClick={handleImportTopology}
@@ -698,7 +698,7 @@ export function TopologyMap({
                           Import
                         </Button>
                         <Button
-                          color="orange"
+                          color="emerald"
                           variant="primary"
                           size="md"
                           onClick={() =>

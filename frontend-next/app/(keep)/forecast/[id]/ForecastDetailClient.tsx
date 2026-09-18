@@ -50,7 +50,7 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
               : String(error)
           }
         >
-          <Link href="/forecast" className="text-orange-500 text-sm">
+          <Link href="/forecast" className="text-green-500 text-sm">
             Back to forecast
           </Link>
         </EmptyStateCard>
@@ -90,7 +90,7 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
       <div>
         <Link
           href="/forecast"
-          className="text-xs text-gray-500 hover:text-orange-500"
+          className="text-xs text-gray-500 hover:text-green-500"
         >
           ← Forecast
         </Link>
@@ -143,7 +143,7 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
           </div>
           <Button
             size="xs"
-            color="orange"
+            color="emerald"
             variant={playing ? "secondary" : "primary"}
             icon={playing ? LuPause : LuPlay}
             onClick={() => setPlaying(!playing)}
@@ -165,8 +165,8 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
               className={clsx(
                 "text-sm px-3 py-1.5 rounded-md border transition-colors",
                 activeStage === m
-                  ? "bg-orange-500 border-orange-500 text-white font-medium"
-                  : "border-gray-200 text-gray-600 hover:border-orange-300"
+                  ? "bg-green-500 border-green-500 text-white font-medium"
+                  : "border-gray-200 text-gray-600 hover:border-green-300"
               )}
             >
               {m === 0 ? "Now" : `+${m}m`}
@@ -184,7 +184,7 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
           <StatCard
             label="Alert volume"
             value={stagePoint.alerts}
-            color="orange"
+            color="emerald"
           />
           <StatCard
             label="Confidence"
@@ -229,7 +229,7 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
       {incident && (
         <Link
           href={`/incidents/${incident.cluster_id}`}
-          className="text-sm text-orange-500"
+          className="text-sm text-green-500"
         >
           Open full incident →
         </Link>

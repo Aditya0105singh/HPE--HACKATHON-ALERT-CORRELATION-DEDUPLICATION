@@ -151,7 +151,7 @@ function AddRuleForm({
           )}
           <Button
             type="submit"
-            color="orange"
+            color="emerald"
             loading={submitting}
             disabled={submitting || (actionType === "notify" && !providerId)}
           >

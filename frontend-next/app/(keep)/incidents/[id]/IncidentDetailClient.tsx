@@ -89,7 +89,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
               : String(error)
           }
         >
-          <Link href="/incidents" className="text-orange-500 text-sm">
+          <Link href="/incidents" className="text-green-500 text-sm">
             Back to incidents
           </Link>
         </EmptyStateCard>
@@ -102,7 +102,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
       <div>
-        <Link href="/incidents" className="text-xs text-gray-500 hover:text-orange-500">
+        <Link href="/incidents" className="text-xs text-gray-500 hover:text-green-500">
           ← Incidents
         </Link>
         <div className="flex items-start justify-between gap-3 flex-wrap mt-1">
@@ -270,7 +270,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {(a.duplicate_count ?? 1) > 1 && (
-                        <Badge size="xs" color="orange">
+                        <Badge size="xs" color="emerald">
                           ×{a.duplicate_count}
                         </Badge>
                       )}
@@ -295,7 +295,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                   {rootCause.data?.candidates?.map((c, i) => (
                     <Card
                       key={`${c.service}-${i}`}
-                      className={c.is_selected ? "p-3 ring-2 ring-orange-400" : "p-3"}
+                      className={c.is_selected ? "p-3 ring-2 ring-green-400" : "p-3"}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -304,7 +304,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                             <span className="text-gray-500">on {c.service}</span>
                           </div>
                           {c.is_selected && (
-                            <Badge size="xs" color="orange" className="mt-1">
+                            <Badge size="xs" color="emerald" className="mt-1">
                               selected root cause
                             </Badge>
                           )}
@@ -433,7 +433,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                                 {k.replace(/_/g, " ")}
                               </div>
                               <div className="flex-1">
-                                <ProgressBar value={Number(v)} color="orange" />
+                                <ProgressBar value={Number(v)} color="emerald" />
                               </div>
                               <div className="w-10 text-xs text-right shrink-0">
                                 {String(v)}%
@@ -509,7 +509,7 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                     <Card key={s.step_number} className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-sm font-semibold shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-semibold shrink-0">
                             {s.step_number}
                           </div>
                           <div className="min-w-0">

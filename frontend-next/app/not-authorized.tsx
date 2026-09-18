@@ -17,7 +17,7 @@ export default function NotAuthorized({ message }: { message?: string }) {
         onClick={() => {
           router.back();
         }}
-        color="orange"
+        color="emerald"
         variant="secondary"
       >
         Go back

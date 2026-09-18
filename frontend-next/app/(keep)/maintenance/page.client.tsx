@@ -108,7 +108,7 @@ function AddWindowForm({
               className="w-full rounded-tremor-default border border-tremor-border px-2.5 py-1.5 text-sm shadow-tremor-input"
             />
           </div>
-          <Button type="submit" color="orange" loading={submitting} disabled={submitting}>
+          <Button type="submit" color="emerald" loading={submitting} disabled={submitting}>
             Add window
           </Button>
         </div>

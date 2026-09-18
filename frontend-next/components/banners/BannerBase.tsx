@@ -17,7 +17,7 @@ const KeepBanner = ({
   newWindow = false,
 }: KeepBannerProps)  => {
   return (
-    <div className="w-full py-2 pl-4 pr-2 mb-4 bg-orange-50 border border-orange-200 rounded-lg">
+    <div className="w-full py-2 pl-4 pr-2 mb-4 bg-green-50 border border-green-200 rounded-lg">
       <div className="flex items-center justify-between gap-4">
         <Image
           src={KeepPng}
@@ -43,7 +43,7 @@ const KeepBanner = ({
               ) : window.location.href = "https://www.github.com/keephq/keep"}
             }}
             variant="primary"
-            color="orange"
+            color="emerald"
             size="xs"
           >
             Give us a ⭐️
@@ -60,7 +60,7 @@ const KeepBanner = ({
                 "noopener,noreferrer"
               ) : window.location.href = "https://www.keephq.dev/meet-keep"}
             }}
-            color="orange"
+            color="emerald"
             variant="secondary"
             size="xs"
           >

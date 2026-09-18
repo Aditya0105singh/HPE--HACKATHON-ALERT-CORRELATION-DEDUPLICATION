@@ -41,133 +41,50 @@ type NavSection = {
   links: NavLink[];
 };
 
-// Sections mirror KeepHQ's sidebar grouping. `isDemo` marks surfaces backed by
-// sample data rather than the AlertLens API.
+// Header-less group at the top: Overview + the three alert views.
+const TOP_LINKS: NavLink[] = [
+  { href: "/", label: "Overview", icon: AiOutlineHome, testId: "home", isExact: true },
+  { href: "/feed", label: "Alert Feed", icon: AiOutlineAlert, testId: "feed" },
+  { href: "/firing", label: "Firing", icon: AiOutlineFire, testId: "firing" },
+  { href: "/5xx", label: "Critical 5xx", icon: AiOutlineGroup, testId: "critical" },
+];
+
+// `isDemo` marks surfaces backed by sample data rather than the AlertLens API.
 const SECTIONS: NavSection[] = [
-  {
-    title: "OVERVIEW",
-    links: [
-      {
-        href: "/",
-        label: "Home",
-        icon: AiOutlineHome,
-        testId: "home",
-        isExact: true,
-      },
-    ],
-  },
-  {
-    title: "ALERTS",
-    links: [
-      { href: "/feed", label: "Alert Feed", icon: AiOutlineAlert, testId: "feed" },
-      { href: "/firing", label: "Firing", icon: AiOutlineFire, testId: "firing" },
-      { href: "/5xx", label: "Critical 5xx", icon: AiOutlineGroup, testId: "critical" },
-    ],
-  },
   {
     title: "INCIDENTS",
     links: [
-      {
-        href: "/incidents",
-        label: "Incidents",
-        icon: MdOutlineNotificationsActive,
-        testId: "incidents",
-      },
-      { href: "/forecast", label: "Forecast", icon: LuGauge, testId: "forecast" },
-      {
-        href: "/timemachine",
-        label: "Time Machine",
-        icon: TbTimeline,
-        testId: "timemachine",
-      },
+      { href: "/incidents", label: "Incidents", icon: MdOutlineNotificationsActive, testId: "incidents" },
+      { href: "/ensylon", label: "Review Queue", icon: HiOutlineShieldCheck, testId: "ensylon" },
+      { href: "/timemachine", label: "Time Machine", icon: TbTimeline, testId: "timemachine" },
     ],
   },
   {
-    title: "NOISE REDUCTION",
+    title: "INTELLIGENCE",
     links: [
-      {
-        href: "/deduplication",
-        label: "Deduplication",
-        icon: IoMdGitMerge,
-        testId: "deduplication",
-      },
-      {
-        href: "/correlations",
-        label: "Correlations",
-        icon: TbChartDots3,
-        testId: "correlations",
-      },
-      {
-        href: "/topology",
-        label: "Service Topology",
-        icon: TbTopologyRing,
-        testId: "topology",
-      },
-      {
-        href: "/rules",
-        label: "Rules",
-        icon: MdOutlineRuleFolder,
-        testId: "rules",
-      },
+      { href: "/correlations", label: "Correlations", icon: TbChartDots3, testId: "correlations" },
+      { href: "/deduplication", label: "Deduplication", icon: IoMdGitMerge, testId: "deduplication" },
+      { href: "/topology", label: "Service Topology", icon: TbTopologyRing, testId: "topology" },
+      { href: "/forecast", label: "Forecast", icon: LuGauge, testId: "forecast" },
+    ],
+  },
+  {
+    title: "CONFIGURATION",
+    links: [
+      { href: "/rules", label: "Rules", icon: MdOutlineRuleFolder, testId: "rules" },
+      { href: "/workflows", label: "Workflows", icon: LuWorkflow, testId: "workflows" },
+      { href: "/providers", label: "Providers", icon: VscDebugDisconnect, testId: "providers" },
+      { href: "/notifications-hub", label: "Notifications", icon: MdOutlineNotificationsActive, testId: "notifications-hub" },
+      { href: "/maintenance", label: "Maintenance", icon: MdOutlineEventBusy, testId: "maintenance" },
+      { href: "/settings", label: "Settings", icon: HiOutlineCog6Tooth, testId: "settings" },
     ],
   },
   {
     title: "INSIGHTS",
     links: [
-      {
-        href: "/evaluation",
-        label: "Evaluation",
-        icon: LuBrainCircuit,
-        testId: "evaluation",
-      },
+      { href: "/evaluation", label: "Evaluation", icon: LuBrainCircuit, testId: "evaluation" },
       { href: "/pipeline", label: "Pipeline", icon: LuWorkflow, testId: "pipeline" },
       { href: "/ai", label: "AI", icon: HiOutlineSparkles, testId: "ai" },
-    ],
-  },
-  {
-    title: "ENSYLON AIOPS",
-    links: [
-      {
-        href: "/ensylon",
-        label: "Review Queue",
-        icon: HiOutlineShieldCheck,
-        testId: "ensylon",
-      },
-    ],
-  },
-  {
-    title: "PLATFORM",
-    links: [
-      {
-        href: "/workflows",
-        label: "Workflows",
-        icon: LuWorkflow,
-        testId: "workflows",
-      },
-      {
-        href: "/providers",
-        label: "Providers",
-        icon: VscDebugDisconnect,
-        testId: "providers",
-      },
-      {
-        href: "/notifications-hub",
-        label: "Notifications",
-        icon: MdOutlineNotificationsActive,
-        testId: "notifications-hub",
-      },
-      {
-        href: "/maintenance",
-        label: "Maintenance",
-        icon: MdOutlineEventBusy,
-        testId: "maintenance",
-      },
-      {
-        href: "/settings",
-        label: "Settings",
-        icon: HiOutlineCog6Tooth,
-        testId: "settings",
-      },
     ],
   },
 ];
@@ -177,11 +94,11 @@ const NavGroup = ({ title, links }: NavSection) => (
     <Disclosure.Button className="w-full flex justify-between items-center px-2">
       {({ open }) => (
         <>
-          <Subtitle className="text-xs ml-2 text-gray-900 font-medium uppercase">
+          <Subtitle className="text-[10.5px] ml-2 text-gray-400 font-semibold uppercase tracking-wider">
             {title}
           </Subtitle>
           <IoChevronUp
-            className={clsx({ "rotate-180": open }, "mr-2 text-slate-400")}
+            className={clsx({ "rotate-180": open }, "mr-2 text-gray-300 w-3 h-3")}
           />
         </>
       )}
@@ -206,6 +123,15 @@ const NavGroup = ({ title, links }: NavSection) => (
 
 export const AlertLensLinks = () => (
   <>
+    <ul className="space-y-0.5 p-1 pr-1">
+      {TOP_LINKS.map((link) => (
+        <li key={link.href}>
+          <LinkWithIcon href={link.href} icon={link.icon} testId={link.testId} isExact={link.isExact}>
+            <Subtitle className="text-xs">{link.label}</Subtitle>
+          </LinkWithIcon>
+        </li>
+      ))}
+    </ul>
     {SECTIONS.map((section) => (
       <NavGroup key={section.title} {...section} />
     ))}

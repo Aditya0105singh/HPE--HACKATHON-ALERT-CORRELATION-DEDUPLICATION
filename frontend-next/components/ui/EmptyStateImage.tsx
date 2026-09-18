@@ -41,7 +41,7 @@ export function EmptyStateImage({
             </p>
             <Button
               className="mt-4"
-              color="orange"
+              color="emerald"
               onClick={() => window.open(documentationURL, '_blank')}
             >
               View Documentation

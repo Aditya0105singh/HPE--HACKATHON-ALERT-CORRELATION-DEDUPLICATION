@@ -1,461 +1,676 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import clsx from "clsx";
-import { Badge, Button, Card, Text, Title } from "@tremor/react";
-import { LuArrowUpDown, LuCheck, LuFilter, LuMinus } from "react-icons/lu";
 import {
-  DropdownMenu,
-  EmptyStateCard,
-  KeepLoader,
-  PageSubtitle,
-  PageTitle,
-  SeverityLabel,
-} from "@/shared/ui";
-import type { UISeverity } from "@/shared/ui";
-import { AiOutlineFire, AiOutlineAlert } from "react-icons/ai";
-import { IoMdGitMerge } from "react-icons/io";
-import { TbChartDots3, TbTrendingDown } from "react-icons/tb";
-import { HiOutlineInbox, HiOutlineEyeSlash } from "react-icons/hi2";
-import { usePipelineState } from "@/entities/alertlens";
-import type { Alert, Cluster } from "@/entities/alertlens";
-import { StatCard } from "@/entities/alertlens/ui/StatCard";
-import { ClusterCard } from "@/entities/alertlens/ui/ClusterCard";
-import { AlertDetailDrawer } from "@/entities/alertlens/ui/AlertDetailDrawer";
+  HiOutlineArrowRight,
+  HiOutlineBell,
+  HiOutlineCheckCircle,
+  HiOutlineChevronRight,
+  HiOutlineDocumentText,
+  HiOutlineExclamationTriangle,
+  HiOutlineInbox,
+  HiOutlineMinusCircle,
+  HiOutlineShare,
+  HiOutlineShieldCheck,
+  HiOutlineSparkles,
+} from "react-icons/hi2";
+import { AiOutlineAlert } from "react-icons/ai";
+import { EmptyStateCard, KeepLoader } from "@/shared/ui";
+import { useEvaluation, usePipelineActions, usePipelineState, useSettingsStatus } from "@/entities/alertlens";
+import type { Cluster } from "@/entities/alertlens";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
-import { AlertIcon, ServiceChip } from "@/entities/alertlens/ui/AlertIcon";
-import {
-  DataTable,
-  TableHead,
-  Td,
-  Th,
-  Tr,
-} from "@/entities/alertlens/ui/Table";
-import { riskColor, timeAgo } from "@/entities/alertlens/lib/format";
+import { timeAgo } from "@/entities/alertlens/lib/format";
 
-const RECENT_LIMIT = 12;
+// ---------------------------------------------------------------------------
+// Everything below is derived from the real pipeline / settings responses.
+// ---------------------------------------------------------------------------
 
-type GroupOption = "Root Cause" | "Service" | "Severity";
-const GROUP_OPTIONS: GroupOption[] = ["Root Cause", "Service", "Severity"];
-const RISK_LEVELS = ["high", "medium", "low"];
+type IncidentStatus = "Open" | "Investigating" | "Resolved";
 
-/** Orders severity meaningfully rather than alphabetically. */
-const SEVERITY_RANK: Record<string, number> = {
-  critical: 3,
-  high: 2,
-  info: 1,
+function deriveStatus(cluster: Cluster): IncidentStatus {
+  const root = cluster.root_cause;
+  if (root.dismissed) return "Resolved";
+  if (root.escalated || (root.assignee && root.assignee !== "n/a")) return "Investigating";
+  return "Open";
+}
+
+const STATUS_STYLE: Record<IncidentStatus, { pill: string; dot: string }> = {
+  Open: { pill: "text-red-600 bg-red-50", dot: "bg-red-500" },
+  Investigating: { pill: "text-orange-600 bg-orange-50", dot: "bg-orange-500" },
+  Resolved: { pill: "text-blue-600 bg-blue-50", dot: "bg-blue-500" },
 };
 
-export function HomeClient() {
-  const { state, isLoading, error } = usePipelineState();
-  const [selected, setSelected] = useState<Alert | null>(null);
-  const [groupBy, setGroupBy] = useState<GroupOption>("Root Cause");
-  const [riskFilter, setRiskFilter] = useState<Set<string>>(new Set());
-  const [tab, setTab] = useState<"feed" | "timeline">("feed");
+const SEVERITY_COLOR: Record<string, string> = {
+  critical: "#ef4444",
+  high: "#f97316",
+  medium: "#eab308",
+  low: "#22c55e",
+  info: "#3b82f6",
+};
+const severityColor = (s: string) => SEVERITY_COLOR[s] ?? "#9ca3af";
+const RISK_COLOR: Record<string, string> = { high: "#ef4444", medium: "#f97316", low: "#3b82f6" };
+const RISK_LEVELS = ["high", "medium", "low"];
 
-  const toggleRisk = (lvl: string) =>
-    setRiskFilter((prev) => {
-      const next = new Set(prev);
-      if (next.has(lvl)) next.delete(lvl);
-      else next.add(lvl);
-      return next;
-    });
+function lastSeen(cluster: Cluster): string {
+  const stamps = cluster.alerts.map((a) => a.timestamp).sort();
+  return stamps[stamps.length - 1] ?? cluster.root_cause.timestamp;
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+// ---------------------------------------------------------------------------
+
+export function HomeClient() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { state, isLoading, error } = usePipelineState();
+  const { data: status } = useSettingsStatus();
+  const { data: evaluation } = useEvaluation();
+  const [riskFilter, setRiskFilter] = useState<string | null>(null);
+  const { loadDemo } = usePipelineActions();
+  const autoLoaded = useRef(false);
+
+  // First visit with nothing loaded: load the scripted demo once instead of
+  // leaving a blank page. Only when the backend truly reports no dataset.
+  const nothingLoaded = !isLoading && !state.dedup_stats && status?.dataset === "none";
+  useEffect(() => {
+    if (!nothingLoaded || autoLoaded.current) return;
+    autoLoaded.current = true;
+    loadDemo().catch(() => {});
+  }, [nothingLoaded, loadDemo]);
 
   const alerts = state.raw_alerts;
   const clusters = state.clusters;
 
-  // Stat definitions preserved from the original AlertLens Home page.
-  const stats = useMemo(() => {
-    const firing = alerts.filter((a) => a.status === "firing").length;
-    const suppressed = alerts.filter((a) => a.status === "suppressed").length;
-    const deduped = [...clusters.flatMap((c) => c.alerts), ...state.noise];
-    const groups = deduped.filter((a) => (a.duplicate_count ?? 1) > 1).length;
-    const noise = alerts.length
-      ? (100 * (1 - clusters.length / alerts.length)).toFixed(0)
-      : "0";
-    return { firing, suppressed, groups, noise };
-  }, [alerts, clusters, state.noise]);
+  const summary = useMemo(() => {
+    const raw = state.dedup_stats?.raw_count ?? alerts.length;
+    const unique = state.dedup_stats?.unique_count ?? alerts.length;
+    const noise = raw ? Math.round(100 * (1 - clusters.length / raw)) : 0;
+    return { raw, unique, noise };
+  }, [state.dedup_stats, alerts.length, clusters.length]);
+
+  // Per-minute arrival volume, split into alerts that ended up in an incident
+  // (correlated) vs everything ingested.
+  const buckets = useMemo(() => {
+    const clusteredIds = new Set(clusters.flatMap((c) => c.alerts.map((a) => a.id)));
+    const map = new Map<string, { total: number; correlated: number }>();
+    for (const a of alerts) {
+      const key = a.timestamp.slice(11, 16);
+      const b = map.get(key) ?? { total: 0, correlated: 0 };
+      b.total += 1;
+      if (clusteredIds.has(a.id)) b.correlated += 1;
+      map.set(key, b);
+    }
+    return [...map.entries()]
+      .sort((x, y) => x[0].localeCompare(y[0]))
+      .slice(-24)
+      .map(([label, v]) => ({ label, ...v }));
+  }, [alerts, clusters]);
+
+  const severityCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of alerts) counts.set(a.severity, (counts.get(a.severity) ?? 0) + 1);
+    const order = ["critical", "high", "medium", "low", "info"];
+    const rank = (s: string) => (order.includes(s) ? order.indexOf(s) : order.length);
+    return [...counts.entries()]
+      .map(([severity, count]) => ({ severity, count }))
+      .sort((a, b) => rank(a.severity) - rank(b.severity));
+  }, [alerts]);
 
   const topServices = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const a of alerts) {
-      if (!a.service) continue;
-      counts.set(a.service, (counts.get(a.service) ?? 0) + 1);
-    }
+    for (const a of alerts) counts.set(a.service, (counts.get(a.service) ?? 0) + 1);
     return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6);
+      .map(([service, count]) => ({ service, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
   }, [alerts]);
 
-  const recent = useMemo(() => alerts.slice(0, RECENT_LIMIT), [alerts]);
-
-  // Incident cards, filtered by risk then ordered by the chosen key.
-  const visibleClusters = useMemo(() => {
-    const filtered = clusters.filter(
-      (c) => !riskFilter.size || riskFilter.has(c.risk.level)
-    );
-    const compare: Record<GroupOption, (a: Cluster, b: Cluster) => number> = {
-      "Root Cause": (a, b) => b.risk.score - a.risk.score,
-      Service: (a, b) =>
-        a.root_cause.service.localeCompare(b.root_cause.service),
-      Severity: (a, b) =>
-        (SEVERITY_RANK[b.root_cause.severity] ?? 0) -
-        (SEVERITY_RANK[a.root_cause.severity] ?? 0),
-    };
-    return [...filtered].sort(compare[groupBy]);
-  }, [clusters, riskFilter, groupBy]);
-
-  // Alert arrivals bucketed per minute, so the cascade shape is visible.
-  const timeline = useMemo(() => {
-    const buckets = new Map<string, { total: number; critical: number }>();
-    for (const a of alerts) {
-      const key = a.timestamp.slice(11, 16); // HH:MM
-      const b = buckets.get(key) ?? { total: 0, critical: 0 };
-      b.total += 1;
-      if (a.severity === "critical") b.critical += 1;
-      buckets.set(key, b);
+  const insights = useMemo(() => {
+    const items: { icon: React.ElementType; tone: string; title: string; body: string; href: string }[] = [];
+    const top = [...clusters].sort((a, b) => b.risk.score - a.risk.score)[0];
+    if (top) {
+      items.push({
+        icon: HiOutlineExclamationTriangle,
+        tone: "bg-orange-50 text-orange-600",
+        title: `Highest risk: ${top.root_cause.alertname}`,
+        body: `${Math.round(top.risk.score * 100)}% escalation risk on ${top.root_cause.service}`,
+        href: `/incidents/${top.cluster_id}`,
+      });
     }
-    return [...buckets.entries()]
-      .sort((x, y) => x[0].localeCompare(y[0]))
-      .slice(-40)
-      .map(([label, v]) => ({ label, ...v }));
-  }, [alerts]);
+    items.push({
+      icon: HiOutlineShieldCheck,
+      tone: "bg-green-50 text-green-600",
+      title: `Noise reduced by ${summary.noise}%`,
+      body: `${summary.raw} raw alerts became ${clusters.length} incident${clusters.length === 1 ? "" : "s"}`,
+      href: "/correlations",
+    });
+    const matched = clusters.filter((c) => c.dna_match);
+    if (matched.length) {
+      const best = [...matched].sort(
+        (a, b) => (b.dna_match?.similarity_pct ?? 0) - (a.dna_match?.similarity_pct ?? 0)
+      )[0];
+      items.push({
+        icon: HiOutlineSparkles,
+        tone: "bg-blue-50 text-blue-600",
+        title: `${matched.length} incident${matched.length === 1 ? "" : "s"} match past ones`,
+        body: `Best match ${best.dna_match?.incident_id} (${best.dna_match?.similarity_pct}% similar)`,
+        href: `/timemachine/${best.cluster_id}`,
+      });
+    } else {
+      items.push({
+        icon: HiOutlineSparkles,
+        tone: "bg-gray-100 text-gray-500",
+        title: "No historical matches",
+        body: "No incident resembles a past one yet",
+        href: "/timemachine",
+      });
+    }
+    return items;
+  }, [clusters, summary]);
 
-  const timelineMax = Math.max(1, ...timeline.map((b) => b.total));
+  const readiness = useMemo(() => {
+    const loaded = !!status && status.dataset !== "none" && status.persisted_alert_count > 0;
+    return {
+      healthy: loaded,
+      checks: [
+        { label: `Data source (${status?.dataset ?? "none"})`, ok: loaded },
+        { label: `Correlation engine (${clusters.length} active)`, ok: loaded },
+        {
+          label: status?.llm_configured ? `LLM service (${status.llm_provider})` : "LLM service (not configured)",
+          ok: !!status?.llm_configured,
+        },
+        { label: `Notification providers (${status?.provider_count ?? 0})`, ok: (status?.provider_count ?? 0) > 0 },
+        { label: `Workflow rules (${status?.workflow_rule_count ?? 0})`, ok: (status?.workflow_rule_count ?? 0) > 0 },
+      ],
+    };
+  }, [status, clusters.length]);
 
-  if (isLoading) {
-    return <KeepLoader loadingText="Loading overview..." />;
+  const triageSaved = useMemo(
+    () => Math.round(clusters.reduce((n, c) => n + (c.est_triage_minutes_saved ?? 0), 0)),
+    [clusters]
+  );
+
+  const visibleClusters = useMemo(
+    () =>
+      [...clusters]
+        .filter((c) => !riskFilter || c.risk.level === riskFilter)
+        .sort((a, b) => b.risk.score - a.risk.score),
+    [clusters, riskFilter]
+  );
+
+  if (isLoading || (nothingLoaded && autoLoaded.current)) {
+    return <KeepLoader loadingText={nothingLoaded ? "Loading demo data..." : "Loading overview..."} />;
   }
 
   if (error) {
     return (
       <div className="p-4">
-        <EmptyStateCard
-          icon={AiOutlineAlert}
-          title="Could not load overview"
-          description={String(error)}
-        />
+        <EmptyStateCard icon={AiOutlineAlert} title="Could not load overview" description={String(error)} />
       </div>
     );
   }
+
+  const firstName = session?.user?.name?.split(" ")[0];
+  const heading = (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">
+        {greeting()}
+        {firstName ? `, ${firstName}` : ""}
+      </h1>
+      <p className="text-sm text-gray-500 mt-1">Turning noisy alerts into clear, actionable incidents.</p>
+    </div>
+  );
 
   if (!state.dedup_stats) {
     return (
-      <div className="flex flex-col gap-4 p-4">
-        <div>
-          <PageTitle>Overview</PageTitle>
-          <PageSubtitle>
-            Alert correlation, deduplication and AI-driven incident analysis.
-          </PageSubtitle>
-        </div>
-        <Card>
-          <EmptyStateCard
-            noCard
-            icon={HiOutlineInbox}
-            title="No alert batch loaded"
-            description="Load one of the datasets below to run the pipeline."
-          >
+      <div className="flex flex-col gap-4">
+        {heading}
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <EmptyStateCard noCard icon={HiOutlineInbox} title="No alert batch loaded" description="Load one of the datasets below to run the pipeline.">
             <DataSourceButtons />
           </EmptyStateCard>
-        </Card>
+        </div>
       </div>
     );
   }
 
+  const totalSeverity = severityCounts.reduce((n, s) => n + s.count, 0) || 1;
+  const maxBucket = Math.max(1, ...buckets.map((b) => b.total));
+  const maxService = Math.max(1, ...topServices.map((s) => s.count));
+  const labelEvery = Math.max(1, Math.ceil(buckets.length / 6));
+
   return (
-    <div className="flex flex-col gap-4 p-4 h-full">
+    <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <PageTitle>Overview</PageTitle>
-          <PageSubtitle>
-            Current alert and incident state across the loaded batch.
-          </PageSubtitle>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <DataSourceButtons />
-          <StormMenu />
+        {heading}
+        <div className="flex flex-col items-end gap-2">
+          <div className="hidden xl:block rounded-xl border border-green-100 bg-green-50/60 px-4 py-2 text-xs text-green-800 italic">
+            &ldquo;Less noise. Faster answers. Happier on-calls.&rdquo;
+            <div className="not-italic font-semibold text-green-700 mt-0.5">— AlertLens</div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <DataSourceButtons />
+            <StormMenu />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        <StatCard
-          label="Active incidents"
-          value={clusters.length}
-          hint="Correlated now"
-          icon={AiOutlineFire}
-          color="red"
-        />
-        <StatCard
-          label="Firing alerts"
-          value={stats.firing}
-          hint="Active now"
-          icon={AiOutlineAlert}
-          color="orange"
-        />
-        <StatCard
-          label="Correlated groups"
-          value={stats.groups}
-          hint="Fingerprints collapsed"
-          icon={IoMdGitMerge}
-          color="blue"
-        />
-        <StatCard
-          label="Suppressed alerts"
-          value={stats.suppressed}
-          hint="Held back"
-          icon={HiOutlineEyeSlash}
-          color="gray"
-        />
-        <StatCard
-          label="Noise reduction"
-          value={`${stats.noise}%`}
-          hint="Raw → incidents"
-          icon={TbTrendingDown}
-          color="emerald"
-        />
-        <StatCard
-          label="Total alerts (raw)"
-          value={alerts.length}
-          hint="This batch"
-          icon={HiOutlineInbox}
-          color="amber"
-        />
+      {/* Pipeline flow */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] gap-3 items-center">
+        <FlowCard icon={HiOutlineBell} value={summary.raw} label="Raw alerts" spark={buckets.map((b) => b.total)} />
+        <FlowArrow />
+        <FlowCard icon={HiOutlineShare} value={summary.unique} label="Unique after dedup" spark={buckets.map((b) => b.correlated)} />
+        <FlowArrow />
+        <FlowCard icon={HiOutlineDocumentText} value={clusters.length} label="Actionable incidents" />
+        <FlowArrow />
+        <FlowCard icon={HiOutlineShieldCheck} value={`${summary.noise}%`} label="Noise reduction" accent />
       </div>
 
-      <div className="grid grid-cols-1 2xl:grid-cols-3 gap-3">
-        <div className="2xl:col-span-2 flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <Title className="text-base">Incidents</Title>
-            <div className="flex items-center gap-2">
-              <DropdownMenu.Menu icon={LuArrowUpDown} label={`Sort: ${groupBy}`}>
-                {GROUP_OPTIONS.map((g) => (
-                  <DropdownMenu.Item
-                    key={g}
-                    icon={groupBy === g ? LuCheck : LuMinus}
-                    label={g}
-                    onClick={() => setGroupBy(g)}
-                  />
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_290px] gap-3 items-start">
+        <div className="flex flex-col gap-3 min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] gap-3">
+            {/* Alerts by severity */}
+            <Panel title="Alerts by severity">
+              <div className="flex items-center gap-4">
+                <Donut segments={severityCounts.map((s) => ({ color: severityColor(s.severity), value: s.count }))} total={totalSeverity} />
+                <ul className="flex flex-col gap-1.5 text-xs min-w-0">
+                  {severityCounts.map((s) => (
+                    <li key={s.severity} className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: severityColor(s.severity) }} />
+                      <span className="capitalize text-gray-600">{s.severity}</span>
+                      <span className="ml-auto font-semibold text-gray-800">{s.count}</span>
+                      <span className="text-gray-400 w-9 text-right">({Math.round((100 * s.count) / totalSeverity)}%)</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Panel>
+
+            {/* Alerts over time */}
+            <Panel
+              title="Alerts over time"
+              right={
+                <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-200" />Ingested</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-600" />Correlated</span>
+                </div>
+              }
+            >
+              <div className="flex gap-2">
+                <div className="flex flex-col justify-between h-32 text-[10px] text-gray-400 text-right pb-4">
+                  <span>{maxBucket}</span>
+                  <span>{Math.round(maxBucket / 2)}</span>
+                  <span>0</span>
+                </div>
+                <div className="flex-1 relative">
+                  <div className="absolute inset-x-0 top-0 h-28 flex flex-col justify-between pointer-events-none">
+                    <div className="border-t border-dashed border-gray-100" />
+                    <div className="border-t border-dashed border-gray-100" />
+                    <div className="border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex items-end gap-[3px] h-28">
+                    {buckets.map((b) => (
+                      <div
+                        key={b.label}
+                        className="flex-1 h-full relative min-w-0"
+                        title={`${b.label} — ${b.total} ingested, ${b.correlated} correlated`}
+                      >
+                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-200" style={{ height: `${(b.total / maxBucket) * 100}%` }} />
+                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-600" style={{ height: `${(b.correlated / maxBucket) * 100}%` }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-[3px] mt-1 h-3">
+                    {buckets.map((b, i) => (
+                      <span key={b.label} className="flex-1 min-w-0 text-[9px] text-gray-400 whitespace-nowrap overflow-visible">
+                        {i % labelEvery === 0 ? b.label : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Panel>
+
+            {/* Top affected services */}
+            <Panel title="Top affected services">
+              <ul className="flex flex-col gap-2.5">
+                {topServices.map((s) => (
+                  <li key={s.service} className="text-xs">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-gray-600 truncate">{s.service}</span>
+                      <span className="font-semibold text-gray-800">{s.count}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-green-50 overflow-hidden">
+                      <div className="h-full rounded-full bg-green-600" style={{ width: `${(s.count / maxService) * 100}%` }} />
+                    </div>
+                  </li>
                 ))}
-              </DropdownMenu.Menu>
-              <DropdownMenu.Menu
-                icon={LuFilter}
-                label={riskFilter.size ? `Risk (${riskFilter.size})` : "Risk"}
-              >
+              </ul>
+              <Link href="/topology" className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline mt-3">
+                View all services <HiOutlineArrowRight size={12} />
+              </Link>
+            </Panel>
+          </div>
+
+          {/* Recent incidents */}
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            <div className="flex items-center justify-between gap-2 flex-wrap p-3.5 border-b border-gray-100">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-gray-900 text-base mr-1">Recent incidents</span>
+                <FilterPill active={riskFilter === null} onClick={() => setRiskFilter(null)}>
+                  All {clusters.length}
+                </FilterPill>
                 {RISK_LEVELS.map((lvl) => (
-                  <DropdownMenu.Item
-                    key={lvl}
-                    icon={riskFilter.has(lvl) ? LuCheck : LuMinus}
-                    label={lvl}
-                    onClick={() => toggleRisk(lvl)}
-                  />
+                  <FilterPill key={lvl} active={riskFilter === lvl} onClick={() => setRiskFilter(riskFilter === lvl ? null : lvl)}>
+                    <span className="capitalize">{lvl}</span> {clusters.filter((c) => c.risk.level === lvl).length}
+                  </FilterPill>
                 ))}
-              </DropdownMenu.Menu>
-              <Link href="/incidents" className="text-xs text-orange-500">
-                View all →
+              </div>
+              <Link href="/incidents" className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:border-green-300 hover:text-green-700">
+                View all incidents <HiOutlineArrowRight size={12} />
               </Link>
             </div>
-          </div>
 
-          {visibleClusters.length === 0 ? (
-            <Card>
-              <EmptyStateCard
-                noCard
-                icon={TbChartDots3}
-                title={
-                  clusters.length === 0
-                    ? "No incidents correlated"
-                    : "No incidents match the risk filter"
-                }
-                description={
-                  clusters.length === 0
-                    ? "Nothing in this batch grouped into an incident."
-                    : "There are active incidents, just none at this risk level."
-                }
-              >
-                {clusters.length > 0 && (
-                  <Button
-                    size="xs"
-                    color="orange"
-                    onClick={() => setRiskFilter(new Set())}
-                  >
-                    Clear filter
-                  </Button>
-                )}
-              </EmptyStateCard>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              {visibleClusters.slice(0, 4).map((c) => (
-                <ClusterCard key={c.cluster_id} cluster={c} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <Title className="text-base">Most affected services</Title>
-          <Card className="p-4">
-            {topServices.length === 0 ? (
-              <Text className="text-sm text-gray-500">No services yet.</Text>
+            {visibleClusters.length === 0 ? (
+              <div className="p-6">
+                <EmptyStateCard noCard icon={HiOutlineCheckCircle} title="No incidents match" description="Nothing correlated at this risk level." />
+              </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                {topServices.map(([service, count]) => {
-                  const max = topServices[0][1] || 1;
-                  return (
-                    <div key={service} className="flex items-center gap-2">
-                      <div className="w-36 text-sm truncate">{service}</div>
-                      <div className="flex-1 h-2 rounded bg-gray-100 overflow-hidden">
-                        <div
-                          className="h-full bg-orange-400"
-                          style={{ width: `${(count / max) * 100}%` }}
-                        />
-                      </div>
-                      <div className="w-8 text-xs text-gray-500 text-right">
-                        {count}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[11px] text-gray-400 border-b border-gray-100">
+                      <th className="font-medium px-3.5 py-2 w-8">#</th>
+                      <th className="font-medium px-3.5 py-2">Incident</th>
+                      <th className="font-medium px-3.5 py-2 hidden lg:table-cell">Root cause (AI)</th>
+                      <th className="font-medium px-3.5 py-2">Affected services</th>
+                      <th className="font-medium px-3.5 py-2">Alerts</th>
+                      <th className="font-medium px-3.5 py-2">Risk</th>
+                      <th className="font-medium px-3.5 py-2">Status</th>
+                      <th className="font-medium px-3.5 py-2 hidden xl:table-cell">Last updated</th>
+                      <th className="w-6" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleClusters.map((c, i) => {
+                      const st = deriveStatus(c);
+                      const services = [...new Set([c.root_cause.service, ...c.alerts.map((a) => a.service)])];
+                      const sev = severityColor(c.root_cause.severity);
+                      return (
+                        <tr
+                          key={c.cluster_id}
+                          onClick={() => router.push(`/incidents/${c.cluster_id}`)}
+                          className="cursor-pointer border-b border-gray-50 last:border-0 hover:bg-green-50/40 transition-colors"
+                        >
+                          <td className="px-3.5 py-2.5 text-gray-400 text-xs">{i + 1}</td>
+                          <td className="px-3.5 py-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <span
+                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                style={{ background: `${sev}1a`, color: sev }}
+                              >
+                                <HiOutlineExclamationTriangle size={16} />
+                              </span>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-gray-900 truncate max-w-[170px]">{c.root_cause.alertname}</div>
+                                <div className="text-[11px] text-gray-400">#{c.cluster_id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-2.5 hidden lg:table-cell max-w-[220px]">
+                            <div className="text-xs text-gray-500 line-clamp-2">{c.summary || `Root cause on ${c.root_cause.service}.`}</div>
+                          </td>
+                          <td className="px-3.5 py-2.5">
+                            <div className="flex flex-wrap gap-1 max-w-[150px]">
+                              {services.slice(0, 2).map((s) => (
+                                <span key={s} className="text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">{s}</span>
+                              ))}
+                              {services.length > 2 && <span className="text-[11px] text-gray-400">+{services.length - 2}</span>}
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-2.5 whitespace-nowrap">
+                            <span className="font-semibold text-gray-800">{c.size}</span>
+                            <div className="text-[11px] text-gray-400">({c.raw_alert_count} collapsed)</div>
+                          </td>
+                          <td className="px-3.5 py-2.5 w-32">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                                <div className="h-full rounded-full" style={{ width: `${Math.round(c.risk.score * 100)}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af" }} />
+                              </div>
+                              <span className="text-[11px] text-gray-500 w-8 text-right">{Math.round(c.risk.score * 100)}%</span>
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-2.5">
+                            <span className={clsx("inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap", STATUS_STYLE[st].pill)}>
+                              <span className={clsx("w-1.5 h-1.5 rounded-full", STATUS_STYLE[st].dot)} />
+                              {st}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-2.5 hidden xl:table-cell text-xs text-gray-400 whitespace-nowrap">{timeAgo(lastSeen(c))}</td>
+                          <td className="pr-3 text-gray-300"><HiOutlineChevronRight size={14} /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
-          </Card>
-
-          <div className="flex items-center justify-between">
-            <Title className="text-base">Risk breakdown</Title>
           </div>
-          <Card className="p-4 flex flex-col gap-2">
-            {(["high", "medium", "low"] as const).map((level) => {
-              const n = clusters.filter((c) => c.risk.level === level).length;
-              return (
-                <div key={level} className="flex items-center justify-between">
-                  <Badge size="xs" color={riskColor(level)}>
-                    {level}
-                  </Badge>
-                  <Text className="text-sm">{n} incidents</Text>
-                </div>
-              );
-            })}
-          </Card>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-1">
-          {(["feed", "timeline"] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setTab(k)}
+        {/* Right rail */}
+        <div className="flex flex-col gap-3">
+          <Panel title="AI Insights" icon={<HiOutlineSparkles className="text-green-600" size={16} />}>
+            <ul className="flex flex-col gap-2">
+              {insights.map((it) => (
+                <li key={it.title}>
+                  <Link href={it.href} className="flex items-center gap-2.5 rounded-lg border border-gray-100 p-2.5 hover:border-green-200 hover:bg-green-50/40 transition-colors">
+                    <span className={clsx("w-7 h-7 rounded-full flex items-center justify-center shrink-0", it.tone)}>
+                      <it.icon size={14} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold text-gray-800 truncate">{it.title}</span>
+                      <span className="block text-[11px] text-gray-400 line-clamp-2">{it.body}</span>
+                    </span>
+                    <HiOutlineChevronRight size={13} className="text-gray-300 shrink-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+
+          {evaluation && (
+            <Panel
+              title="Measured accuracy"
+              right={
+                <Link href="/evaluation" className="text-[11px] font-medium text-green-700 hover:underline">
+                  Details
+                </Link>
+              }
+            >
+              <div className="grid grid-cols-2 gap-2">
+                <Metric label="Incident detection" value={`${evaluation.incident_detection_pct}%`} />
+                <Metric label="Cluster purity" value={`${evaluation.cluster_purity_pct}%`} />
+                <Metric label="Noise excluded" value={`${evaluation.noise_excluded_pct}%`} />
+                <Metric label="Triage saved" value={`~${triageSaved}m`} />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2.5">
+                Scored against hidden ground truth over {evaluation.seeds_tested} seeds; the pipeline never reads it.
+              </p>
+            </Panel>
+          )}
+
+          <Panel title="On-call readiness">
+            <div
               className={clsx(
-                "text-sm px-3 py-1.5 rounded-md border transition-colors",
-                tab === k
-                  ? "bg-orange-500 border-orange-500 text-white font-medium"
-                  : "border-gray-200 text-gray-600 hover:border-orange-300"
+                "rounded-lg px-3 py-2 mb-3 flex items-center gap-2 border",
+                readiness.healthy ? "bg-green-50 border-green-100" : "bg-gray-50 border-gray-200"
               )}
             >
-              {k === "feed" ? "Recent alerts" : "Timeline"}
-            </button>
+              {readiness.healthy ? (
+                <HiOutlineCheckCircle className="text-green-600" size={18} />
+              ) : (
+                <HiOutlineMinusCircle className="text-gray-400" size={18} />
+              )}
+              <div>
+                <div className={clsx("text-xs font-semibold", readiness.healthy ? "text-green-800" : "text-gray-600")}>
+                  {readiness.healthy ? "System healthy" : "No data loaded"}
+                </div>
+                <div className="text-[11px] text-gray-500">
+                  {readiness.healthy ? "Pipeline has processed alerts" : "Load a dataset to run the pipeline"}
+                </div>
+              </div>
+            </div>
+            <ul className="flex flex-col gap-2">
+              {readiness.checks.map((c) => (
+                <li key={c.label} className="flex items-center gap-2 text-xs text-gray-600">
+                  {c.ok ? (
+                    <HiOutlineCheckCircle className="text-green-600 shrink-0" size={15} />
+                  ) : (
+                    <HiOutlineMinusCircle className="text-gray-300 shrink-0" size={15} />
+                  )}
+                  <span className={c.ok ? "" : "text-gray-400"}>{c.label}</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function Panel({
+  title,
+  right,
+  icon,
+  children,
+}: {
+  title: string;
+  right?: React.ReactNode;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-1.5 font-semibold text-gray-900 text-sm">
+          {icon}
+          {title}
+        </div>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={clsx(
+        "text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors",
+        active ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FlowArrow() {
+  return <HiOutlineArrowRight className="hidden lg:block text-green-500 mx-auto" size={18} />;
+}
+
+function FlowCard({
+  icon: Icon,
+  value,
+  label,
+  spark,
+  accent,
+}: {
+  icon: React.ElementType;
+  value: string | number;
+  label: string;
+  spark?: number[];
+  accent?: boolean;
+}) {
+  const max = spark && spark.length ? Math.max(1, ...spark) : 1;
+  return (
+    <div className={clsx("rounded-xl border bg-white p-4 shadow-sm flex items-center gap-3 min-w-0", accent ? "border-green-200 bg-green-50/40" : "border-gray-200")}>
+      <span className="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center shrink-0">
+        <Icon size={22} />
+      </span>
+      <div className="min-w-0">
+        <div className="text-2xl font-bold text-gray-900 tabular-nums leading-none">
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </div>
+        <div className="text-xs text-gray-500 mt-1 truncate">{label}</div>
+      </div>
+      {spark && spark.length > 1 && (
+        <div className="ml-auto flex items-end gap-[2px] h-9 w-16 shrink-0">
+          {spark.slice(-10).map((v, i) => (
+            <div key={i} className="flex-1 rounded-[1px] bg-green-300" style={{ height: `${Math.max(10, (v / max) * 100)}%` }} />
           ))}
         </div>
-        <Link href="/feed" className="text-xs text-orange-500">
-          Open feed →
-        </Link>
-      </div>
-
-      {tab === "feed" ? (
-        <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <DataTable>
-              <TableHead>
-                <Th>Severity</Th>
-                <Th>Alert</Th>
-                <Th>Service</Th>
-                <Th>Status</Th>
-                <Th>Received</Th>
-              </TableHead>
-              <tbody>
-                {recent.map((a) => (
-                  <Tr key={a.id} onClick={() => setSelected(a)}>
-                    <Td>
-                      <SeverityLabel severity={a.severity as UISeverity} />
-                    </Td>
-                    <Td>
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <AlertIcon
-                          alertname={a.alertname}
-                          severity={a.severity}
-                          service={a.service}
-                        />
-                        <div className="min-w-0">
-                          <div className="font-medium truncate max-w-xs">
-                            {a.alertname}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate max-w-md">
-                            {a.message}
-                          </div>
-                        </div>
-                      </div>
-                    </Td>
-                    <Td>
-                      <ServiceChip service={a.service} />
-                    </Td>
-                    <Td>
-                      <Badge size="xs" color="gray">
-                        {a.status}
-                      </Badge>
-                    </Td>
-                    <Td className="text-xs text-gray-500 whitespace-nowrap">
-                      {timeAgo(a.timestamp)}
-                    </Td>
-                  </Tr>
-                ))}
-              </tbody>
-            </DataTable>
-          </div>
-        </Card>
-      ) : (
-        <Card className="p-4">
-          {/* Alert arrivals bucketed by minute — shows the cascade shape. */}
-          <div className="flex items-end gap-1 h-32">
-            {timeline.map((b) => (
-              <div
-                key={b.label}
-                className="flex-1 h-full flex flex-col items-center justify-end gap-1 min-w-0"
-                title={`${b.label} — ${b.total} alerts (${b.critical} critical)`}
-              >
-                <div
-                  className="w-full bg-red-400 rounded-t"
-                  style={{ height: `${(b.critical / timelineMax) * 100}%` }}
-                />
-                <div
-                  className="w-full bg-orange-300"
-                  style={{
-                    height: `${((b.total - b.critical) / timelineMax) * 100}%`,
-                  }}
-                />
-                <span className="text-[10px] text-gray-400 truncate w-full text-center">
-                  {b.label}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-red-400" /> critical
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-orange-300" /> other
-            </span>
-            <span className="ml-auto">
-              {alerts.length} alerts across {timeline.length} minutes
-            </span>
-          </div>
-        </Card>
       )}
+    </div>
+  );
+}
 
-      <AlertDetailDrawer alert={selected} onClose={() => setSelected(null)} />
+function Donut({ segments, total }: { segments: { color: string; value: number }[]; total: number }) {
+  const r = 15.9155;
+  let offset = 25;
+  return (
+    <div className="relative w-28 h-28 shrink-0">
+      <svg viewBox="0 0 36 36" className="w-full h-full">
+        <circle cx="18" cy="18" r={r} fill="none" stroke="#f3f4f6" strokeWidth="5" />
+        {segments.map((s, i) => {
+          const pct = (100 * s.value) / total;
+          const el = (
+            <circle
+              key={i}
+              cx="18"
+              cy="18"
+              r={r}
+              fill="none"
+              stroke={s.color}
+              strokeWidth="5"
+              strokeDasharray={`${pct} ${100 - pct}`}
+              strokeDashoffset={offset}
+            />
+          );
+          offset -= pct;
+          return el;
+        })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-lg font-bold text-gray-900 leading-none">{total}</span>
+        <span className="text-[10px] text-gray-400 mt-0.5">Total alerts</span>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-green-50/60 border border-green-100 px-2.5 py-2">
+      <div className="text-base font-bold text-green-800 leading-none">{value}</div>
+      <div className="text-[10px] text-gray-500 mt-1">{label}</div>
     </div>
   );
 }

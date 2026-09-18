@@ -75,7 +75,7 @@ function TypingIndicator() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-bounce"
+          className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce"
           style={{ animationDelay: `${i * 120}ms` }}
         />
       ))}
@@ -174,7 +174,7 @@ export function AssistantChat() {
         onClick={() => setIsOpen(true)}
         aria-label="Open AlertLens assistant"
         className={clsx(
-          "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-white shadow-lg hover:bg-orange-600",
+          "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-white shadow-lg hover:bg-green-600",
           "transition-all duration-200 ease-out",
           isOpen
             ? "opacity-0 scale-90 pointer-events-none"
@@ -196,7 +196,7 @@ export function AssistantChat() {
       >
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-2 min-w-0">
-          <HiOutlineSparkles className="w-5 h-5 text-orange-500 shrink-0" />
+          <HiOutlineSparkles className="w-5 h-5 text-green-500 shrink-0" />
           <div className="min-w-0">
             <Title className="text-sm truncate">AlertLens Assistant</Title>
             <Text className="text-xs text-gray-500 truncate">
@@ -241,7 +241,7 @@ export function AssistantChat() {
             key={i}
             className={
               m.role === "user"
-                ? "self-end max-w-[85%] rounded-lg bg-orange-500 text-white px-3 py-2 text-sm"
+                ? "self-end max-w-[85%] rounded-lg bg-green-500 text-white px-3 py-2 text-sm"
                 : "self-start max-w-[95%] rounded-lg bg-gray-100 px-3 py-2 text-sm"
             }
           >
@@ -271,7 +271,7 @@ export function AssistantChat() {
               key={s.label}
               type="button"
               onClick={() => send(s.prompt)}
-              className="text-xs rounded-full border border-gray-200 px-2.5 py-1 hover:border-orange-400 hover:text-orange-600"
+              className="text-xs rounded-full border border-gray-200 px-2.5 py-1 hover:border-green-400 hover:text-green-600"
             >
               {s.label}
             </button>
@@ -297,7 +297,7 @@ export function AssistantChat() {
         />
         <Button
           size="xs"
-          color="orange"
+          color="emerald"
           icon={LuSend}
           loading={isAsking}
           disabled={!input.trim()}

@@ -23,7 +23,7 @@ export function ClusterCard({ cluster }: { cluster: Cluster }) {
         <div className="min-w-0">
           <Link
             href={`/incidents/${cluster.cluster_id}`}
-            className="hover:text-orange-500"
+            className="hover:text-green-500"
           >
             <Title className="truncate">
               {cluster.root_cause.alertname}

@@ -8,19 +8,19 @@ type OptionType = { value: string; label: string };
 const customStyles: StylesConfig<OptionType, true> = {
   control: (provided: any, state: any) => ({
     ...provided,
-    borderColor: state.isFocused ? 'orange' : '#ccc',
+    borderColor: state.isFocused ? 'rgb(22 163 74)' : '#ccc',
     '&:hover': {
-      borderColor: 'orange',
+      borderColor: 'rgb(22 163 74)',
     },
-    boxShadow: state.isFocused ? '0 0 0 1px orange' : null,
+    boxShadow: state.isFocused ? '0 0 0 1px rgb(22 163 74)' : null,
     backgroundColor: 'transparent',
   }),
   option: (provided: any, state: any) => ({
     ...provided,
-    backgroundColor: state.isSelected ? 'orange' : state.isFocused ? 'rgba(255, 165, 0, 0.1)' : 'transparent',
+    backgroundColor: state.isSelected ? 'rgb(22 163 74)' : state.isFocused ? 'rgba(22, 163, 74, 0.1)' : 'transparent',
     color: state.isSelected ? 'white' : 'black',
     '&:hover': {
-      backgroundColor: 'rgba(255, 165, 0, 0.3)',
+      backgroundColor: 'rgba(22, 163, 74, 0.3)',
     },
   }),
   multiValue: (provided: any) => ({
@@ -33,9 +33,9 @@ const customStyles: StylesConfig<OptionType, true> = {
   }),
   multiValueRemove: (provided: any) => ({
     ...provided,
-    color: 'orange',
+    color: 'rgb(22 163 74)',
     '&:hover': {
-      backgroundColor: 'orange',
+      backgroundColor: 'rgb(22 163 74)',
       color: 'white',
     },
   }),
@@ -59,14 +59,14 @@ type CustomSelectProps = SelectProps<OptionType, true, GroupBase<OptionType>> & 
 const customComponents: CustomSelectProps['components'] = {
   Option: ({ children, ...props }) => (
     <components.Option {...props}>
-      <Badge color="orange" size="sm">
+      <Badge color="emerald" size="sm">
         {children}
       </Badge>
     </components.Option>
   ),
   MultiValue: ({ children, ...props }) => (
     <components.MultiValue {...props}>
-      <Badge color="orange" size="sm">
+      <Badge color="emerald" size="sm">
         {children}
       </Badge>
     </components.MultiValue>

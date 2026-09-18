@@ -110,7 +110,7 @@ function FacetGroup({
         />
         {label}
         {selected.size > 0 && (
-          <span className="ml-auto text-orange-500 normal-case">
+          <span className="ml-auto text-green-500 normal-case">
             {selected.size}
           </span>
         )}
@@ -129,7 +129,7 @@ function FacetGroup({
                   type="checkbox"
                   checked={isOn}
                   onChange={() => onToggle(facetKey, value)}
-                  className="accent-orange-500"
+                  className="accent-green-500"
                 />
                 {DOT_COLOR[value] && (
                   <span
@@ -151,7 +151,7 @@ function FacetGroup({
             <button
               type="button"
               onClick={() => setShowAll(!showAll)}
-              className="text-xs text-orange-500 text-left px-1 mt-0.5"
+              className="text-xs text-green-500 text-left px-1 mt-0.5"
             >
               {showAll ? "Show less" : `Show ${options.length - 6} more`}
             </button>
@@ -204,7 +204,7 @@ export function AlertFacets({
                 onReset();
               }}
               onKeyDown={(e) => e.key === "Enter" && onReset()}
-              className="flex items-center gap-1 text-xs text-orange-500 lg:pointer-events-auto"
+              className="flex items-center gap-1 text-xs text-green-500 lg:pointer-events-auto"
             >
               <LuRotateCcw className="w-3 h-3" />
               Reset

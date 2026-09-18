@@ -56,7 +56,7 @@ export default function SettingsPage() {
             </Text>
             <StatusRow
               label="Dataset loaded"
-              value={<Badge color="orange" size="xs">{status.dataset}</Badge>}
+              value={<Badge color="emerald" size="xs">{status.dataset}</Badge>}
             />
             <StatusRow label="Persisted alerts" value={status.persisted_alert_count} />
             <StatusRow label="Active incidents" value={status.active_incident_count} />
@@ -109,7 +109,7 @@ export default function SettingsPage() {
                 ) : permission === "unsupported" ? (
                   <Badge color="gray" size="xs">unsupported</Badge>
                 ) : (
-                  <Button size="xs" color="orange" onClick={requestPermission}>
+                  <Button size="xs" color="emerald" onClick={requestPermission}>
                     Enable
                   </Button>
                 )

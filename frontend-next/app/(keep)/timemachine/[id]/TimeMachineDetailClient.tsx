@@ -45,7 +45,7 @@ export function TimeMachineDetailClient({
               : String(error)
           }
         >
-          <Link href="/timemachine" className="text-orange-500 text-sm">
+          <Link href="/timemachine" className="text-green-500 text-sm">
             Back to Time Machine
           </Link>
         </EmptyStateCard>
@@ -61,7 +61,7 @@ export function TimeMachineDetailClient({
       <div>
         <Link
           href="/timemachine"
-          className="text-xs text-gray-500 hover:text-orange-500"
+          className="text-xs text-gray-500 hover:text-green-500"
         >
           ← Time Machine
         </Link>
@@ -96,7 +96,7 @@ export function TimeMachineDetailClient({
               label="Similarity"
               value={`${data.similarity}%`}
               icon={TbTimeline}
-              color="orange"
+              color="emerald"
             />
             <StatCard
               label="Match confidence"
@@ -123,7 +123,7 @@ export function TimeMachineDetailClient({
                       {k.replace(/_/g, " ")}
                     </div>
                     <div className="flex-1">
-                      <ProgressBar value={Number(v)} color="orange" />
+                      <ProgressBar value={Number(v)} color="emerald" />
                     </div>
                     <div className="w-12 text-xs text-right shrink-0">
                       {String(v)}%
@@ -195,7 +195,7 @@ export function TimeMachineDetailClient({
       {incident && (
         <Link
           href={`/incidents/${incident.cluster_id}`}
-          className="text-sm text-orange-500"
+          className="text-sm text-green-500"
         >
           Open full incident →
         </Link>

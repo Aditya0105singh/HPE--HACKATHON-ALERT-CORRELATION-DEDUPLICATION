@@ -35,7 +35,7 @@ export default function Modal({
   return (
     <Dialog open={isOpen} onClose={onClose} {...props}>
       <DialogPanel
-        className={`flex flex-col border-2 border-orange-300 rounded-lg ring-0 ${className}`}
+        className={`flex flex-col border-2 border-green-300 rounded-lg ring-0 ${className}`}
         data-testid={dataTestId}
       >
         {title && (
@@ -46,7 +46,7 @@ export default function Modal({
             <div className="flex flex-row items-center justify-between gap-2">
               <PageTitle>
                 {title}
-                {beta && <Badge color="orange">Beta</Badge>}
+                {beta && <Badge color="emerald">Beta</Badge>}
               </PageTitle>
               <Button
                 variant="light"

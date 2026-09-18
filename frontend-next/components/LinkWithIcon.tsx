@@ -49,19 +49,18 @@ export const LinkWithIcon = ({
 
   // Active state needs to actually read as "selected" at a glance, not a
   // faint tint that's easy to miss against inactive items' hover color -
-  // solid pill + white icon/text, same pattern as the selected-dataset
-  // buttons elsewhere in the app.
+  // a light green pill with green icon/text, matching the brand.
   const iconClasses = clsx(
     {
-      "text-white": isActive,
-      "text-black group-hover:text-orange-400": !isActive,
+      "text-green-700": isActive,
+      "text-gray-500 group-hover:text-green-600": !isActive,
     },
     iconClassName
   );
 
   const textClasses = clsx("truncate", {
-    "text-white": isActive,
-    "text-black group-hover:text-orange-400": !isActive,
+    "text-green-700 font-semibold": isActive,
+    "text-gray-700 group-hover:text-green-600": !isActive,
   });
 
   const handleMouseEnter = () => setIsHovered(true);
@@ -84,10 +83,10 @@ export const LinkWithIcon = ({
   return (
     <div
       className={clsx(
-        "flex items-center justify-between py-0.5 px-1 font-medium rounded-lg focus:ring focus:ring-orange-300 group w-full min-w-0",
+        "flex items-center justify-between py-1.5 px-2.5 font-medium rounded-lg focus:ring focus:ring-green-300 group w-full min-w-0",
         {
-          "bg-orange-500": isActive,
-          "hover:bg-stone-200/50": !isActive,
+          "bg-green-50": isActive,
+          "hover:bg-gray-100": !isActive,
         },
         className
       )}
@@ -119,7 +118,7 @@ export const LinkWithIcon = ({
         {count !== undefined && count !== null && (
           <Badge
             size="xs"
-            color="orange"
+            color="emerald"
             data-testid={`${testId}-badge`}
             className="px-1 mr-0.5 min-w-5"
           >
@@ -132,7 +131,7 @@ export const LinkWithIcon = ({
           </Badge>
         )}
         {isBeta && (
-          <Badge color="orange" size="xs" className="ml-1">
+          <Badge color="emerald" size="xs" className="ml-1">
             Beta
           </Badge>
         )}

@@ -75,7 +75,7 @@ export function DeduplicationClient() {
         id: "duplicates",
         header: "Collapsed",
         cell: ({ row }) => (
-          <Badge color="orange" size="xs">
+          <Badge color="emerald" size="xs">
             ×{row.original.duplicate_count}
           </Badge>
         ),
@@ -151,7 +151,7 @@ export function DeduplicationClient() {
           value={stats.unique_count}
           hint="Distinct alerts kept"
           icon={IoMdGitMerge}
-          color="orange"
+          color="emerald"
         />
         <StatCard
           label="Duplicates removed"

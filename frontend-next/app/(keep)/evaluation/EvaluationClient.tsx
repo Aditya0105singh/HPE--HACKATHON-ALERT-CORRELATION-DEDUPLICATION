@@ -71,7 +71,7 @@ export function EvaluationClient() {
           value={`${data.incident_detection_pct}%`}
           hint={`${data.incidents_detected} of ${data.incidents_total} incidents found`}
           icon={LuBrainCircuit}
-          color="orange"
+          color="emerald"
         />
         <StatCard
           label="Cluster purity"

@@ -78,13 +78,13 @@ export function ChaosInjectorModal({
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/20 text-orange-400">
+              <div className="p-2 rounded-lg bg-green-500/20 text-green-400">
                 <IoFlash className="w-5 h-5" />
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
                   Chaos Engineering — Fault Injector
-                  <Badge color="orange" size="xs">
+                  <Badge color="emerald" size="xs">
                     Live Replay
                   </Badge>
                 </DialogTitle>
@@ -106,7 +106,7 @@ export function ChaosInjectorModal({
             {SCENARIOS.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between p-3.5 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-orange-500/50 transition group cursor-default"
+                className="flex items-center justify-between p-3.5 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-green-500/50 transition group cursor-default"
               >
                 <div className="flex items-start gap-3 min-w-0 pr-2">
                   <span className="text-2xl leading-none mt-0.5">{s.icon}</span>
@@ -133,7 +133,7 @@ export function ChaosInjectorModal({
 
                 <Button
                   size="xs"
-                  color="orange"
+                  color="emerald"
                   onClick={() => handleInject(s.id)}
                   className="shrink-0"
                 >

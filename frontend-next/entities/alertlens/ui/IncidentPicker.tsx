@@ -98,7 +98,7 @@ export function IncidentPicker({
                   {c.size} alerts · {c.risk.services_affected} services
                 </Text>
               </div>
-              <LuChevronRight className="w-4 h-4 text-gray-300 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-orange-400" />
+              <LuChevronRight className="w-4 h-4 text-gray-300 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-green-400" />
             </div>
           </Card>
         </Link>

@@ -68,11 +68,11 @@ const STATUS_TABS: { key: DraftStatus; label: string }[] = [
 
 function Hero() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-white p-6 sm:p-8">
-      <div className="pointer-events-none absolute -top-16 -right-10 w-64 h-64 rounded-full bg-orange-200/40 blur-3xl animate-auroraDrift" />
+    <div className="relative overflow-hidden rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 via-white to-white p-6 sm:p-8">
+      <div className="pointer-events-none absolute -top-16 -right-10 w-64 h-64 rounded-full bg-green-200/40 blur-3xl animate-auroraDrift" />
       <div className="pointer-events-none absolute -bottom-20 -left-10 w-64 h-64 rounded-full bg-amber-100/50 blur-3xl animate-auroraDrift" style={{ animationDelay: "-7s" }} />
       <div className="relative flex items-center gap-2 mb-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-orange-600 shadow-sm">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-green-600 shadow-sm">
           <HiOutlineSparkles className="animate-glowPulse" size={13} />
           Live engine
         </span>
@@ -186,7 +186,7 @@ function RunControls() {
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
       <div className="flex items-center gap-2 mb-3">
-        <HiOutlineCpuChip className="text-orange-500" size={15} />
+        <HiOutlineCpuChip className="text-green-500" size={15} />
         <Text className="text-[11px] uppercase tracking-wider text-gray-400">
           Inject a fault-injected scenario, real ground truth, through the real
           engine
@@ -221,7 +221,7 @@ function RunControls() {
         </div>
         <Button
           icon={HiOutlineBolt}
-          color="orange"
+          color="emerald"
           loading={running}
           onClick={run}
           className="shadow-[0_4px_16px_rgba(249,115,22,0.28)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.4)] transition-shadow"
@@ -406,7 +406,7 @@ function DraftDetailPanel({ draftId }: { draftId: string }) {
           {draft.timeline.map((e, i) => (
             <div key={i} className="py-0.5">
               <span className="text-gray-400">{new Date(e.at).toLocaleTimeString()}</span>{" "}
-              <span className="text-orange-600">[{e.source}]</span> {e.service}
+              <span className="text-green-600">[{e.source}]</span> {e.service}
               {e.count > 1 ? ` ×${e.count}` : ""} — {e.detail}
             </div>
           ))}
@@ -684,7 +684,7 @@ export default function EnsylonPage() {
               onClick={() => setTab(t.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 tab === t.key
-                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-[0_4px_16px_rgba(249,115,22,0.3)]"
+                  ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-[0_4px_16px_rgba(22,163,74,0.3)]"
                   : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
               }`}
             >
@@ -729,7 +729,7 @@ export default function EnsylonPage() {
               <div key={i} className="py-0.5">
                 <span className="text-gray-400">{new Date(e.at).toLocaleTimeString()}</span>{" "}
                 <span className="text-gray-700">{e.actor.padEnd(20)}</span>{" "}
-                <span className="text-orange-600">{e.action.padEnd(16)}</span>{" "}
+                <span className="text-green-600">{e.action.padEnd(16)}</span>{" "}
                 {e.draft_id.slice(0, 20)} {e.detail}
               </div>
             ))}

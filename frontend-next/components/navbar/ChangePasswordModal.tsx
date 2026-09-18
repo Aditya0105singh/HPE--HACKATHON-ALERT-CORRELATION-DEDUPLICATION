@@ -123,15 +123,15 @@ export const ChangePasswordModal = ({
           <Button
             type="button"
             variant="secondary"
-            color="orange"
-            className="border border-orange-500 text-orange-500"
+            color="emerald"
+            className="border border-green-500 text-green-500"
             onClick={handleClose}
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            color="orange"
+            color="emerald"
             disabled={isSubmitting}
             loading={isSubmitting}
           >

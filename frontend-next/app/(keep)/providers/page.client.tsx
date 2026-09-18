@@ -53,7 +53,7 @@ function AddProviderForm({ onAdd }: { onAdd: (name: string, url: string) => Prom
             onValueChange={setUrl}
           />
         </div>
-        <Button type="submit" color="orange" loading={submitting} disabled={submitting}>
+        <Button type="submit" color="emerald" loading={submitting} disabled={submitting}>
           Add provider
         </Button>
       </form>
@@ -116,7 +116,7 @@ function ProviderRow({ provider }: { provider: Provider }) {
           <Button
             size="xs"
             variant="secondary"
-            color="orange"
+            color="emerald"
             icon={LuSend}
             loading={testing}
             disabled={testing || deleting}

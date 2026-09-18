@@ -10,7 +10,7 @@ export default function MobileLanding() {
       <Card
         className="max-w-md mx-auto flex flex-col items-center justify-center space-y-6 h-[80vh]"
         decoration="top"
-        decorationColor="orange"
+        decorationColor="emerald"
       >
         {/* Logo/Icon Section */}
         <Image

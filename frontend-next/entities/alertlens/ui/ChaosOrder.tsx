@@ -112,7 +112,7 @@ export function ChaosOrder() {
             with {noise.length} left as background noise.
           </Text>
         </div>
-        <Button size="xs" variant="secondary" color="orange" icon={LuPlay} onClick={play}>
+        <Button size="xs" variant="secondary" color="emerald" icon={LuPlay} onClick={play}>
           Replay
         </Button>
       </div>

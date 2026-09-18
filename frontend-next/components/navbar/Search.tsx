@@ -148,7 +148,7 @@ export const Search = () => {
     if (query.length && queriedOptions.length === 0) {
       return (
         <ListItem className="flex flex-col items-center justify-center cursor-default select-none px-4 py-2 text-gray-700 h-72">
-          <Icon color="orange" size="xl" icon={MdOutlineSearchOff} />
+          <Icon color="emerald" size="xl" icon={MdOutlineSearchOff} />
           Nothing found.
         </ListItem>
       );
@@ -168,13 +168,13 @@ export const Search = () => {
               value={option.navigate}
             >
               {({ active }) => (
-                <ListItem className="flex items-center justify-start space-x-3 cursor-default select-none p-2 ui-active:bg-orange-400 ui-active:text-white ui-not-active:text-gray-900">
+                <ListItem className="flex items-center justify-start space-x-3 cursor-default select-none p-2 ui-active:bg-green-400 ui-active:text-white ui-not-active:text-gray-900">
                   <Icon
                     className={`py-2 px-0 ${
-                      active ? "bg-orange-400 text-white" : "text-gray-900"
+                      active ? "bg-green-400 text-white" : "text-gray-900"
                     }`}
                     icon={option.icon}
-                    color="orange"
+                    color="emerald"
                   />
                   <span className="text-left">{option.label}</span>
                 </ListItem>
@@ -206,13 +206,13 @@ export const Search = () => {
               value={option.navigate}
             >
               {({ active }) => (
-                <ListItem className="flex items-center justify-start space-x-3 cursor-default select-none p-2 ui-active:bg-orange-400 ui-active:text-white ui-not-active:text-gray-900">
+                <ListItem className="flex items-center justify-start space-x-3 cursor-default select-none p-2 ui-active:bg-green-400 ui-active:text-white ui-not-active:text-gray-900">
                   <Icon
                     className={`py-2 px-0 ${
-                      active ? "bg-orange-400 text-white" : "text-gray-900"
+                      active ? "bg-green-400 text-white" : "text-gray-900"
                     }`}
                     icon={option.icon}
-                    color="orange"
+                    color="emerald"
                   />
                   <span className="text-left">{option.label}</span>
                 </ListItem>
@@ -271,7 +271,7 @@ export const Search = () => {
               <ComboboxInput
                 className="z-20 tremor-TextInput-root relative flex items-center w-full outline-none rounded-tremor-default transition duration-100 border shadow-tremor-input dark:shadow-dark-tremor-input bg-tremor-background dark:bg-dark-tremor-background hover:bg-tremor-background-muted dark:hover:bg-dark-tremor-background-muted text-tremor-content dark:text-dark-tremor-content border-tremor-border dark:border-dark-tremor-border tremor-TextInput-input bg-transparent focus:outline-none focus:ring-0 text-tremor-default py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-3 pl-3 placeholder:text-tremor-content dark:placeholder:text-dark-tremor-content"
                 placeholder={placeholderText}
-                color="orange"
+                color="emerald"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 ref={comboboxInputRef}

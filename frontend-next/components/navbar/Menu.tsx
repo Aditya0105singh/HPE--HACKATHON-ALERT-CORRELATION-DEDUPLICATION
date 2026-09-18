@@ -50,13 +50,13 @@ export const Menu = ({ children, session }: MenuButtonProps) => {
       {({ close: closeMenu }) => (
         <>
           <div className="p-3 w-full block lg:hidden">
-            <Popover.Button className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-orange-400 focus:ring focus:ring-orange-300">
-              <Icon icon={AiOutlineMenu} color="orange" />
+            <Popover.Button className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-green-600 focus:ring focus:ring-green-300">
+              <Icon icon={AiOutlineMenu} color="emerald" />
             </Popover.Button>
           </div>
 
           <aside
-            className='relative bg-gray-50 col-span-1 border-r border-gray-300 h-full hidden lg:block [&[data-minimized="true"]>nav]:invisible'
+            className='relative bg-white col-span-1 border-r border-gray-200 h-full hidden lg:block [&[data-minimized="true"]>nav]:invisible'
             data-minimized={isMenuMinimized}
           >
             <nav className="flex flex-col h-full">
@@ -67,12 +67,12 @@ export const Menu = ({ children, session }: MenuButtonProps) => {
 
           <CloseMenuOnRouteChange closeMenu={closeMenu} />
           <Popover.Panel
-            className="bg-gray-50 col-span-1 border-r border-gray-300 z-50 h-screen fixed inset-0 md:overflow-scroll sm:overflow-scroll"
+            className="bg-white col-span-1 border-r border-gray-200 z-50 h-screen fixed inset-0 md:overflow-scroll sm:overflow-scroll"
             as="nav"
           >
             <div className="p-3 fixed top-0 right-0 ">
-              <Popover.Button className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-orange-400 focus:ring focus:ring-orange-300">
-                <Icon icon={AiOutlineClose} color="orange" />
+              <Popover.Button className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-green-600 focus:ring focus:ring-green-300">
+                <Icon icon={AiOutlineClose} color="emerald" />
               </Popover.Button>
             </div>
 

@@ -66,8 +66,8 @@ function SortHeader({
       type="button"
       onClick={() => onSort(col)}
       className={clsx(
-        "flex items-center gap-1 hover:text-orange-500",
-        active && "text-orange-500"
+        "flex items-center gap-1 hover:text-green-500",
+        active && "text-green-500"
       )}
     >
       {label}
@@ -246,7 +246,7 @@ export function AlertFeed({
               </Badge>
             )}
             {(row.original.duplicate_count ?? 1) > 1 && (
-              <Badge size="xs" color="orange">
+              <Badge size="xs" color="emerald">
                 ×{row.original.duplicate_count}
               </Badge>
             )}

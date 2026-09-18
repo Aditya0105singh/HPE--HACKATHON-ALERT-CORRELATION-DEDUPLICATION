@@ -23,7 +23,7 @@ from pathlib import Path
 # (env var, chat completions URL, model) — same provider list and priority
 # as app/assistant.py.
 PROVIDERS = [
-    ("CEREBRAS_API_KEY", "https://api.cerebras.ai/v1/chat/completions", "llama-3.3-70b"),
+    ("CEREBRAS_API_KEY", "https://api.cerebras.ai/v1/chat/completions", "gpt-oss-120b"),
     ("GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", "llama-3.3-70b-versatile"),
 ]
 

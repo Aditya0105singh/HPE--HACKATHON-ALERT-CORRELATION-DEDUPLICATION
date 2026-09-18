@@ -151,11 +151,11 @@ export function AlertDetailDrawer({
           {relatedCluster ? (
             <Link
               href={`/incidents/${relatedCluster.cluster_id}`}
-              className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 hover:border-orange-300 hover:bg-orange-50/50 transition-colors group"
+              className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 hover:border-green-300 hover:bg-green-50/50 transition-colors group"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-medium truncate group-hover:text-orange-600">
+                  <div className="font-medium truncate group-hover:text-green-600">
                     {relatedCluster.root_cause.alertname}
                   </div>
                   <Text className="text-xs text-gray-500">
@@ -177,7 +177,7 @@ export function AlertDetailDrawer({
                   similar to {relatedCluster.dna_match.incident_id}
                 </Text>
               )}
-              <span className="flex items-center gap-1 text-xs font-medium text-orange-500">
+              <span className="flex items-center gap-1 text-xs font-medium text-green-500">
                 View incident <LuArrowRight className="w-3 h-3" />
               </span>
             </Link>
@@ -194,7 +194,7 @@ export function AlertDetailDrawer({
         <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
           <Button
             size="xs"
-            color="orange"
+            color="emerald"
             variant={isAcked ? "secondary" : "primary"}
             loading={busy === "Acknowledge"}
             onClick={() =>
@@ -205,7 +205,7 @@ export function AlertDetailDrawer({
           </Button>
           <Button
             size="xs"
-            color="orange"
+            color="emerald"
             variant="secondary"
             loading={busy === "Escalate"}
             onClick={() =>
@@ -216,7 +216,7 @@ export function AlertDetailDrawer({
           </Button>
           <Button
             size="xs"
-            color="orange"
+            color="emerald"
             variant="secondary"
             loading={busy === "Assign"}
             onClick={() =>
