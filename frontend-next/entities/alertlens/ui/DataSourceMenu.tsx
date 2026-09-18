@@ -4,10 +4,10 @@ import { useState } from "react";
 import { Button } from "@tremor/react";
 import { DropdownMenu, showErrorToast, showSuccessToast } from "@/shared/ui";
 import { HiOutlineCircleStack } from "react-icons/hi2";
-import { LuActivity, LuFlaskConical, LuDatabase, LuCheck } from "react-icons/lu";
+import { LuActivity, LuDatabase, LuCheck } from "react-icons/lu";
 import { usePipelineActions, useSettingsStatus } from "@/entities/alertlens";
 
-export type DataSourceKey = "bgl" | "aiops" | "synthetic";
+export type DataSourceKey = "bgl" | "synthetic";
 
 export const DATA_SOURCES: {
   key: DataSourceKey;
@@ -22,12 +22,6 @@ export const DATA_SOURCES: {
     icon: LuActivity,
   },
   {
-    key: "aiops",
-    label: "AIOps Challenge 2020",
-    sub: "Real dataset",
-    icon: LuFlaskConical,
-  },
-  {
     key: "synthetic",
     label: "Synthetic Demo",
     sub: "Scripted incident scenarios",
@@ -39,7 +33,6 @@ export const DATA_SOURCES: {
  * the UI can highlight what's actually loaded instead of guessing. */
 function keyForDataset(dataset: string | undefined): DataSourceKey | null {
   if (dataset === "loghub-bgl") return "bgl";
-  if (dataset === "aiops-challenge") return "aiops";
   if (dataset === "synthetic") return "synthetic";
   return null;
 }
@@ -53,7 +46,7 @@ export function DataSourceMenu({
 }: {
   onLoaded?: (key: DataSourceKey) => void;
 }) {
-  const { loadDemo, loadBgl, loadAiops } = usePipelineActions();
+  const { loadDemo, loadBgl } = usePipelineActions();
   const { data: status, mutate: refreshStatus } = useSettingsStatus();
   const [busy, setBusy] = useState<DataSourceKey | null>(null);
   const [active, setActive] = useState<DataSourceKey | null>(null);
@@ -66,9 +59,7 @@ export function DataSourceMenu({
       const result =
         key === "bgl"
           ? await loadBgl()
-          : key === "aiops"
-            ? await loadAiops()
-            : await loadDemo();
+          : await loadDemo();
 
       showSuccessToast(
         `Loaded ${label} — ${result.raw_alerts} alerts, ${result.clusters_formed} incidents`
@@ -102,7 +93,7 @@ export function DataSourceMenu({
 
 /** Inline button row variant, for pages that want the choices visible. */
 export function DataSourceButtons() {
-  const { loadDemo, loadBgl, loadAiops } = usePipelineActions();
+  const { loadDemo, loadBgl } = usePipelineActions();
   const { data: status, mutate: refreshStatus } = useSettingsStatus();
   const [busy, setBusy] = useState<DataSourceKey | null>(null);
   const [active, setActive] = useState<DataSourceKey | null>(null);
@@ -110,7 +101,6 @@ export function DataSourceButtons() {
 
   const loaders: Record<DataSourceKey, () => Promise<unknown>> = {
     bgl: loadBgl,
-    aiops: loadAiops,
     synthetic: () => loadDemo(),
   };
 

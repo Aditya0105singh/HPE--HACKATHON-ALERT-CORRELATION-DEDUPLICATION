@@ -102,7 +102,7 @@ export function HomeClient() {
   const summary = useMemo(() => {
     const raw = state.dedup_stats?.raw_count ?? alerts.length;
     const unique = state.dedup_stats?.unique_count ?? alerts.length;
-    const noise = raw ? Math.round(1000 * (1 - clusters.length / raw)) / 10 : 0;
+    const noise = raw && clusters.length ? Math.round(1000 * (1 - clusters.length / raw)) / 10 : 0;
     return { raw, unique, noise };
   }, [state.dedup_stats, alerts.length, clusters.length]);
 
@@ -291,7 +291,7 @@ export function HomeClient() {
         <FlowArrow />
         <FlowCard icon={HiOutlineDocumentText} value={clusters.length} label="Actionable incidents" />
         <FlowArrow />
-        <FlowCard icon={HiOutlineShieldCheck} value={`${summary.noise}%`} label="Noise reduction" accent />
+        <FlowCard icon={HiOutlineShieldCheck} value={clusters.length ? `${summary.noise}%` : "—"} label="Noise reduction" accent />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_290px] gap-3 items-start">

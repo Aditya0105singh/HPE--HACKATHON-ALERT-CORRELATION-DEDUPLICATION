@@ -41,13 +41,6 @@ export const usePipelineActions = () => {
     return result;
   }, [api, refreshPipeline]);
 
-  /** POST /demo/load-aiops — AIOps Challenge 2020 dataset. */
-  const loadAiops = useCallback(async () => {
-    const result = await api.post<PipelineRunSummary>("/demo/load-aiops");
-    await refreshPipeline();
-    return result;
-  }, [api, refreshPipeline]);
-
   /** POST /ingest — run the pipeline over a caller-supplied alert batch. */
   const ingest = useCallback(
     async (alerts: Record<string, unknown>[]) => {
@@ -58,5 +51,5 @@ export const usePipelineActions = () => {
     [api, refreshPipeline]
   );
 
-  return { loadDemo, loadBgl, loadAiops, ingest, refreshPipeline };
+  return { loadDemo, loadBgl, ingest, refreshPipeline };
 };

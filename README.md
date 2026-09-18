@@ -156,7 +156,6 @@ graph TD
 
     subgraph Data ["📦 Data Sources"]
         Loghub["Loghub BGL<br>Real Dataset"]:::external
-        AIOps["AIOps Challenge 2020<br>Real Dataset"]:::external
         Gen["Synthetic Generator<br>5 Failure Scenarios"]:::external
     end
 
@@ -185,7 +184,6 @@ graph TD
     end
 
     Loghub --> Dedup
-    AIOps --> Dedup
     Gen --> Dedup
 
     RootCause --> RiskScore
@@ -216,7 +214,7 @@ Each alert passes through a **12-stage pipeline** — from raw ingestion to acti
 
 | Stage | Name | Implementation | Key Files |
 |:---:|------|----------------|-----------|
-| **1** | **Ingestion** | Three switchable sources: Loghub BGL (10k real supercomputer alerts), AIOps Challenge 2020, and a multi-source synthetic generator with 5 cascading failure scenarios. Switch live via the Dataset dropdown. | `data/loghub_bgl_loader.py` · `data/aiops_challenge_loader.py` · `data/synthetic_alert_generator.py` |
+| **1** | **Ingestion** | Two switchable sources: Loghub BGL (10k real supercomputer alerts) and a multi-source synthetic generator with 5 cascading failure scenarios. Switch live via the Dataset dropdown. | `data/loghub_bgl_loader.py` · `data/synthetic_alert_generator.py` |
 | **2** | **Deduplication** | Fingerprint hashing of `(service, alertname, 5-min window)` — Alertmanager-style. Collapses redundant spikes without losing signal. | `backend/app/dedup.py` |
 | **3** | **Vectorization** | TF-IDF embedding of alert message text. Lightweight alternative to transformer models — blazing fast with minimal memory footprint. | `backend/app/clustering.py` |
 | **4** | **Correlation** | Time-windowed DBSCAN clustering on TF-IDF vectors. Parameters grid-searched against ground truth labels. | `backend/app/clustering.py` |
@@ -292,7 +290,6 @@ AlertLens/
 ├── data/
 │   ├── synthetic_alert_generator.py # Multi-scenario alert generator
 │   ├── loghub_bgl_loader.py         # Loghub BGL dataset loader
-│   ├── aiops_challenge_loader.py    # AIOps Challenge 2020 loader
 │   └── seed_incident_library.json   # Historical incident knowledge base
 │
 ├── frontend-next/                   # Next.js 15 dashboard (production)
@@ -347,9 +344,6 @@ echo "CEREBRAS_API_KEY=your_key_here" > .env
 # Downloads + caches BGL.zip from Zenodo (~58MB)
 python data/loghub_bgl_loader.py
 
-# One-time: Build the AIOps Challenge 2020 alert batch
-# Reads fault-injection CSV via HTTP range requests
-python data/aiops_challenge_loader.py
 
 # Start the FastAPI server
 uvicorn app.main:app --app-dir backend --reload --port 8001
@@ -376,7 +370,7 @@ npm run dev
 
 Once both servers are running:
 1. Open `http://localhost:3000`
-2. Click any **Dataset** button (Synthetic / Loghub / AIOps) on the Home page
+2. Click any **Dataset** button (Synthetic / Loghub BGL) on the Home page
 3. The full pipeline runs automatically — watch alerts collapse into correlated incidents in real time
 
 ---
@@ -402,7 +396,6 @@ AlertLens supports **three switchable data sources**, all running through the sa
 |---------|------|------|--------|
 | **Synthetic Generator** | Generated | ~120 alerts/batch | 5 cascading failure scenarios with ground-truth labels |
 | **Loghub BGL** | Real-world | 4.7M supercomputer log lines → a 10,000-alert real sample (six real days, 5 severity levels, 9 subsystems, 19 alert categories; ~1,450 unique after dedup, ~117 incidents) | [Zenodo / Loghub](https://zenodo.org/records/8196385) — real BlueGene/L RAS log with alert tags; sampling and severity mapping disclosed in `data/loghub_bgl_loader.py` |
-| **AIOps Challenge 2020** | Real-world | Fault-injection logs → alerts | [AIOps Challenge](http://iops.ai/competition_detail/?competition_id=15) — real production fault injection |
 
 > Switch between datasets live via the **Dataset** dropdown in the top bar — no restart needed.
 
@@ -418,7 +411,7 @@ AlertLens supports **three switchable data sources**, all running through the sa
 - [x] FastAPI ingestion & pipeline endpoints
 - [x] Full Next.js 15 dashboard (Feed, Dedup, Correlations, Incidents, Topology)
 - [x] LLM Integration: AI Copilot + Incident Summaries (Cerebras Llama-3.3-70b)
-- [x] Real AIOps datasets: Loghub BGL + AIOps Challenge 2020
+- [x] Real dataset: Loghub BGL (10k alerts)
 - [x] Predictive Blast Radius Forecast (15-min horizon)
 - [x] Incident Time Machine (forensic replay)
 - [x] Historical Incident Comparator (PR-style diff)

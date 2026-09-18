@@ -39,7 +39,6 @@ from .forecast import compute_forecast
 from .root_cause_confidence import build_root_cause_confidence
 from .playbook import generate_playbook
 from .providers import test_webhook
-from .real_data_aiops import load_aiops_alerts
 from .real_data_bgl import load_bgl_alerts
 from .risk_score import escalation_risk
 from .summarizer import summarize
@@ -355,15 +354,6 @@ def demo_load_bgl() -> dict:
     through the same pipeline. See data/loghub_bgl_loader.py for the disclosed
     sampling and severity mapping."""
     return run_pipeline(load_bgl_alerts(), dataset="loghub-bgl")
-
-
-@app.post("/demo/load-aiops")
-def demo_load_aiops() -> dict:
-    """Loads the real AIOps Challenge 2020 batch (PS10's other named data
-    source) through the same pipeline. See data/aiops_challenge_loader.py and
-    app/real_data_aiops.py for how these alerts are derived from the
-    dataset's own real fault-injection log."""
-    return run_pipeline(load_aiops_alerts(), dataset="aiops-challenge")
 
 
 @app.post("/demo/inject-chaos")

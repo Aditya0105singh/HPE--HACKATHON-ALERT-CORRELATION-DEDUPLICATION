@@ -75,7 +75,7 @@ def build_root_cause_confidence(cluster: Dict[str, Any]) -> Dict[str, Any]:
         # winner included. It used to hardcode the winner at a flat 92%
         # regardless of its actual signals; that's exactly the kind of
         # fabricated number this project has otherwise been careful to avoid
-        # (see the honest AIOps 0-cluster finding, the honest "no DNA match"
+        # (see the honest 0-cluster finding for batches with no cascades, the honest "no DNA match"
         # state). Computing it for real means the score now varies with what
         # actually happened in this cluster instead of always reading "92%".
         raw_score = round(0.35 * ts_score + 0.25 * sev_score + 0.25 * fanout_score + 0.15 * dna_score, 2)

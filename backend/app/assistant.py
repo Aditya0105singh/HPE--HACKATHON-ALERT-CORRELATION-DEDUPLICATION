@@ -35,7 +35,7 @@ PROJECT_BRIEF = (
     "dedup (fingerprint duplicate alerts) -> embed -> cluster (correlate related alerts into "
     "incidents) -> risk scoring -> Alert DNA (match against historical incidents for known "
     "fixes). It ingests alerts from sources like prometheus, datadog, gcp-monitoring, grafana, "
-    "and custom apps, plus real datasets (Loghub BGL, AIOps Challenge 2020)."
+    "and custom apps, plus a real dataset (Loghub BGL)."
 )
 
 PROVIDERS = [
