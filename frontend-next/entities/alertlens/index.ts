@@ -17,6 +17,7 @@ export {
   useIncidentComparison,
   useRootCauseConfidence,
   useCorrelationExplanation,
+  useIncidentTicket,
   usePlaybook,
   useEvaluation,
   useSummarizerCheck,

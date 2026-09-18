@@ -12,19 +12,33 @@ import {
   HiOutlineExclamationTriangle,
   HiOutlineMinusCircle,
   HiOutlineServerStack,
+  HiOutlinePaperAirplane,
+  HiOutlineDocumentText,
+  HiOutlineCheckBadge,
   HiOutlineSparkles,
   HiOutlineXMark,
 } from "react-icons/hi2";
 import type { Alert, Cluster } from "../model/types";
 import {
   useCorrelationExplanation,
+  useIncidentTicket,
   usePlaybook,
   useRootCauseConfidence,
 } from "../model/useIncidentInsights";
+import { useApi } from "@/shared/lib/hooks/useApi";
+import { useSession } from "next-auth/react";
 import { AlertDetailDrawer } from "./AlertDetailDrawer";
 import { formatTimestamp, timeAgo } from "../lib/format";
 
-type Tab = "overview" | "correlation" | "evidence" | "timeline" | "severity" | "playbook";
+type Tab =
+  | "overview"
+  | "correlation"
+  | "evidence"
+  | "timeline"
+  | "severity"
+  | "playbook"
+  | "draft"
+  | "jira";
 
 const TABS: [Tab, string][] = [
   ["overview", "Overview"],
@@ -33,6 +47,8 @@ const TABS: [Tab, string][] = [
   ["timeline", "Timeline"],
   ["severity", "Severity"],
   ["playbook", "Playbook"],
+  ["draft", "Ticket Draft"],
+  ["jira", "Jira"],
 ];
 
 const SEVERITY_PILL: Record<string, string> = {
@@ -89,6 +105,28 @@ export function IncidentSidePanel({
   const { data: correlation } = useCorrelationExplanation(id);
   const { data: confidence } = useRootCauseConfidence(id);
   const { data: playbook } = usePlaybook(id);
+  const { data: ticket, mutate: refreshTicket } = useIncidentTicket(id);
+  const api = useApi();
+  const { data: session } = useSession();
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
+
+  const approveAndCreate = async () => {
+    if (!id) return;
+    setApproving(true);
+    setApproveError(null);
+    try {
+      // The gate records who approved, so send the signed-in user.
+      const actor = session?.user?.email || session?.user?.name || "on-call";
+      await api.post(`/incidents/${id}/ticket/approve?actor=${encodeURIComponent(actor)}`, {});
+      await refreshTicket();
+      setTab("jira");
+    } catch (e) {
+      setApproveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setApproving(false);
+    }
+  };
 
   useEffect(() => setTab("overview"), [id]);
 
@@ -173,13 +211,29 @@ export function IncidentSidePanel({
               <span className={clsx("w-1.5 h-1.5 rounded-full", status === "Open" ? "bg-red-500" : status === "Investigating" ? "bg-orange-500" : "bg-blue-500")} />
               {status}
             </span>
-            <button
-              onClick={onClose}
-              aria-label="Close"
-              className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-            >
-              <HiOutlineXMark size={18} />
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              {ticket?.published ? (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-green-700 bg-green-50 ring-1 ring-green-200 rounded-lg px-2.5 py-1.5">
+                  <HiOutlineCheckBadge size={13} /> {ticket.jira.key}
+                </span>
+              ) : (
+                <button
+                  onClick={approveAndCreate}
+                  disabled={approving || !ticket}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-xs font-semibold px-3 py-1.5 shadow-sm transition-colors"
+                >
+                  <HiOutlinePaperAirplane size={13} />
+                  {approving ? "Approving..." : "Approve & Create Jira"}
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <HiOutlineXMark size={18} />
+              </button>
+            </div>
           </div>
 
           <div className="flex items-start gap-3 mt-2.5">
@@ -585,7 +639,129 @@ export function IncidentSidePanel({
             </div>
           )}
 
-          {tab === "playbook" && (
+          {tab === "draft" && (
+          <Card
+            title="Ticket draft"
+            action={
+              ticket ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2 py-0.5">
+                  {ticket.summary_source === "template" ? "Template-generated" : "LLM-generated"}
+                </span>
+              ) : undefined
+            }
+          >
+            {ticket ? (
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <Row label="Priority" value={ticket.priority} />
+                  <Row label="Signals" value={String(ticket.signal_count)} />
+                  <Row label="Services" value={String(ticket.affected_services.length)} />
+                  <Row label="Status" value={ticket.status.replace(/_/g, " ")} />
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold text-gray-500 mb-1">Summary line</div>
+                  <div className="text-xs text-gray-800 font-medium break-words">{ticket.title}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold text-gray-500 mb-1">Labels</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ticket.labels.map((l) => (
+                      <span key={l} className="text-[10px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">
+                        {l}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold text-gray-500 mb-1">
+                    Description (exactly what would be filed)
+                  </div>
+                  <pre className="text-[11px] text-gray-700 bg-gray-50 border border-gray-100 rounded-xl p-3 whitespace-pre-wrap break-words max-h-72 overflow-y-auto font-mono">
+                    {ticket.description}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <Loading />
+            )}
+          </Card>
+        )}
+
+        {tab === "jira" && (
+          <Card title="Jira">
+            {ticket ? (
+              <div className="flex flex-col gap-3">
+                <div
+                  className={clsx(
+                    "rounded-xl border p-3.5 flex items-start gap-3",
+                    ticket.published ? "border-green-200 bg-green-50/60" : "border-gray-200 bg-gray-50/60"
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                      ticket.published ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-500"
+                    )}
+                  >
+                    <HiOutlineDocumentText size={19} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-gray-900">
+                      {ticket.published ? ticket.jira.key : "Not filed yet"}
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">
+                      {ticket.published
+                        ? `Approved by ${ticket.jira.approved_by}`
+                        : "Approve to publish this draft through the review gate."}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="text-[11px] font-bold text-amber-800">Simulated Jira</div>
+                  <p className="text-[11px] text-amber-800 mt-1 leading-relaxed">
+                    No Jira credentials are configured, so the review gate records the exact payload it
+                    would have sent and returns a synthetic key instead of calling Jira. The approval
+                    itself is real: the gate mints a token for a named human and refuses to file
+                    without one. Connecting a live Jira is a one-line transport swap.
+                  </p>
+                </div>
+
+                {ticket.audit && ticket.audit.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-semibold text-gray-500 mb-1">Audit trail</div>
+                    <ul className="flex flex-col gap-1">
+                      {ticket.audit.map((a, i) => (
+                        <li key={i} className="text-[10px] font-mono text-gray-500 break-words">
+                          {a}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {approveError && (
+                  <p className="text-[11px] text-red-600">Could not approve: {approveError}</p>
+                )}
+
+                {!ticket.published && (
+                  <button
+                    onClick={approveAndCreate}
+                    disabled={approving}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-xs font-semibold px-3 py-2.5 shadow-sm"
+                  >
+                    <HiOutlinePaperAirplane size={13} />
+                    {approving ? "Approving..." : "Approve & Create Jira"}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <Loading />
+            )}
+          </Card>
+        )}
+
+        {tab === "playbook" && (
             <Card
               title="Suggested next steps"
               action={

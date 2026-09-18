@@ -35,6 +35,7 @@ from .alert_dna import AlertDNA
 from .automation import evaluate_workflow_rules
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .correlation_explain import build_correlation_explanation
+from .incident_ticket import approve_ticket, get_ticket
 from .dedup import deduplicate
 from .forecast import compute_forecast
 from .root_cause_confidence import build_root_cause_confidence
@@ -564,6 +565,30 @@ def get_incident_correlation(incident_id: str) -> dict:
     if not cluster:
         raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found in pipeline state")
     return build_correlation_explanation(cluster, clusters, _state.get("noise", []))
+
+
+@app.get("/incidents/{incident_id}/ticket")
+def get_incident_ticket(incident_id: str) -> dict:
+    """The reviewable ticket draft for this incident, plus its review state.
+    Read-only. See app/incident_ticket.py for how it is composed."""
+    clusters = _state.get("clusters", [])
+    cluster = next((c for c in clusters if str(c.get("cluster_id")) == str(incident_id)), None)
+    if not cluster:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found in pipeline state")
+    return get_ticket(cluster, clusters, _state.get("noise", []))
+
+
+@app.post("/incidents/{incident_id}/ticket/approve")
+def approve_incident_ticket(incident_id: str, actor: str = "on-call") -> dict:
+    """Publish the draft through the Ensylon review gate, which requires a
+    named human approver. No Jira credentials are configured here, so the
+    gate's mock transport records the payload and returns a synthetic key -
+    the response reports that as jira.mode == "simulated"."""
+    clusters = _state.get("clusters", [])
+    cluster = next((c for c in clusters if str(c.get("cluster_id")) == str(incident_id)), None)
+    if not cluster:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found in pipeline state")
+    return approve_ticket(cluster, clusters, _state.get("noise", []), actor=actor)
 
 
 @app.get("/incidents/{incident_id}/playbook")

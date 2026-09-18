@@ -3,6 +3,7 @@ import useSWRImmutable from "swr/immutable";
 import { useApi } from "@/shared/lib/hooks/useApi";
 import type {
   CorrelationExplanation,
+  IncidentTicket,
   Evaluation,
   Forecast,
   IncidentComparison,
@@ -73,6 +74,19 @@ export const useCorrelationExplanation = (
   const api = useApi();
   return useSWR<CorrelationExplanation>(
     incidentKey(incidentId, "correlation", api.isReady()),
+    (url: string) => api.get(url),
+    { revalidateOnFocus: false, ...options }
+  );
+};
+
+/** GET /incidents/{incident_id}/ticket — reviewable ticket draft + state. */
+export const useIncidentTicket = (
+  incidentId: IncidentId,
+  options: SWRConfiguration = {}
+) => {
+  const api = useApi();
+  return useSWR<IncidentTicket>(
+    incidentKey(incidentId, "ticket", api.isReady()),
     (url: string) => api.get(url),
     { revalidateOnFocus: false, ...options }
   );

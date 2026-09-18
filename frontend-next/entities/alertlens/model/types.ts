@@ -223,6 +223,30 @@ export interface CorrelationExplanation {
   };
 }
 
+/** GET /incidents/{id}/ticket — the reviewable ticket draft and its state. */
+export interface IncidentTicket {
+  draft_id: string;
+  title: string;
+  priority: string;
+  labels: string[];
+  description: string;
+  summary: string;
+  summary_source: string;
+  investigation_steps: string[];
+  affected_services: string[];
+  signal_count: number;
+  correlation_confidence: number;
+  status: string;
+  published: boolean;
+  jira: {
+    mode: string;
+    configured: boolean;
+    key: string | null;
+    approved_by: string | null;
+  };
+  audit?: string[];
+}
+
 export interface PlaybookStep {
   step_number: number;
   title: string;
