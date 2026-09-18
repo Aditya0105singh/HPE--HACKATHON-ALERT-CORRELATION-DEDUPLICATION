@@ -11,11 +11,10 @@ import {
   HiOutlineShieldCheck,
 } from "react-icons/hi2";
 import { EmptyStateCard, KeepLoader, PageSubtitle, PageTitle } from "@/shared/ui";
-import { usePipelineState } from "@/entities/alertlens";
+import { useIncidentPanel, usePipelineState } from "@/entities/alertlens";
 import type { Cluster } from "@/entities/alertlens";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
 import { timeAgo } from "@/entities/alertlens/lib/format";
-import { IncidentPanel } from "./IncidentPanel";
 
 type SortKey = "risk" | "size" | "recent";
 
@@ -49,7 +48,7 @@ export function IncidentsClient() {
   const { state, isLoading, error } = usePipelineState();
   const [severity, setSeverity] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("risk");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const { openIncident, openIncidentId } = useIncidentPanel();
 
   const clusters = state.clusters;
 
@@ -78,11 +77,6 @@ export function IncidentsClient() {
     };
     return [...filtered].sort(by[sort]);
   }, [clusters, severity, sort]);
-
-  const selected = useMemo(
-    () => visible.find((c) => c.cluster_id === selectedId) ?? visible[0] ?? null,
-    [visible, selectedId]
-  );
 
   if (isLoading) return <KeepLoader loadingText="Loading incidents..." />;
 
@@ -129,9 +123,9 @@ export function IncidentsClient() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)] gap-3 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
           {/* Incident list */}
-          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden min-w-0">
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden min-w-0 lg:col-span-2 xl:col-span-3">
             <div className="p-3 border-b border-gray-100 flex flex-col gap-2">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Pill active={severity === null} onClick={() => setSeverity(null)}>
@@ -160,15 +154,15 @@ export function IncidentsClient() {
               </div>
             </div>
 
-            <ul className="divide-y divide-gray-50 max-h-[70vh] overflow-y-auto">
+            <ul className="divide-y divide-gray-50">
               {visible.map((c) => {
                 const st = deriveStatus(c);
-                const isSel = selected?.cluster_id === c.cluster_id;
+                const isSel = openIncidentId === c.cluster_id;
                 const risk = Math.round(c.risk.score * 100);
                 return (
                   <li key={c.cluster_id}>
                     <button
-                      onClick={() => setSelectedId(c.cluster_id)}
+                      onClick={() => openIncident(c.cluster_id)}
                       aria-current={isSel}
                       className={clsx(
                         "w-full text-left p-3 flex flex-col gap-1.5 transition-colors",
@@ -214,7 +208,6 @@ export function IncidentsClient() {
             </ul>
           </div>
 
-          {selected && <IncidentPanel key={selected.cluster_id} cluster={selected} status={deriveStatus(selected)} />}
         </div>
       )}
     </div>

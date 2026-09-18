@@ -34,3 +34,5 @@ export {
 } from "./model/useMaintenanceWindows";
 export { useBrowserNotifications } from "./model/useBrowserNotifications";
 export { NotificationEngine } from "./ui/NotificationEngine";
+export { IncidentPanelProvider, useIncidentPanel } from "./ui/IncidentPanelProvider";
+export { IncidentSidePanel } from "./ui/IncidentSidePanel";

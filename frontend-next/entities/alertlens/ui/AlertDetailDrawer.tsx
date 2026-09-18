@@ -10,6 +10,7 @@ import { useAlertActions, useClusters } from "@/entities/alertlens";
 import type { Alert } from "@/entities/alertlens";
 import { formatTimestamp, riskColor, timeAgo } from "@/entities/alertlens/lib/format";
 import { AlertIcon, ServiceChip } from "./AlertIcon";
+import { useIncidentPanel } from "./IncidentPanelProvider";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { LuArrowRight } from "react-icons/lu";
 
@@ -50,6 +51,7 @@ export function AlertDetailDrawer({
   const { ackAlert, assignAlert, dismissAlert, escalateAlert } =
     useAlertActions();
   const { clusters } = useClusters();
+  const { openIncident } = useIncidentPanel();
   const [busy, setBusy] = useState<string | null>(null);
 
   // Real cluster membership, not a placeholder - looked up from the same
@@ -149,9 +151,12 @@ export function AlertDetailDrawer({
             Related incident
           </Text>
           {relatedCluster ? (
-            <Link
-              href={`/incidents/${relatedCluster.cluster_id}`}
-              className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 hover:border-green-300 hover:bg-green-50/50 transition-colors group"
+            <button
+              onClick={() => {
+                onClose();
+                openIncident(relatedCluster.cluster_id);
+              }}
+              className="w-full text-left flex flex-col gap-2 rounded-lg border border-gray-200 p-3 hover:border-green-300 hover:bg-green-50/50 transition-colors group"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -180,7 +185,7 @@ export function AlertDetailDrawer({
               <span className="flex items-center gap-1 text-xs font-medium text-green-500">
                 View incident <LuArrowRight className="w-3 h-3" />
               </span>
-            </Link>
+            </button>
           ) : (
             <Text className="text-sm text-gray-400">
               Not correlated into any incident — still background noise, or

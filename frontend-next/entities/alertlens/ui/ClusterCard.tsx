@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { Badge, Card, ProgressBar, Text, Title } from "@tremor/react";
 import { SeverityLabel } from "@/shared/ui";
 import type { UISeverity } from "@/shared/ui";
-import type { Cluster } from "@/entities/alertlens";
+import type { Cluster } from "../model/types";
+import { useIncidentPanel } from "./IncidentPanelProvider";
 import { riskColor, timeAgo } from "@/entities/alertlens/lib/format";
 
 /**
@@ -12,6 +12,7 @@ import { riskColor, timeAgo } from "@/entities/alertlens/lib/format";
  * they present the same cluster, so they share this card.
  */
 export function ClusterCard({ cluster }: { cluster: Cluster }) {
+  const { openIncident } = useIncidentPanel();
   const services = Array.from(
     new Set(cluster.alerts.map((a) => a.service).filter(Boolean))
   );
@@ -21,14 +22,14 @@ export function ClusterCard({ cluster }: { cluster: Cluster }) {
     <Card className="p-4 flex flex-col gap-3 transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <Link
-            href={`/incidents/${cluster.cluster_id}`}
-            className="hover:text-green-500"
+          <button
+            onClick={() => openIncident(cluster.cluster_id)}
+            className="text-left hover:text-green-600"
           >
             <Title className="truncate">
               {cluster.root_cause.alertname}
             </Title>
-          </Link>
+          </button>
           <Text className="text-gray-500">
             Root cause on {cluster.root_cause.service} ·{" "}
             {timeAgo(cluster.root_cause.timestamp)}

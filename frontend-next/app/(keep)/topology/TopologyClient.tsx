@@ -27,6 +27,7 @@ import {
 import { TbTopologyRing } from "react-icons/tb";
 import { HiOutlineServerStack } from "react-icons/hi2";
 import { usePipelineState } from "@/entities/alertlens";
+import { useIncidentPanel } from "@/entities/alertlens/ui/IncidentPanelProvider";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
 import {
   buildTopology,
@@ -57,6 +58,7 @@ const STATUS_STYLE: Record<string, { ring: string; badge: string; label: string 
 type ServiceNodeData = { topo: TopologyNode };
 
 function ServiceNode({ data }: NodeProps<Node<ServiceNodeData>>) {
+  const { openIncident } = useIncidentPanel();
   const { topo } = data;
   const style = STATUS_STYLE[topo.status] ?? STATUS_STYLE.healthy;
 
@@ -89,7 +91,12 @@ function ServiceNode({ data }: NodeProps<Node<ServiceNodeData>>) {
     <>
       <Handle type="target" position={Position.Top} className="!opacity-0" />
       {topo.cluster ? (
-        <Link href={`/incidents/${topo.cluster.cluster_id}`}>{body}</Link>
+        <button
+          onClick={() => openIncident(topo.cluster!.cluster_id)}
+          className="text-left"
+        >
+          {body}
+        </button>
       ) : (
         body
       )}

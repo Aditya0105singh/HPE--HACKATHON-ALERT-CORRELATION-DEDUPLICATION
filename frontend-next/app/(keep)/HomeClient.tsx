@@ -19,12 +19,17 @@ import {
 } from "react-icons/hi2";
 import { AiOutlineAlert } from "react-icons/ai";
 import { EmptyStateCard, KeepLoader } from "@/shared/ui";
-import { useEvaluation, usePipelineActions, usePipelineState, useSettingsStatus } from "@/entities/alertlens";
+import {
+  useEvaluation,
+  useIncidentPanel,
+  usePipelineActions,
+  usePipelineState,
+  useSettingsStatus,
+} from "@/entities/alertlens";
 import type { Cluster } from "@/entities/alertlens";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
 import { timeAgo } from "@/entities/alertlens/lib/format";
-import { IncidentDrawer } from "./IncidentDrawer";
 
 // ---------------------------------------------------------------------------
 // Everything below is derived from the real pipeline / settings responses.
@@ -84,7 +89,7 @@ export function HomeClient() {
   const { data: status } = useSettingsStatus();
   const { data: evaluation } = useEvaluation();
   const [riskFilter, setRiskFilter] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const { openIncident } = useIncidentPanel();
   const [showAll, setShowAll] = useState(false);
   const { loadBgl } = usePipelineActions();
   const autoLoaded = useRef(false);
@@ -420,7 +425,7 @@ export function HomeClient() {
                   return (
                     <li key={c.cluster_id}>
                       <button
-                        onClick={() => setOpenId(c.cluster_id)}
+                        onClick={() => openIncident(c.cluster_id)}
                         aria-label={`Open incident ${c.root_cause.alertname}`}
                         className="w-full text-left p-3.5 flex flex-col gap-2 active:bg-green-50/60"
                       >
@@ -483,11 +488,11 @@ export function HomeClient() {
                       return (
                         <tr
                           key={c.cluster_id}
-                          onClick={() => setOpenId(c.cluster_id)}
+                          onClick={() => openIncident(c.cluster_id)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOpenId(c.cluster_id);
+                              openIncident(c.cluster_id);
                             }
                           }}
                           tabIndex={0}
@@ -638,14 +643,6 @@ export function HomeClient() {
           </Panel>
         </div>
       </div>
-      <IncidentDrawer
-        cluster={clusters.find((c) => c.cluster_id === openId) ?? null}
-        status={(() => {
-          const c = clusters.find((x) => x.cluster_id === openId);
-          return c ? deriveStatus(c) : "";
-        })()}
-        onClose={() => setOpenId(null)}
-      />
     </div>
   );
 }

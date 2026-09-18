@@ -16,6 +16,7 @@ import {
   StormEngine,
 } from "@/entities/alertlens/ui/StormControls";
 import { NotificationEngine } from "@/entities/alertlens/ui/NotificationEngine";
+import { IncidentPanelProvider } from "@/entities/alertlens/ui/IncidentPanelProvider";
 import { auth } from "@/auth";
 import { ThemeScript, WatchUpdateTheme, PwaRegister } from "@/shared/ui";
 import "@/app/globals.css";
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           <PHProvider>
             <NextAuthProvider session={session}>
               <TopologyPollingContextProvider>
+                <IncidentPanelProvider>
                 {/* @ts-ignore-error Server Component */}
                 <PostHogPageView />
                 <Navbar />
@@ -110,6 +112,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                     watches the same pipeline state every page reads, so it
                     fires regardless of which page is open. */}
                 <NotificationEngine />
+                </IncidentPanelProvider>
               </TopologyPollingContextProvider>
             </NextAuthProvider>
           </PHProvider>
