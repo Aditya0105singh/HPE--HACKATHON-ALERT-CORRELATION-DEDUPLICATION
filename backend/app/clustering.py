@@ -28,8 +28,10 @@ from __future__ import annotations
 from datetime import datetime
 
 import numpy as np
+from scipy.sparse import csr_matrix
 from sklearn.cluster import DBSCAN
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neighbors import sort_graph_by_row_values
 
 # Grid-searched against the synthetic generator's ground truth across 8 seeds
 # (same methodology as notebooks/poc_clustering.ipynb): 91.7% incident
@@ -77,11 +79,54 @@ def combined_distance_matrix(alerts: list[dict], embeddings: np.ndarray) -> np.n
     return np.clip(semantic + time_pen, 0.0, None)
 
 
+def sparse_distance_graph(alerts: list[dict], embeddings: np.ndarray, chunk: int = 512) -> csr_matrix:
+    """Same distances as combined_distance_matrix, but only for pairs that can
+    actually be DBSCAN neighbours, stored sparsely.
+
+    Beyond TIME_SCALE_MIN the time penalty is TIME_PENALTY (> EPS), so such a
+    pair can never be within EPS; only alerts inside +/-TIME_SCALE_MIN of each
+    other need a distance. That turns O(n^2) memory into O(n * alerts per
+    window). Indices stay in the caller's original order (only the candidate
+    search uses time order) so DBSCAN's tie-breaking matches the dense path.
+    """
+    n = len(alerts)
+    times = np.array([_ts(a).timestamp() for a in alerts])
+    order = np.argsort(times, kind="stable")
+    sorted_times = times[order]
+    window = TIME_SCALE_MIN * 60.0
+    lo = np.searchsorted(sorted_times, sorted_times - window, side="left")
+    hi = np.searchsorted(sorted_times, sorted_times + window, side="right")
+
+    rows, cols, vals = [], [], []
+    for start in range(0, n, chunk):
+        end = min(start + chunk, n)
+        c0, c1 = int(lo[start:end].min()), int(hi[start:end].max())
+        ri, ci = order[start:end], order[c0:c1]
+        semantic = 1.0 - embeddings[ri] @ embeddings[ci].T
+        dt_min = np.abs(times[ri][:, None] - times[ci][None, :]) / 60.0
+        pen = TIME_PENALTY * np.minimum(dt_min / TIME_SCALE_MIN, 1.0) ** 2
+        dist = np.clip(semantic + pen, 0.0, None)
+        r, c = np.nonzero(dist <= EPS)
+        rows.append(ri[r])
+        cols.append(ci[c])
+        vals.append(dist[r, c])
+
+    graph = csr_matrix(
+        (np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(n, n)
+    )
+    return sort_graph_by_row_values(graph, warn_when_not_sorted=False)
+
+
 def cluster_alerts(alerts: list[dict]) -> tuple[np.ndarray, np.ndarray]:
     """Returns (labels, embeddings). Label -1 = uncorrelated noise."""
     embeddings = embed_alerts(alerts)
-    distances = combined_distance_matrix(alerts, embeddings)
-    labels = DBSCAN(eps=EPS, min_samples=MIN_SAMPLES, metric="precomputed").fit_predict(distances)
+    if not alerts:
+        return np.array([], dtype=int), embeddings
+    if TIME_PENALTY > EPS:
+        graph = sparse_distance_graph(alerts, embeddings)
+    else:  # pruning by time window is only valid while far-apart pairs exceed EPS
+        graph = combined_distance_matrix(alerts, embeddings)
+    labels = DBSCAN(eps=EPS, min_samples=MIN_SAMPLES, metric="precomputed").fit_predict(graph)
     return labels, embeddings
 
 
