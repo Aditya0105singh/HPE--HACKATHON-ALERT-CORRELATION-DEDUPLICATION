@@ -55,6 +55,7 @@ const SEVERITY_COLOR: Record<string, string> = {
 const severityColor = (s: string) => SEVERITY_COLOR[s] ?? "#9ca3af";
 const RISK_COLOR: Record<string, string> = { high: "#ef4444", medium: "#f97316", low: "#3b82f6" };
 const RISK_LEVELS = ["high", "medium", "low"];
+const ROW_CAP = 10;
 
 function lastSeen(cluster: Cluster): string {
   const stamps = cluster.alerts.map((a) => a.timestamp).sort();
@@ -84,6 +85,7 @@ export function HomeClient() {
   const { data: evaluation } = useEvaluation();
   const [riskFilter, setRiskFilter] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const { loadBgl } = usePipelineActions();
   const autoLoaded = useRef(false);
 
@@ -225,6 +227,8 @@ export function HomeClient() {
         .sort((a, b) => b.risk.score - a.risk.score),
     [clusters, riskFilter]
   );
+
+  const shown = showAll ? visibleClusters : visibleClusters.slice(0, ROW_CAP);
 
   if (isLoading || (nothingLoaded && autoLoaded.current)) {
     return <KeepLoader loadingText={nothingLoaded ? "Loading demo data..." : "Loading overview..."} />;
@@ -404,7 +408,59 @@ export function HomeClient() {
                 <EmptyStateCard noCard icon={HiOutlineCheckCircle} title="No incidents match" description="Nothing correlated at this risk level." />
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Phones: one card per incident - a 640px table would hide the
+                  Alerts / Risk / Status columns behind a sideways scroll. */}
+              <ul className="md:hidden divide-y divide-gray-100">
+                {shown.map((c) => {
+                  const st = deriveStatus(c);
+                  const svcs = [...new Set([c.root_cause.service, ...c.alerts.map((a) => a.service)])];
+                  const sev = severityColor(c.root_cause.severity);
+                  const risk = Math.round(c.risk.score * 100);
+                  return (
+                    <li key={c.cluster_id}>
+                      <button
+                        onClick={() => setOpenId(c.cluster_id)}
+                        aria-label={`Open incident ${c.root_cause.alertname}`}
+                        className="w-full text-left p-3.5 flex flex-col gap-2 active:bg-green-50/60"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${sev}1a`, color: sev }}>
+                            <HiOutlineExclamationTriangle size={16} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-gray-900 line-clamp-2 break-words">{c.root_cause.alertname}</div>
+                            <div className="text-[11px] text-gray-400 mt-0.5">#{c.cluster_id} · {timeAgo(lastSeen(c))}</div>
+                          </div>
+                          <span className={clsx("inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap shrink-0", STATUS_STYLE[st].pill)}>
+                            <span className={clsx("w-1.5 h-1.5 rounded-full", STATUS_STYLE[st].dot)} />
+                            {st}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {svcs.slice(0, 3).map((x) => (
+                            <span key={x} className="text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">{x}</span>
+                          ))}
+                          {svcs.length > 3 && <span className="text-[11px] text-gray-400 self-center">+{svcs.length - 3}</span>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-600 whitespace-nowrap w-[104px] shrink-0">
+                            <span className="font-semibold text-gray-800">{c.size}</span> alerts <span className="text-gray-400">({c.raw_alert_count} raw)</span>
+                          </span>
+                          <div className="flex-1 flex items-center gap-1.5">
+                            <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${risk}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af" }} />
+                            </div>
+                            <span className="text-[11px] text-gray-500 w-8 text-right">{risk}%</span>
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-[11px] text-gray-400 border-b border-gray-100">
@@ -420,7 +476,7 @@ export function HomeClient() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleClusters.map((c, i) => {
+                    {shown.map((c, i) => {
                       const st = deriveStatus(c);
                       const services = [...new Set([c.root_cause.service, ...c.alerts.map((a) => a.service)])];
                       const sev = severityColor(c.root_cause.severity);
@@ -490,6 +546,16 @@ export function HomeClient() {
                   </tbody>
                 </table>
               </div>
+
+              {visibleClusters.length > ROW_CAP && (
+                <button
+                  onClick={() => setShowAll((v) => !v)}
+                  className="w-full py-2.5 text-xs font-medium text-green-700 hover:bg-green-50/50 border-t border-gray-100"
+                >
+                  {showAll ? "Show fewer" : `Show all ${visibleClusters.length} incidents`}
+                </button>
+              )}
+              </>
             )}
           </div>
         </div>

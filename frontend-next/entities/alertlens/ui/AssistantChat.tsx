@@ -174,7 +174,7 @@ export function AssistantChat() {
         onClick={() => setIsOpen(true)}
         aria-label="Open AlertLens assistant"
         className={clsx(
-          "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-white shadow-lg hover:bg-green-600",
+          "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-green-500 p-3 sm:px-4 sm:py-3 text-white shadow-lg hover:bg-green-600",
           "transition-all duration-200 ease-out",
           isOpen
             ? "opacity-0 scale-90 pointer-events-none"
@@ -182,7 +182,7 @@ export function AssistantChat() {
         )}
       >
         <HiOutlineSparkles className="w-5 h-5" />
-        <span className="text-sm font-medium">Ask AlertLens</span>
+        <span className="hidden sm:inline text-sm font-medium">Ask AlertLens</span>
       </button>
 
       <Card
