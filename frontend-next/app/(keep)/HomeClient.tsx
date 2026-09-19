@@ -274,7 +274,7 @@ export function HomeClient() {
   const totalSeverity = severityCounts.reduce((n, s) => n + s.count, 0) || 1;
   const maxBucket = Math.max(1, ...buckets.map((b) => b.total));
   const maxService = Math.max(1, ...topServices.map((s) => s.count));
-  const labelEvery = Math.max(1, Math.ceil(buckets.length / 6));
+  const labelEvery = Math.max(1, Math.ceil(buckets.length / 5));
 
   return (
     <div className="flex flex-col gap-4">
@@ -305,9 +305,9 @@ export function HomeClient() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_290px] gap-3 items-start">
         <div className="flex flex-col gap-3 min-w-0">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 min-[1700px]:grid-cols-[1fr_1.5fr_1fr] gap-3">
             {/* Alerts by severity */}
-            <Panel title="Alerts by severity">
+            <Panel title="Alerts by severity" className="order-1">
               <div className="flex items-center gap-4">
                 <Donut segments={severityCounts.map((s) => ({ color: severityColor(s.severity), value: s.count }))} total={totalSeverity} />
                 <ul className="flex flex-col gap-1.5 text-xs min-w-0">
@@ -326,6 +326,7 @@ export function HomeClient() {
             {/* Alerts over time */}
             <Panel
               title="Alerts over time"
+              className="sm:col-span-2 order-3 min-[1700px]:col-span-1 min-[1700px]:order-2"
               right={
                 <div className="flex items-center gap-3 text-[11px] text-gray-500">
                   <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-200" />Ingested</span>
@@ -339,7 +340,7 @@ export function HomeClient() {
                   <span>{Math.round(maxBucket / 2)}</span>
                   <span>0</span>
                 </div>
-                <div className="flex-1 relative">
+                <div className="flex-1 relative min-w-0">
                   <div className="absolute inset-x-0 top-0 h-28 flex flex-col justify-between pointer-events-none">
                     <div className="border-t border-dashed border-gray-100" />
                     <div className="border-t border-dashed border-gray-100" />
@@ -357,10 +358,24 @@ export function HomeClient() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-[3px] mt-1 h-3">
+                  {/* Labels are absolutely placed inside fixed-width slots so their
+                      text can never widen the chart (in-flow nowrap text set a
+                      minimum width the plot could not shrink below and spilled
+                      into the next panel). Late labels anchor to the right edge
+                      so they stay inside the card instead of being clipped. */}
+                  <div className="flex gap-[3px] mt-1 h-4 overflow-hidden">
                     {buckets.map((b, i) => (
-                      <span key={b.label} className="flex-1 min-w-0 text-[9px] text-gray-400 whitespace-nowrap overflow-visible">
-                        {i % labelEvery === 0 ? b.label : ""}
+                      <span key={b.label} className="relative flex-1 min-w-0 h-4">
+                        {i % labelEvery === 0 && (
+                          <span
+                            className={clsx(
+                              "absolute top-0 whitespace-nowrap text-[11px] text-gray-500",
+                              i / buckets.length > 0.7 ? "right-0" : "left-0"
+                            )}
+                          >
+                            {b.label}
+                          </span>
+                        )}
                       </span>
                     ))}
                   </div>
@@ -369,7 +384,7 @@ export function HomeClient() {
             </Panel>
 
             {/* Top affected services */}
-            <Panel title="Top affected services">
+            <Panel title="Top affected services" className="order-2 min-[1700px]:order-3">
               <ul className="flex flex-col gap-2.5">
                 {topServices.map((s) => (
                   <li key={s.service} className="text-xs">
@@ -471,12 +486,12 @@ export function HomeClient() {
                     <tr className="text-left text-[11px] text-gray-400 border-b border-gray-100">
                       <th className="font-medium px-3.5 py-2 w-8">#</th>
                       <th className="font-medium px-3.5 py-2">Incident</th>
-                      <th className="font-medium px-3.5 py-2 hidden lg:table-cell">Root cause (AI)</th>
+                      <th className="font-medium px-3.5 py-2 hidden 2xl:table-cell">Root cause (AI)</th>
                       <th className="font-medium px-3.5 py-2">Affected services</th>
                       <th className="font-medium px-3.5 py-2">Alerts</th>
                       <th className="font-medium px-3.5 py-2">Risk</th>
                       <th className="font-medium px-3.5 py-2">Status</th>
-                      <th className="font-medium px-3.5 py-2 hidden xl:table-cell">Last updated</th>
+                      <th className="font-medium px-3.5 py-2 hidden 2xl:table-cell">Last updated</th>
                       <th className="w-6" />
                     </tr>
                   </thead>
@@ -514,7 +529,7 @@ export function HomeClient() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3.5 py-2.5 hidden lg:table-cell max-w-[220px]">
+                          <td className="px-3.5 py-2.5 hidden 2xl:table-cell max-w-[220px]">
                             <div className="text-xs text-gray-500 line-clamp-2">{c.summary || `Root cause on ${c.root_cause.service}.`}</div>
                           </td>
                           <td className="px-3.5 py-2.5">
@@ -543,7 +558,7 @@ export function HomeClient() {
                               {st}
                             </span>
                           </td>
-                          <td className="px-3.5 py-2.5 hidden xl:table-cell text-xs text-gray-400 whitespace-nowrap">{timeAgo(lastSeen(c))}</td>
+                          <td className="px-3.5 py-2.5 hidden 2xl:table-cell text-xs text-gray-400 whitespace-nowrap">{timeAgo(lastSeen(c))}</td>
                           <td className="pr-3 text-gray-300"><HiOutlineChevronRight size={14} /></td>
                         </tr>
                       );
@@ -653,15 +668,17 @@ function Panel({
   title,
   right,
   icon,
+  className,
   children,
 }: {
   title: string;
   right?: React.ReactNode;
   icon?: React.ReactNode;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+    <div className={clsx("rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0", className)}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-1.5 font-semibold text-gray-900 text-sm">
           {icon}
