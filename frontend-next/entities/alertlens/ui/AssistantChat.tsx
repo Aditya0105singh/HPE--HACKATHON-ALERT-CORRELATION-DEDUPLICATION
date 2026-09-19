@@ -174,7 +174,7 @@ export function AssistantChat() {
         onClick={() => setIsOpen(true)}
         aria-label="Open AlertLens assistant"
         className={clsx(
-          "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-green-500 p-3 sm:px-4 sm:py-3 text-white shadow-lg hover:bg-green-600",
+          "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-green-700 p-3 sm:px-4 sm:py-3 text-white shadow-lg hover:bg-green-800",
           "transition-all duration-200 ease-out",
           isOpen
             ? "opacity-0 scale-90 pointer-events-none"
@@ -241,7 +241,7 @@ export function AssistantChat() {
             key={i}
             className={
               m.role === "user"
-                ? "self-end max-w-[85%] rounded-lg bg-green-500 text-white px-3 py-2 text-sm"
+                ? "self-end max-w-[85%] rounded-lg bg-green-700 text-white px-3 py-2 text-sm"
                 : "self-start max-w-[95%] rounded-lg bg-gray-100 px-3 py-2 text-sm"
             }
           >

@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 html {
-  /* override default font size for better look on small screens */
-  font-size: 14px;
+  /* Was 14px, which rendered every rem-based size at 87.5% - text-xs came out
+     at 10.5px across the app. 15px keeps the density and lifts small copy. */
+  font-size: 15px;
 }
 
 /**
@@ -144,3 +145,57 @@ html.workaround-dark {
 .tremor-TableRow-row > td.bg-tremor-background {
   background-color: inherit !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Readability layer.
+   Measured with the WCAG contrast formula against the backgrounds this UI
+   actually uses (white, gray-50, gray-100, green-50, red-50). Several text
+   colours fell under the AA minimum of 4.5:1 - text-gray-400 was 2.54:1 on
+   white - and a lot of copy was set at 9-11px. These rules retune text colour
+   and size only; borders, backgrounds and icons-as-fills are untouched.
+   --------------------------------------------------------------------------- */
+.text-gray-400 { color: #5f6673; }                      /* 2.54 -> >=5.25:1 */
+.text-gray-500 { color: #4b5563; }                      /* 4.39 -> >=6.87:1 */
+.text-red-600 { color: #b91c1c; }                       /* 4.41 -> >=5.88:1 */
+.text-green-500,
+.text-green-600,
+.text-emerald-500 { color: #15803d; }                   /* 2.3/3.3 -> >=4.56:1 */
+.text-\[9px\],
+.text-\[10px\],
+.text-\[10\.5px\] { font-size: 11px; }
+.text-\[11px\] { font-size: 12px; }
+
+/* Secondary copy: text-xs is 0.75rem, i.e. 11.25px at this root size. */
+.text-xs { font-size: 0.8rem; }                         /* -> 12px */
+
+/* Tremor primary buttons in the brand family render white text on
+   emerald-500 (2.54:1). Scoped to Tremor's button root so decorative
+   emerald dots and bars elsewhere keep their colour. */
+.tremor-Button-root.bg-emerald-500 { background-color: #047857; border-color: #047857; }
+.tremor-Button-root.bg-emerald-500:hover { background-color: #065f46; border-color: #065f46; }
+
+/* Tremor badges draw text-{colour}-600 on a 10% tint of {colour}-500; for 12
+   of 22 colour families that was under 4.5:1 (amber 2.95, yellow 2.75). The
+   -700 shade passes on its own tint for every family. */
+.tremor-Badge-root.text-red-600 { color: #b91c1c; }
+.tremor-Badge-root.text-orange-600 { color: #c2410c; }
+.tremor-Badge-root.text-amber-600 { color: #b45309; }
+.tremor-Badge-root.text-yellow-600 { color: #a16207; }
+.tremor-Badge-root.text-emerald-600 { color: #047857; }
+.tremor-Badge-root.text-green-600 { color: #15803d; }
+.tremor-Badge-root.text-blue-600 { color: #1d4ed8; }
+.tremor-Badge-root.text-gray-600 { color: #374151; }
+.tremor-Badge-root.text-slate-600 { color: #334155; }
+.tremor-Badge-root.text-purple-600 { color: #7e22ce; }
+.tremor-Badge-root.text-indigo-600 { color: #4338ca; }
+.tremor-Badge-root.text-cyan-600 { color: #0e7490; }
+.tremor-Badge-root.text-teal-600 { color: #0f766e; }
+.tremor-Badge-root.text-rose-600 { color: #be123c; }
+.tremor-Badge-root.text-violet-600 { color: #6d28d9; }
+.tremor-Badge-root.text-pink-600 { color: #be185d; }
+.tremor-Badge-root.text-lime-600 { color: #4d7c0f; }
+.tremor-Badge-root.text-sky-600 { color: #0369a1; }
+.tremor-Badge-root.text-fuchsia-600 { color: #a21caf; }
+.tremor-Badge-root.text-stone-600 { color: #44403c; }
+.tremor-Badge-root.text-zinc-600 { color: #3f3f46; }
+.tremor-Badge-root.text-neutral-600 { color: #404040; }

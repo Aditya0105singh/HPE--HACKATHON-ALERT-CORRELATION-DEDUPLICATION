@@ -228,7 +228,7 @@ function Pill({
       onClick={onClick}
       className={clsx(
         "text-[11px] px-2 py-1 rounded-md font-medium transition-colors",
-        active ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+        active ? "bg-green-700 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
       )}
     >
       {children}

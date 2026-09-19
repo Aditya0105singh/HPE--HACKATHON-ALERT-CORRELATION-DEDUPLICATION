@@ -43,19 +43,20 @@ export const getSeverityLabelClassName = (severity?: UISeverity) => {
   }
 };
 
+// -700 on the -100 label tint: the -500 shades measured 2.2-3.1:1, under AA.
 export const getSeverityTextClassName = (severity?: UISeverity) => {
   switch (severity) {
     case "critical":
-      return "text-red-500";
+      return "text-red-700";
     case "high":
     case "error":
-      return "text-orange-500";
+      return "text-orange-700";
     case "medium":
     case "warning":
       return "text-amber-900";
     case "info":
-      return "text-blue-500";
+      return "text-blue-700";
     default:
-      return "text-emerald-500";
+      return "text-emerald-700";
   }
 };

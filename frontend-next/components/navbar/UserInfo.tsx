@@ -62,7 +62,7 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
               <Menu.Item
                 as={Link}
                 href="/settings"
-                className="ui-active:bg-green-600 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
+                className="ui-active:bg-green-700 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
               >
                 Settings
               </Menu.Item>
@@ -72,7 +72,7 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
             <li>
               <Menu.Item
                 as="button"
-                className="ui-active:bg-green-600 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
+                className="ui-active:bg-green-700 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
                 onClick={() => setIsChangePasswordOpen(true)}
               >
                 Change Password
@@ -83,7 +83,7 @@ const UserDropdown = ({ session }: UserDropdownProps) => {
             <li>
               <Menu.Item
                 as="button"
-                className="ui-active:bg-green-600 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
+                className="ui-active:bg-green-700 ui-active:text-white ui-not-active:text-gray-900 group flex w-full items-center rounded-md px-2 py-2 text-sm"
                 onClick={signOut}
               >
                 Sign out

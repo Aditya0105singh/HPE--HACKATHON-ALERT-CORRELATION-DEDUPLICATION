@@ -142,14 +142,21 @@ export function ChaosOrder() {
           clusters.map((c, ci) => (
             <div
               key={c.cluster_id}
-              className="absolute text-[11px] font-medium text-center -translate-x-1/2 whitespace-nowrap"
+              className="absolute text-[11px] font-medium text-center -translate-x-1/2 whitespace-nowrap text-gray-800"
               style={{
                 left: `${((ci + 1) / (clusters.length + 1)) * 100}%`,
                 top: "56%",
-                color: PALETTE[c.cluster_id % PALETTE.length],
               }}
             >
-              {c.root_cause.service}
+              {/* Swatch carries the cluster colour; the text stays dark, since
+                  palette yellow as text was 1.78:1. */}
+              <span className="inline-flex items-center gap-1">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: PALETTE[c.cluster_id % PALETTE.length] }}
+                />
+                {c.root_cause.service}
+              </span>
               <div className="text-gray-500">{c.size} alerts</div>
             </div>
           ))}

@@ -55,7 +55,7 @@ export function Topbar({ session }: { session: Session | null }) {
           {bellCount > 0 && (
             <span
               className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
-              style={{ background: failedCount > 0 ? "#dc2626" : "#22c55e" }}
+              style={{ background: failedCount > 0 ? "#dc2626" : "#15803d" }}
             >
               {bellCount > 99 ? "99+" : bellCount}
             </span>

@@ -165,7 +165,7 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
               className={clsx(
                 "text-sm px-3 py-1.5 rounded-md border transition-colors",
                 activeStage === m
-                  ? "bg-green-500 border-green-500 text-white font-medium"
+                  ? "bg-green-700 border-green-700 text-white font-medium"
                   : "border-gray-200 text-gray-600 hover:border-green-300"
               )}
             >

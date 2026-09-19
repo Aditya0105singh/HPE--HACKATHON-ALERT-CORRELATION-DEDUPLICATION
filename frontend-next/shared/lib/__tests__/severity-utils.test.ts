@@ -69,33 +69,33 @@ describe('severity-utils', () => {
   });
 
   describe('getSeverityTextClassName', () => {
-    it('should return "text-red-500" for critical severity', () => {
-      expect(getSeverityTextClassName(UISeverity.Critical)).toBe('text-red-500');
+    it('should return "text-red-700" for critical severity', () => {
+      expect(getSeverityTextClassName(UISeverity.Critical)).toBe('text-red-700');
     });
 
-    it('should return "text-orange-500" for high severity', () => {
-      expect(getSeverityTextClassName(UISeverity.High)).toBe('text-orange-500');
+    it('should return "text-orange-700" for high severity', () => {
+      expect(getSeverityTextClassName(UISeverity.High)).toBe('text-orange-700');
     });
 
-    it('should return "text-orange-500" for error severity', () => {
-      expect(getSeverityTextClassName(UISeverity.Error)).toBe('text-orange-500');
+    it('should return "text-orange-700" for error severity', () => {
+      expect(getSeverityTextClassName(UISeverity.Error)).toBe('text-orange-700');
     });
 
     it('should return "text-amber-900" for warning severity', () => {
       expect(getSeverityTextClassName(UISeverity.Warning)).toBe('text-amber-900');
     });
 
-    it('should return "text-blue-500" for info severity', () => {
-      expect(getSeverityTextClassName(UISeverity.Info)).toBe('text-blue-500');
+    it('should return "text-blue-700" for info severity', () => {
+      expect(getSeverityTextClassName(UISeverity.Info)).toBe('text-blue-700');
     });
 
-    it('should return "text-emerald-500" for low severity', () => {
-      expect(getSeverityTextClassName(UISeverity.Low)).toBe('text-emerald-500');
+    it('should return "text-emerald-700" for low severity', () => {
+      expect(getSeverityTextClassName(UISeverity.Low)).toBe('text-emerald-700');
     });
 
-    it('should return "text-emerald-500" for undefined or unknown severity', () => {
-      expect(getSeverityTextClassName(undefined)).toBe('text-emerald-500');
-      expect(getSeverityTextClassName('unknown' as UISeverity)).toBe('text-emerald-500');
+    it('should return "text-emerald-700" for undefined or unknown severity', () => {
+      expect(getSeverityTextClassName(undefined)).toBe('text-emerald-700');
+      expect(getSeverityTextClassName('unknown' as UISeverity)).toBe('text-emerald-700');
     });
   });
 });

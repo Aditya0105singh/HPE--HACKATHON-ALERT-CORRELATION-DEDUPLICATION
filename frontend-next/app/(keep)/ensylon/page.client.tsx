@@ -684,7 +684,7 @@ export default function EnsylonPage() {
               onClick={() => setTab(t.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 tab === t.key
-                  ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-[0_4px_16px_rgba(22,163,74,0.3)]"
+                  ? "bg-gradient-to-r from-green-700 to-green-800 text-white shadow-[0_4px_16px_rgba(21,128,61,0.3)]"
                   : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
               }`}
             >

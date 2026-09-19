@@ -29,8 +29,9 @@ module.exports = {
             faint: "rgb(240 253 244)", // green-50
             muted: "rgb(187 247 208)", // green-200
             subtle: "rgb(74 222 128)", // green-400
-            DEFAULT: "rgb(22 163 74)", // green-600
-            emphasis: "#374151", //  gray-700
+            // green-700: white text on green-600 was 3.30:1, below AA 4.5:1
+            DEFAULT: "rgb(21 128 61)", // green-700 (5.02:1 with white)
+            emphasis: "rgb(22 101 52)", // green-800, button hover
             inverted: "#ffffff", // white
           },
           background: {

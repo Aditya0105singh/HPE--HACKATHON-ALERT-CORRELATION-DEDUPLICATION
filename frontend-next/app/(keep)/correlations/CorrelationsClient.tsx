@@ -131,7 +131,7 @@ export function CorrelationsClient() {
             className={clsx(
               "flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors",
               view === key
-                ? "bg-green-500 border-green-500 text-white font-medium"
+                ? "bg-green-700 border-green-700 text-white font-medium"
                 : "border-gray-200 text-gray-600 hover:border-green-300"
             )}
           >

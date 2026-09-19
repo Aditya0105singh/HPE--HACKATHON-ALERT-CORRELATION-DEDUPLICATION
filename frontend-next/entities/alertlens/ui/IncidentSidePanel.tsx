@@ -220,7 +220,7 @@ export function IncidentSidePanel({
                 <button
                   onClick={approveAndCreate}
                   disabled={approving || !ticket}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-xs font-semibold px-3 py-1.5 shadow-sm transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white text-xs font-semibold px-3 py-1.5 shadow-sm transition-colors"
                 >
                   <HiOutlinePaperAirplane size={13} />
                   {approving ? "Approving..." : "Approve & Create Jira"}
@@ -748,7 +748,7 @@ export function IncidentSidePanel({
                   <button
                     onClick={approveAndCreate}
                     disabled={approving}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-xs font-semibold px-3 py-2.5 shadow-sm"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white text-xs font-semibold px-3 py-2.5 shadow-sm"
                   >
                     <HiOutlinePaperAirplane size={13} />
                     {approving ? "Approving..." : "Approve & Create Jira"}
@@ -814,7 +814,7 @@ export function IncidentSidePanel({
           <Link
             href={`/incidents/${id}`}
             onClick={onClose}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2.5 shadow-sm transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-700 hover:bg-green-800 text-white text-xs font-semibold py-2.5 shadow-sm transition-colors"
           >
             Open full incident <HiOutlineArrowTopRightOnSquare size={13} />
           </Link>

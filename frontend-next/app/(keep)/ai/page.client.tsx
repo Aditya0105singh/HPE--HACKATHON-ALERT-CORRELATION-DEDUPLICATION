@@ -112,7 +112,7 @@ function LiveTestBox() {
             key={i}
             className={
               m.role === "user"
-                ? "self-end max-w-[85%] rounded-lg bg-green-500 text-white px-3 py-2 text-sm"
+                ? "self-end max-w-[85%] rounded-lg bg-green-700 text-white px-3 py-2 text-sm"
                 : "self-start max-w-[95%] rounded-lg bg-gray-100 px-3 py-2 text-sm"
             }
           >
