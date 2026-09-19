@@ -101,9 +101,9 @@ def build_draft(
         causal_reasoning=[r["text"] for r in explanation.get("reasons", []) if r.get("ok")],
         summary=cluster.get("summary", ""),
         investigation_steps=[s.get("title", "") for s in playbook.get("steps", [])],
-        # The pipeline falls back to a deterministic template whenever every LLM
-        # provider is unreachable, so say which one actually produced this.
-        summary_source="template",
+        # Recorded by the pipeline from whichever path actually produced the
+        # summary, rather than assumed.
+        summary_source=cluster.get("summary_source", "template"),
     )
 
 

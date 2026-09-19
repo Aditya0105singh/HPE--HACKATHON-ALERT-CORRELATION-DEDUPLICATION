@@ -43,7 +43,7 @@ from .playbook import generate_playbook
 from .providers import test_webhook
 from .real_data_bgl import load_bgl_alerts
 from .risk_score import escalation_risk
-from .summarizer import summarize
+from .summarizer import summarize, summarize_with_source
 
 _dna: AlertDNA | None = None
 _state: dict = {"dedup_stats": None, "clusters": [], "noise": [], "raw_alerts": [], "evaluation": None, "dataset": "none"}
@@ -164,6 +164,7 @@ def _run_pipeline(alerts: list[dict]) -> dict:
             "risk": risk,
             "dna_match": dna,
             "summary": summarize(members, root, dna, use_llm=False),
+            "summary_source": "template",
             "est_triage_minutes_saved": saved,
             "alerts": sorted(members, key=lambda a: a["timestamp"]),
         })
@@ -175,10 +176,14 @@ def _run_pipeline(alerts: list[dict]) -> dict:
     # (dozens of incidents) doesn't mean dozens of sequential LLM calls.
     top = clusters[:LLM_SUMMARY_LIMIT]
     with ThreadPoolExecutor(max_workers=8) as pool:
-        for cluster, text in zip(
-            top, pool.map(lambda c: summarize(c["alerts"], c["root_cause"], c["dna_match"]), top)
+        for cluster, (text, source) in zip(
+            top,
+            pool.map(
+                lambda c: summarize_with_source(c["alerts"], c["root_cause"], c["dna_match"]), top
+            ),
         ):
             cluster["summary"] = text
+            cluster["summary_source"] = source
 
     _state.update({
         "dedup_stats": dedup_stats,

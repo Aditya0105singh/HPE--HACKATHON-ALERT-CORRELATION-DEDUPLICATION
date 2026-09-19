@@ -14,6 +14,8 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from .dedup import WINDOW_SECONDS
+
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "loghub_bgl_alerts.json"
 
 
@@ -25,7 +27,11 @@ def load_bgl_alerts() -> list[dict]:
         return alerts
 
     timestamps = [datetime.fromisoformat(a["timestamp"]) for a in alerts]
-    shift = datetime.now().replace(microsecond=0) - max(timestamps)
+    # Shift by a whole number of dedup windows. Dedup buckets absolute time into
+    # WINDOW_SECONDS slots, so an arbitrary shift changed which alerts shared a
+    # slot and the unique/incident counts drifted from one reload to the next.
+    raw_shift = (datetime.now().replace(microsecond=0) - max(timestamps)).total_seconds()
+    shift = timedelta(seconds=(raw_shift // WINDOW_SECONDS) * WINDOW_SECONDS)
 
     shifted = []
     for alert, ts in zip(alerts, timestamps):

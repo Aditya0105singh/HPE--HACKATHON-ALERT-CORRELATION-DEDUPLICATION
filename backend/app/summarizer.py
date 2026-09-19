@@ -155,9 +155,17 @@ def _llm_summary(cluster_alerts: list[dict], root_cause: dict,
     return None
 
 
-def summarize(cluster_alerts: list[dict], root_cause: dict,
-              dna_match: dict | None = None, use_llm: bool = True) -> str:
+def summarize_with_source(cluster_alerts: list[dict], root_cause: dict,
+                          dna_match: dict | None = None,
+                          use_llm: bool = True) -> tuple[str, str]:
+    """(text, source) where source is "llm" or "template" - which path actually
+    produced the text, so callers never have to guess or hardcode it."""
     llm_text = _llm_summary(cluster_alerts, root_cause, dna_match) if use_llm else None
     if llm_text:
-        return llm_text
-    return _template_summary(cluster_alerts, root_cause, dna_match)
+        return llm_text, "llm"
+    return _template_summary(cluster_alerts, root_cause, dna_match), "template"
+
+
+def summarize(cluster_alerts: list[dict], root_cause: dict,
+              dna_match: dict | None = None, use_llm: bool = True) -> str:
+    return summarize_with_source(cluster_alerts, root_cause, dna_match, use_llm)[0]

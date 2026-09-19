@@ -33,7 +33,7 @@ describe('provider-utils', () => {
           id: '1',
           type: 'slack',
           config: { apiKey: 'some-key' }
-        } as Provider
+        } as unknown as Provider
       ];
       
       expect(isProviderInstalled(provider, providers)).toBe(false);
@@ -49,7 +49,7 @@ describe('provider-utils', () => {
           id: '1',
           type: 'slack',
           config: {}
-        } as Provider
+        } as unknown as Provider
       ];
       
       expect(isProviderInstalled(provider, providers)).toBe(true);
@@ -65,7 +65,7 @@ describe('provider-utils', () => {
           id: '1',
           type: 'slack',
           config: {}
-        } as Provider
+        } as unknown as Provider
       ];
       
       expect(isProviderInstalled(provider, providers)).toBe(true);
@@ -81,7 +81,7 @@ describe('provider-utils', () => {
           id: '1',
           type: 'discord',
           config: { token: 'some-token' }
-        } as Provider
+        } as unknown as Provider
       ];
       
       expect(isProviderInstalled(provider, providers)).toBe(true);
@@ -97,12 +97,12 @@ describe('provider-utils', () => {
           id: '1',
           type: 'discord',
           config: { token: 'some-token' }
-        } as Provider,
+        } as unknown as Provider,
         {
           id: '2',
           type: 'slack',
           config: { apiKey: 'some-key' }
-        } as Provider
+        } as unknown as Provider
       ];
       
       expect(isProviderInstalled(provider, providers)).toBe(false);
@@ -129,12 +129,10 @@ describe('provider-utils', () => {
     });
 
     it('should handle case when provider has no type', () => {
-      const provider = {
-        // @ts-ignore - Intentionally omitting type to test handling
-        installed: true
-      };
+      // Deliberately omits `type` to exercise the missing-type path.
+      const provider = { installed: true } as unknown as Pick<Provider, "type" | "installed">;
       const providers: Provider[] = [];
-      
+
       expect(isProviderInstalled(provider, providers)).toBe(true);
     });
   });

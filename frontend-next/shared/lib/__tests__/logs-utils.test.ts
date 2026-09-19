@@ -69,7 +69,8 @@ describe('logs-utils', () => {
     it('should handle undefined message gracefully', () => {
       const log: LogEntry = {
         timestamp: '2023-01-01T00:00:00Z',
-        message: undefined,
+        // Deliberately invalid: exercises the runtime guard for a missing message.
+        message: undefined as unknown as string,
         context: {}
       };
       expect(getLogLineStatus(log)).toBe(null);

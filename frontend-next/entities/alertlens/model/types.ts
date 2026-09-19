@@ -251,20 +251,22 @@ export interface PlaybookStep {
   step_number: number;
   title: string;
   description: string;
-  estimated_duration: string;
-  priority?: string;
   [key: string]: unknown;
 }
 
 export interface Playbook {
   title: string;
   priority: string;
-  estimated_resolution: string;
-  confidence: number;
+  /** Which failure family the incident's own alert text matched, or null. */
+  failure_family: string | null;
+  /** Only set when a similar past incident gives a real baseline. */
+  estimated_resolution: string | null;
+  resolution_basis: string;
+  confidence: number | null;
   steps: PlaybookStep[];
-  validation: unknown;
-  rollback: unknown;
-  business_impact: unknown;
+  validation: string[];
+  rollback: string[];
+  impact: unknown;
 }
 
 /** GET /evaluation */

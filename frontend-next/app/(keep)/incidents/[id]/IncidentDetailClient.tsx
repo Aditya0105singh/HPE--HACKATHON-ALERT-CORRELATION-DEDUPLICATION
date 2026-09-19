@@ -499,8 +499,15 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                         <Badge color="red" size="xs">
                           {playbook.data?.priority}
                         </Badge>
+                        {playbook.data?.failure_family && (
+                          <Badge color="gray" size="xs">
+                            {playbook.data.failure_family}
+                          </Badge>
+                        )}
                         <Badge color="gray" size="xs">
-                          {playbook.data?.estimated_resolution}
+                          {playbook.data?.estimated_resolution
+                            ? `Est. ${playbook.data.estimated_resolution}`
+                            : "No time estimate"}
                         </Badge>
                       </div>
                     </div>
@@ -515,9 +522,6 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
                           <div className="min-w-0">
                             <div className="font-medium">{s.title}</div>
                             <Text className="mt-1 text-sm">{s.description}</Text>
-                            <Text className="mt-1 text-xs text-gray-500">
-                              {s.estimated_duration}
-                            </Text>
                           </div>
                         </div>
                         <TremorButton

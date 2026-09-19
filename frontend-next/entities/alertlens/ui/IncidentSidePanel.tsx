@@ -777,9 +777,14 @@ export function IncidentSidePanel({
             >
               {playbook ? (
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
                     <Chip tone="amber">{playbook.priority}</Chip>
-                    <span>Est. {playbook.estimated_resolution}</span>
+                    {playbook.failure_family && <Chip>{playbook.failure_family}</Chip>}
+                    <span>
+                      {playbook.estimated_resolution
+                        ? `Est. ${playbook.estimated_resolution} (${playbook.resolution_basis})`
+                        : `No time estimate: ${playbook.resolution_basis}`}
+                    </span>
                   </div>
                   <ol className="flex flex-col gap-2.5">
                     {playbook.steps.map((s) => (
@@ -791,7 +796,6 @@ export function IncidentSidePanel({
                           <div className="min-w-0">
                             <div className="text-xs font-bold text-gray-900 break-words">{s.title}</div>
                             <div className="text-[11px] text-gray-600 mt-1 break-words leading-relaxed">{s.description}</div>
-                            {s.estimated_duration && <div className="text-[11px] text-gray-400 mt-1.5">~{s.estimated_duration}</div>}
                           </div>
                         </div>
                       </li>
