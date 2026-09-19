@@ -20,7 +20,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import Column, String, Boolean, DateTime, create_engine
+from sqlalchemy import Column, String, Boolean, DateTime, create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DB_PATH = Path(__file__).resolve().parents[1] / "alertlens.db"
@@ -328,7 +328,11 @@ def list_notifications(limit: int = 200) -> list[dict]:
     with SessionLocal() as db:
         rows = (
             db.query(NotificationLogRow)
-            .order_by(NotificationLogRow.created_at.desc())
+            # created_at alone ties for rows written in the same clock tick
+            # (about 15 ms on Windows), and one pipeline run fires several
+            # rules back to back. rowid is insertion order, so it breaks ties
+            # newest-first deterministically.
+            .order_by(NotificationLogRow.created_at.desc(), text("rowid DESC"))
             .limit(limit)
             .all()
         )

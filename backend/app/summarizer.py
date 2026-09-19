@@ -17,7 +17,6 @@ from __future__ import annotations
 import json
 import time
 import os
-import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -147,9 +146,23 @@ def _llm_summary(cluster_alerts: list[dict], root_cause: dict,
             text = _call_chat_api(api_key, url, model, prompt)
             if text:
                 return text
-        except (urllib.error.URLError, urllib.error.HTTPError, KeyError, IndexError,
-                TimeoutError, ValueError) as e:
-            print(f"[summarizer] {provider} call failed, trying next provider: {e}")
+        # Deliberately broad, matching assistant.py's provider loop: the LLM
+        # summary is an optional enhancement over _template_summary, and
+        # run_pipeline() maps summarize_with_source() over the top incidents
+        # in a thread pool, so ANY exception escaping here re-raises out of
+        # pool.map and fails the whole dataset load with a 500. A flaky
+        # provider must degrade to the template, never take the pipeline
+        # down. The old narrow tuple (URLError, HTTPError, KeyError,
+        # IndexError, TimeoutError, ValueError) missed real failure modes:
+        # urlopen lets http.client.RemoteDisconnected, IncompleteRead and
+        # ConnectionReset/AbortedError through unwrapped from getresponse()/
+        # read(), and a malformed body like {"choices": null} raises
+        # TypeError. Only the provider call is inside the try, so a genuine
+        # bug in _build_prompt/_template_summary still surfaces; the type
+        # name is logged so a bug here isn't silent either.
+        except Exception as e:
+            print(f"[summarizer] {provider} call failed ({type(e).__name__}: {e}), "
+                  f"trying next provider")
     print("[summarizer] all configured providers failed, falling back to template")
     _llm_down_until = time.monotonic() + _LLM_COOLDOWN_SEC
     return None

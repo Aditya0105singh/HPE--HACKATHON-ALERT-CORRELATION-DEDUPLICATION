@@ -39,10 +39,23 @@ def no_real_llm_calls_by_default(monkeypatch):
     hit the real network on every /demo/load, /ingest, or alert action.
     Tests that specifically want to exercise the LLM-call path monkeypatch
     these back within the test itself, which safely overrides this default
-    (same monkeypatch fixture, same undo stack)."""
+    (same monkeypatch fixture, same undo stack).
+
+    Also clears summarizer's module-global LLM cooldown. _llm_summary() sets
+    `_llm_down_until = monotonic() + 60` once every configured provider has
+    failed, and then short-circuits before _call_chat_api for the next 60
+    seconds. That is deliberate production behavior (a large batch shouldn't
+    pay the full failure latency per incident) but it is process-global
+    state, so without this reset one test that makes all providers fail
+    silently disables the LLM path for every test that runs after it in the
+    same process — they'd exercise the cooldown short-circuit instead of the
+    orchestration they mean to assert, and either pass vacuously or fail
+    depending purely on collection order. Set at setup, so each test starts
+    with the cooldown cleared no matter what its predecessor did."""
     from app import summarizer
 
     monkeypatch.setattr(summarizer, "_configured_providers", lambda: [])
+    monkeypatch.setattr(summarizer, "_llm_down_until", 0.0)
 
 
 @pytest.fixture

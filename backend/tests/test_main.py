@@ -11,7 +11,14 @@ webhooks) is monkeypatched — the real .env in this repo has real API keys,
 and tests must never spend real API credits or depend on network access.
 """
 
+import json
+from pathlib import Path
+
 import pytest
+
+# Read directly rather than via app.real_data_bgl.DATA_PATH, so the expected
+# count comes from the committed file itself, not from the loader under test.
+BGL_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "loghub_bgl_alerts.json"
 
 
 def _load_seeded_batch(client, seed=42, incidents=3, noise=20):
@@ -62,16 +69,56 @@ class TestPipelineAndDemoLoad:
             client.post("/ingest", json=[])
 
     def test_demo_load_real_loghub_dataset(self, client):
-        resp = client.post("/demo/load-real")
-        assert resp.status_code == 200
-        pipeline = client.get("/pipeline").json()
-        assert pipeline["dataset"] == "loghub-hdfs"
+        """The real Loghub dataset loads end-to-end through the same pipeline
+        as a synthetic batch and relabels the loaded dataset. Loghub BGL
+        (BlueGene/L RAS log, POST /demo/load-bgl) replaced the earlier
+        Loghub HDFS sample (POST /demo/load-real)."""
+        with open(BGL_DATA_PATH, encoding="utf-8") as f:
+            expected_raw = len(json.load(f))
+        assert expected_raw > 0
 
-    def test_demo_load_aiops_dataset(self, client):
-        resp = client.post("/demo/load-aiops")
+        # Start from a different dataset, so the label check below proves the
+        # BGL load switched it rather than a previous test leaving it set.
+        _load_seeded_batch(client)
+        assert client.get("/pipeline").json()["dataset"] == "synthetic"
+
+        resp = client.post("/demo/load-bgl")
         assert resp.status_code == 200
+        result = resp.json()
+        assert result["raw_alerts"] == expected_raw
+        assert 0 < result["after_dedup"] <= result["raw_alerts"]
+        assert result["clusters_formed"] > 0
+        assert 0 <= result["uncorrelated"] <= result["after_dedup"]
+
         pipeline = client.get("/pipeline").json()
-        assert pipeline["dataset"] == "aiops-challenge"
+        assert pipeline["dataset"] == "loghub-bgl"
+        assert len(pipeline["raw_alerts"]) == expected_raw
+        assert all(a["source"] == "loghub-bgl" for a in pipeline["raw_alerts"])
+        assert len(pipeline["clusters"]) == result["clusters_formed"]
+        # Every deduplicated alert ends up in exactly one incident or in noise.
+        clustered = sum(c["size"] for c in pipeline["clusters"])
+        assert clustered + len(pipeline["noise"]) == result["after_dedup"]
+
+        status = client.get("/settings/status").json()
+        assert status["dataset"] == "loghub-bgl"
+        assert status["persisted_alert_count"] == expected_raw
+
+    @pytest.mark.parametrize(
+        "route",
+        ["/demo/load-real", "/demo/load-aiops"],
+        ids=["loghub-hdfs", "aiops-challenge"],
+    )
+    def test_removed_dataset_routes_are_gone(self, client, route):
+        """Loghub HDFS (/demo/load-real) and AIOps Challenge 2020
+        (/demo/load-aiops) were removed on purpose. BGL superseded HDFS, and
+        AIOps' 81 isolated fault records never formed a single incident.
+        Fails if either route is re-added, and checks that a request to one
+        leaves the loaded batch alone."""
+        _load_seeded_batch(client)
+
+        assert route not in {getattr(r, "path", None) for r in client.app.routes}
+        assert client.post(route).status_code in (404, 405)
+        assert client.get("/pipeline").json()["dataset"] == "synthetic"
 
 
 class TestAlertActions:

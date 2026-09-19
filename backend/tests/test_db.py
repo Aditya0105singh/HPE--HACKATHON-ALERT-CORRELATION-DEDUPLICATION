@@ -160,6 +160,18 @@ class TestNotificationLog:
         assert db.has_fired("r1", "incident-b") is False
         assert db.has_fired("r2", "incident-a") is False
 
+    def test_notifications_written_in_the_same_tick_still_order_newest_first(self, isolated_db):
+        """created_at alone ties for rows written within one clock tick (about
+        15 ms on Windows) and one pipeline run fires several rules back to
+        back, so the sort must break ties by insertion order. Repeated because
+        the bug was a coin flip: it failed 99 of 200 pairs before the fix."""
+        db = isolated_db
+        for i in range(60):
+            db.log_notification("r", f"a{i}", None, "success", f"first-{i}")
+            db.log_notification("r", f"b{i}", None, "failed", f"second-{i}")
+            latest_two = [n["detail"] for n in db.list_notifications(limit=2)]
+            assert latest_two == [f"second-{i}", f"first-{i}"], (i, latest_two)
+
     def test_list_notifications_newest_first(self, isolated_db):
         db = isolated_db
         db.log_notification("r1", "inc-1", None, "success", "first")

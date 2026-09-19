@@ -79,7 +79,7 @@ describe("AssistantChat", () => {
   });
 
   it("sends a workspace question without incident_id on a non-incident route", async () => {
-    const post = jest.fn(async () => ({ answer: "Workspace answer." }));
+    const post = jest.fn(async (_endpoint: string, _payload?: unknown) => ({ answer: "Workspace answer." }));
     mockApiPost(post);
     mockUsePathname.mockReturnValue("/feed");
 
@@ -95,7 +95,7 @@ describe("AssistantChat", () => {
   });
 
   it("includes incident_id in the payload on an incident route", async () => {
-    const post = jest.fn(async () => ({ answer: "Incident answer." }));
+    const post = jest.fn(async (_endpoint: string, _payload?: unknown) => ({ answer: "Incident answer." }));
     mockApiPost(post);
     mockUsePathname.mockReturnValue("/incidents/42");
 
@@ -119,7 +119,7 @@ describe("AssistantChat", () => {
   });
 
   it("sends conversation history on the second turn", async () => {
-    const post = jest.fn(async () => ({ answer: "Second answer." }));
+    const post = jest.fn(async (_endpoint: string, _payload?: unknown) => ({ answer: "Second answer." }));
     mockApiPost(post);
     render(<AssistantChat />);
     openChat();
@@ -155,7 +155,7 @@ describe("AssistantChat", () => {
   });
 
   it("does not send an empty or whitespace-only question", () => {
-    const post = jest.fn(async () => ({ answer: "x" }));
+    const post = jest.fn(async (_endpoint: string, _payload?: unknown) => ({ answer: "x" }));
     mockApiPost(post);
     render(<AssistantChat />);
     openChat();
@@ -178,7 +178,7 @@ describe("AssistantChat", () => {
   });
 
   it("clicking a suggested question sends it directly", async () => {
-    const post = jest.fn(async () => ({ answer: "Top risk is X." }));
+    const post = jest.fn(async (_endpoint: string, _payload?: unknown) => ({ answer: "Top risk is X." }));
     mockApiPost(post);
     mockUsePathname.mockReturnValue("/");
     render(<AssistantChat />);

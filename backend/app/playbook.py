@@ -112,6 +112,15 @@ def _classify(texts: list[str]) -> tuple[str | None, list[tuple[str, str]]]:
     ]
 
 
+def _name_services(services: list[str], limit: int = 4) -> str:
+    """Names the affected services, and says how many were left out so a
+    truncated list is never presented as the whole set. Empty for no services,
+    which lets callers fall back to the root service."""
+    shown = ", ".join(services[:limit])
+    hidden = len(services) - limit
+    return f"{shown} and {hidden} more" if hidden > 0 else shown
+
+
 def generate_playbook(cluster: dict[str, Any]) -> dict[str, Any]:
     if not cluster:
         return {
@@ -161,10 +170,18 @@ def generate_playbook(cluster: dict[str, Any]) -> dict[str, Any]:
             "description": f"This incident is {dna.get('similarity_pct')}% similar to {dna.get('incident_id')}, "
             f"which was resolved by: {dna.get('resolution')}",
         })
+    # Name the services to watch, not just how many: the rendered playbook is
+    # the only place the operator sees them, and with nothing downstream (or no
+    # alerts at all) the root service is the honest fallback.
+    where = (
+        f"across {len(services)} service(s): {_name_services(services)}"
+        if services
+        else f"on {root_svc}"
+    )
     steps.append({
         "title": "Confirm the alerts stop",
         "description": f"Watch for \"{root_name}\" and the {cluster.get('size', len(alerts))} related alert(s) "
-        f"to stop firing across {len(services)} service(s).",
+        f"to stop firing {where}.",
     })
 
     for i, s in enumerate(steps, 1):
@@ -176,6 +193,9 @@ def generate_playbook(cluster: dict[str, Any]) -> dict[str, Any]:
     if dna and dna.get("resolution_minutes"):
         estimated = f"~{dna['resolution_minutes']} minutes"
         basis = f"resolution time of {dna.get('incident_id')}"
+    elif dna:
+        estimated = None
+        basis = f"{dna.get('incident_id')} matched but records no resolution time"
     else:
         estimated = None
         basis = "no similar past incident to estimate from"
@@ -190,7 +210,7 @@ def generate_playbook(cluster: dict[str, Any]) -> dict[str, Any]:
         "steps": steps,
         "validation": [
             f"\"{root_name}\" stops firing on {root_svc}",
-            f"No new alerts from {', '.join(services[:4]) or root_svc} for a full correlation window",
+            f"No new alerts from {_name_services(services) or root_svc} for a full correlation window",
         ],
         "rollback": [
             f"If a change to {root_svc} preceded the first alert, revert it",
