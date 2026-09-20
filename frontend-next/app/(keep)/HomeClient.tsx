@@ -348,7 +348,7 @@ export function HomeClient() {
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-3 items-start">
         <div className="min-w-0">
           {/* Recent incidents */}
-          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="kpi-card rounded-2xl border border-white/80 overflow-hidden" style={{ background: "linear-gradient(160deg,#fff 60%,#f0fdf4)", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.12)", animationDelay: "400ms" }}>
             <div className="flex items-center justify-between gap-2 flex-wrap p-3.5 border-b border-gray-100">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-gray-900 text-base mr-1">Active incidents <span className="text-green-700">({clusters.length})</span></span>
@@ -426,7 +426,7 @@ export function HomeClient() {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-[11px] text-gray-400 border-b border-gray-100">
+                    <tr className="text-left text-[11px] uppercase tracking-wide text-gray-500 border-b border-green-100/70 bg-green-50/40">
                       <th className="font-medium px-3.5 py-2 w-8">#</th>
                       <th className="font-medium px-3.5 py-2">Incident</th>
                       <th className="font-medium px-3.5 py-2">Priority</th>
@@ -456,14 +456,15 @@ export function HomeClient() {
                           }}
                           tabIndex={0}
                           aria-label={`Open incident ${c.root_cause.alertname}`}
-                          className="cursor-pointer border-b border-gray-50 last:border-0 hover:bg-green-50/40 focus:outline-none focus-visible:bg-green-50 transition-colors"
+                          style={{ animationDelay: `${500 + i * 60}ms` }}
+                          className="kpi-row group cursor-pointer border-b border-gray-100/70 last:border-0 hover:bg-green-50/60 hover:shadow-[inset_3px_0_0_#16a34a] focus:outline-none focus-visible:bg-green-50 transition-all"
                         >
                           <td className="px-3.5 py-2.5 text-gray-400 text-xs">{i + 1}</td>
                           <td className="px-3.5 py-2.5">
                             <div className="flex items-center gap-2.5">
                               <span
-                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                                style={{ background: `${sev}1a`, color: sev }}
+                                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
+                                style={{ background: `${sev}1f`, color: sev }}
                               >
                                 <HiOutlineExclamationTriangle size={16} />
                               </span>
@@ -474,7 +475,7 @@ export function HomeClient() {
                             </div>
                           </td>
                           <td className="px-3.5 py-2.5">
-                            <span className={clsx("inline-block text-[11px] font-bold px-2 py-0.5 rounded-md", PRIORITY_STYLE[priorityOf(c)])}>{priorityOf(c)}</span>
+                            <span className={clsx("inline-block text-[11px] font-bold px-2.5 py-1 rounded-lg", PRIORITY_STYLE[priorityOf(c)])}>{priorityOf(c)}</span>
                           </td>
                           <td className="px-3.5 py-2.5 hidden 2xl:table-cell max-w-[220px]">
                             <div className="text-xs text-gray-500 line-clamp-2">{c.summary || `Root cause on ${c.root_cause.service}.`}</div>
@@ -494,7 +495,7 @@ export function HomeClient() {
                           <td className="px-3.5 py-2.5 w-32">
                             <div className="flex items-center gap-1.5">
                               <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                                <div className="h-full rounded-full" style={{ width: `${Math.round(c.risk.score * 100)}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af" }} />
+                                <div className="kpi-hbar h-full rounded-full" style={{ width: `${Math.round(c.risk.score * 100)}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af", animationDelay: `${600 + i * 60}ms` }} />
                               </div>
                               <span className="text-[11px] text-gray-500 w-8 text-right">{Math.round(c.risk.score * 100)}%</span>
                             </div>
@@ -756,8 +757,8 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
     <button
       onClick={onClick}
       className={clsx(
-        "text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors",
-        active ? "bg-green-700 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+        "text-[11px] px-3 py-1 rounded-full font-semibold transition-all",
+        active ? "bg-green-700 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-700"
       )}
     >
       {children}
