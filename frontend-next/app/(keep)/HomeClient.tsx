@@ -430,15 +430,15 @@ export function HomeClient() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-[11px] uppercase tracking-wide text-gray-500 border-b border-green-100/70 bg-green-50/40">
-                      <th className="font-medium px-3.5 py-2 w-8">#</th>
-                      <th className="font-medium px-3.5 py-2">Incident</th>
-                      <th className="font-medium px-3.5 py-2">Priority</th>
-                      <th className="font-medium px-3.5 py-2 hidden 2xl:table-cell">Root cause (AI)</th>
-                      <th className="font-medium px-3.5 py-2">Affected services</th>
-                      <th className="font-medium px-3.5 py-2">Signals</th>
-                      <th className="font-medium px-3.5 py-2">Risk</th>
-                      <th className="font-medium px-3.5 py-2">Status</th>
-                      <th className="font-medium px-3.5 py-2 hidden 2xl:table-cell">Last updated</th>
+                      <th className="font-medium px-2.5 py-2 w-8">#</th>
+                      <th className="font-medium px-2.5 py-2">Incident</th>
+                      <th className="font-medium px-2.5 py-2">Priority</th>
+                      <th className="font-medium px-2.5 py-2 hidden 2xl:table-cell">Root cause (AI)</th>
+                      <th className="font-medium px-2.5 py-2">Affected services</th>
+                      <th className="font-medium px-2.5 py-2">Signals</th>
+                      <th className="font-medium px-2.5 py-2">Risk</th>
+                      <th className="font-medium px-2.5 py-2">Status</th>
+                      <th className="font-medium px-2.5 py-2 hidden 2xl:table-cell">Last updated</th>
                       <th className="w-6" />
                     </tr>
                   </thead>
@@ -462,8 +462,8 @@ export function HomeClient() {
                           style={{ animationDelay: `${500 + i * 60}ms` }}
                           className="kpi-row group cursor-pointer border-b border-gray-100/70 last:border-0 hover:bg-green-50/60 hover:shadow-[inset_3px_0_0_#16a34a] focus:outline-none focus-visible:bg-green-50 transition-all"
                         >
-                          <td className="px-3.5 py-2.5 text-gray-400 text-xs">{i + 1}</td>
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-2.5 py-2.5 text-gray-400 text-xs">{i + 1}</td>
+                          <td className="px-2.5 py-2.5">
                             <div className="flex items-center gap-2.5">
                               <span
                                 className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
@@ -477,13 +477,13 @@ export function HomeClient() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-2.5 py-2.5">
                             <span className={clsx("inline-block text-[11px] font-bold px-2.5 py-1 rounded-lg", PRIORITY_STYLE[priorityOf(c)])}>{priorityOf(c)}</span>
                           </td>
-                          <td className="px-3.5 py-2.5 hidden 2xl:table-cell max-w-[220px]">
+                          <td className="px-2.5 py-2.5 hidden 2xl:table-cell max-w-[220px]">
                             <div className="text-xs text-gray-500 line-clamp-2">{c.summary || `Root cause on ${c.root_cause.service}.`}</div>
                           </td>
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-2.5 py-2.5">
                             <div className="flex flex-wrap gap-1 max-w-[130px]">
                               {services.slice(0, 2).map((s) => (
                                 <span key={s} className="text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">{s}</span>
@@ -491,11 +491,11 @@ export function HomeClient() {
                               {services.length > 2 && <span className="text-[11px] text-gray-400">+{services.length - 2}</span>}
                             </div>
                           </td>
-                          <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <td className="px-2.5 py-2.5 whitespace-nowrap">
                             <span className="font-semibold text-gray-800">{c.size}</span>
                             <div className="text-[11px] text-gray-400">({c.raw_alert_count} collapsed)</div>
                           </td>
-                          <td className="px-3.5 py-2.5 w-32">
+                          <td className="px-2.5 py-2.5 w-32">
                             <div className="flex items-center gap-1.5">
                               <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                                 <div className="kpi-hbar h-full rounded-full" style={{ width: `${Math.round(c.risk.score * 100)}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af", animationDelay: `${600 + i * 60}ms` }} />
@@ -503,13 +503,13 @@ export function HomeClient() {
                               <span className="text-[11px] text-gray-500 w-8 text-right">{Math.round(c.risk.score * 100)}%</span>
                             </div>
                           </td>
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-2.5 py-2.5">
                             <span className={clsx("inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap", STATUS_STYLE[st].pill)}>
                               <span className={clsx("w-1.5 h-1.5 rounded-full", STATUS_STYLE[st].dot)} />
                               {st}
                             </span>
                           </td>
-                          <td className="px-3.5 py-2.5 hidden 2xl:table-cell text-xs text-gray-400 whitespace-nowrap">{timeAgo(lastSeen(c))}</td>
+                          <td className="px-2.5 py-2.5 hidden 2xl:table-cell text-xs text-gray-400 whitespace-nowrap">{timeAgo(lastSeen(c))}</td>
                           <td className="pr-3 text-gray-300"><HiOutlineChevronRight size={14} /></td>
                         </tr>
                       );
@@ -528,6 +528,25 @@ export function HomeClient() {
               )}
               </>
             )}
+          </div>
+          <div className="mt-3">
+      <div className="grid grid-cols-1 min-[1400px]:grid-cols-[1.4fr_1fr] gap-3">
+            {/* Alert volume & correlation */}
+            <Panel title="Alert volume & correlation" delay={450}>
+              <VolumeChart buckets={buckets} />
+            </Panel>
+            <Panel title="Noise reduction trend" delay={550}>
+              <TrendChart
+                points={(() => {
+                  let seen = 0;
+                  return buckets.map((b) => {
+                    seen += b.total;
+                    return { label: b.label, noise: b.noiseCum, alerts: seen, incidents: b.incCum };
+                  });
+                })()}
+              />
+            </Panel>
+      </div>
           </div>
         </div>
         <div className="flex flex-col gap-3">
@@ -625,24 +644,6 @@ export function HomeClient() {
               </Link>
             </Panel>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
-            {/* Alert volume & correlation */}
-            <Panel title="Alert volume & correlation" delay={450}>
-              <VolumeChart buckets={buckets} />
-            </Panel>
-            <Panel title="Noise reduction trend" delay={550}>
-              <TrendChart
-                points={(() => {
-                  let seen = 0;
-                  return buckets.map((b) => {
-                    seen += b.total;
-                    return { label: b.label, noise: b.noiseCum, alerts: seen, incidents: b.incCum };
-                  });
-                })()}
-              />
-            </Panel>
       </div>
 
       <div className="grid grid-cols-1 gap-3 items-start">
