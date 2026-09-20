@@ -550,52 +550,6 @@ export function HomeClient() {
             </ul>
           </Panel>
 
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
-            {/* Alert volume & correlation */}
-            <Panel title="Alert volume & correlation" delay={450}>
-              <VolumeChart buckets={buckets} />
-            </Panel>
-            <Panel title="Noise reduction trend" delay={550}>
-              <TrendChart
-                points={(() => {
-                  let seen = 0;
-                  return buckets.map((b) => {
-                    seen += b.total;
-                    return { label: b.label, noise: b.noiseCum, alerts: seen, incidents: b.incCum };
-                  });
-                })()}
-              />
-            </Panel>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
-            {/* Alerts by severity */}
-            <Panel title="Alerts by severity" delay={750}>
-              <SeverityDonut slices={severityCounts.map((s) => ({ ...s, color: severityColor(s.severity) }))} />
-            </Panel>
-
-            {/* Top affected services */}
-            <Panel title="Top affected services">
-              <ul className="flex flex-col gap-2.5">
-                {topServices.map((s) => (
-                  <li key={s.service} className="text-xs">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-gray-600 truncate">{s.service}</span>
-                      <span className="font-semibold text-gray-800">{s.count}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-green-50 overflow-hidden">
-                      <div className="h-full rounded-full bg-green-600" style={{ width: `${(s.count / maxService) * 100}%` }} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/topology" className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline mt-3">
-                View all services <HiOutlineArrowRight size={12} />
-              </Link>
-            </Panel>
           {evaluation && (
             <Panel
               title="Measured accuracy"
@@ -651,6 +605,52 @@ export function HomeClient() {
               ))}
             </ul>
           </Panel>
+            {/* Top affected services */}
+            <Panel title="Top affected services">
+              <ul className="flex flex-col gap-2.5">
+                {topServices.map((s) => (
+                  <li key={s.service} className="text-xs">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-gray-600 truncate">{s.service}</span>
+                      <span className="font-semibold text-gray-800">{s.count}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-green-50 overflow-hidden">
+                      <div className="h-full rounded-full bg-green-600" style={{ width: `${(s.count / maxService) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <Link href="/topology" className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline mt-3">
+                View all services <HiOutlineArrowRight size={12} />
+              </Link>
+            </Panel>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
+            {/* Alert volume & correlation */}
+            <Panel title="Alert volume & correlation" delay={450}>
+              <VolumeChart buckets={buckets} />
+            </Panel>
+            <Panel title="Noise reduction trend" delay={550}>
+              <TrendChart
+                points={(() => {
+                  let seen = 0;
+                  return buckets.map((b) => {
+                    seen += b.total;
+                    return { label: b.label, noise: b.noiseCum, alerts: seen, incidents: b.incCum };
+                  });
+                })()}
+              />
+            </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 items-start">
+            {/* Alerts by severity */}
+            <Panel title="Alerts by severity" delay={750}>
+              <div className="max-w-2xl mx-auto"><SeverityDonut slices={severityCounts.map((s) => ({ ...s, color: severityColor(s.severity) }))} /></div>
+            </Panel>
+
       </div>
     </div>
   );
