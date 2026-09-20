@@ -240,6 +240,27 @@ function NoiseCard({ d, delay }: { d: KpiData; delay: number }) {
           </div>
           {times > 1 && <div className="mt-2 text-sm font-bold text-green-700">{times}× less noise</div>}
         </div>
+        {/* Only shown when the card spans two columns; fills the wide layout with the reduction steps. */}
+        <div className="hidden sm:flex flex-1 min-w-0 flex-col gap-2 pl-4 ml-2 border-l border-green-100 min-[1700px]:hidden">
+          {[
+            { label: "Raw alerts", v: d.raw, c: "#bbf7d0" },
+            { label: "After dedup", v: d.unique, c: "#86efac" },
+            { label: "In incidents", v: d.correlated, c: "#22c55e" },
+            { label: "Incidents", v: d.incidents, c: "#15803d" },
+          ].map((r, i) => (
+            <div key={r.label} className="flex items-center gap-3 text-xs">
+              <span className="w-20 shrink-0 text-gray-600">{r.label}</span>
+              <div className="flex-1 h-2.5 rounded-full bg-green-50 overflow-hidden">
+                <div
+                  className="kpi-hbar h-full rounded-full"
+                  style={{ width: `${Math.max(3, (Math.sqrt(r.v) / Math.sqrt(Math.max(1, d.raw))) * 100)}%`, background: r.c, animationDelay: `${400 + i * 120}ms` }}
+                />
+              </div>
+              <b className="w-14 text-right tabular-nums text-gray-900">{r.v.toLocaleString()}</b>
+            </div>
+          ))}
+          <div className="text-[11px] text-gray-500">Bar lengths use a square-root scale so small stages stay visible.</div>
+        </div>
       </div>
       <Link href="/deduplication" className="flex items-center gap-2 rounded-xl bg-green-100 text-green-800 px-3 py-2 text-xs font-semibold hover:brightness-95">
         <LuChartNoAxesColumn size={14} className="shrink-0" />
