@@ -318,14 +318,31 @@ export function HomeClient() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        {heading}
-        <div className="flex flex-col items-end gap-2">
-          <div className="hidden xl:block rounded-xl border border-green-100 bg-green-50/60 px-4 py-2 text-xs text-green-800 italic">
-            &ldquo;Less noise. Faster answers. Happier on-calls.&rdquo;
-            <div className="not-italic font-semibold text-green-700 mt-0.5">— AlertLens</div>
+      <div
+        className="kpi-card relative overflow-hidden rounded-2xl border border-green-100 px-6 py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+        style={{ background: "linear-gradient(120deg,#f0fdf4 0%,#ffffff 55%,#ecfdf5 100%)", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(22,163,74,.25)" }}
+      >
+        <div aria-hidden className="pointer-events-none absolute -right-10 -top-16 w-64 h-64 rounded-full bg-green-200/40 blur-3xl" />
+        <div className="relative min-w-0">
+          {heading}
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            {[
+              [`${summary.raw.toLocaleString()} alerts`, "bg-white text-gray-700 border-gray-200"],
+              [`${clusters.length} incidents`, "bg-white text-gray-700 border-gray-200"],
+              ...(clusters.length ? [[`${summary.noise}% less noise`, "bg-green-100 text-green-800 border-green-200"]] : []),
+            ].map(([t, c]) => (
+              <span key={t} className={clsx("rounded-full border px-2.5 py-1 text-xs font-semibold", c)}>
+                {t}
+              </span>
+            ))}
+            <span className="hidden xl:inline text-xs italic text-green-800 ml-1">
+              &ldquo;Less noise. Faster answers. Happier on-calls.&rdquo;
+            </span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+        </div>
+        <div className="relative flex flex-col items-start lg:items-end gap-1.5 shrink-0">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Data source</span>
+          <div className="flex items-center gap-2 flex-wrap lg:justify-end">
             <DataSourceButtons />
             <StormMenu />
           </div>

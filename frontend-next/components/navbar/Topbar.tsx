@@ -24,8 +24,8 @@ export function Topbar({ session }: { session: Session | null }) {
   const bellCount = notifications?.length ?? 0;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-200 bg-white sticky top-0 z-20">
-      <div className="flex-1 min-w-0 max-w-md">
+    <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-200/70 bg-white/85 backdrop-blur-md sticky top-0 z-20">
+      <div className="flex-1 min-w-0 max-w-xl">
         <Search />
       </div>
 

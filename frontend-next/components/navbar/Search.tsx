@@ -244,7 +244,7 @@ export const Search = () => {
   }, []);
 
   return (
-    <div className="flex items-center w-full py-3 px-2 border-b border-gray-300">
+    <div className="flex items-center w-full gap-1">
       <div className="flex-shrink-0 flex items-center">
         <Link href="/" className="flex items-center">
           <AlertLensMark className="w-8 h-8" />
@@ -269,7 +269,7 @@ export const Search = () => {
               )}
 
               <ComboboxInput
-                className="z-20 tremor-TextInput-root relative flex items-center w-full outline-none rounded-tremor-default transition duration-100 border shadow-tremor-input dark:shadow-dark-tremor-input bg-tremor-background dark:bg-dark-tremor-background hover:bg-tremor-background-muted dark:hover:bg-dark-tremor-background-muted text-tremor-content dark:text-dark-tremor-content border-tremor-border dark:border-dark-tremor-border tremor-TextInput-input bg-transparent focus:outline-none focus:ring-0 text-tremor-default py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-3 pl-3 placeholder:text-tremor-content dark:placeholder:text-dark-tremor-content"
+                className="z-20 !rounded-full !bg-gray-50 !border-gray-200 focus:!border-green-400 tremor-TextInput-root relative flex items-center w-full outline-none rounded-tremor-default transition duration-100 border shadow-tremor-input dark:shadow-dark-tremor-input bg-tremor-background dark:bg-dark-tremor-background hover:bg-tremor-background-muted dark:hover:bg-dark-tremor-background-muted text-tremor-content dark:text-dark-tremor-content border-tremor-border dark:border-dark-tremor-border tremor-TextInput-input bg-transparent focus:outline-none focus:ring-0 text-tremor-default py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-3 pl-3 placeholder:text-tremor-content dark:placeholder:text-dark-tremor-content"
                 placeholder={placeholderText}
                 color="emerald"
                 value={query}
