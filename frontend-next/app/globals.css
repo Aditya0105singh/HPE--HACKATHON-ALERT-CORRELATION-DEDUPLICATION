@@ -221,3 +221,7 @@ html.workaround-dark {
 @media (prefers-reduced-motion: reduce) {
   .kpi-row, .kpi-hbar, .kpi-card, .kpi-bar, .kpi-draw, .kpi-fade, .kpi-pulse, .kpi-ring { animation: none !important; }
 }
+
+@keyframes kpi-dot { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.35); } }
+.kpi-pulse-dot { animation: kpi-dot 2s ease-in-out 1.5s infinite; }
+@media (prefers-reduced-motion: reduce) { .kpi-pulse-dot { animation: none !important; } }

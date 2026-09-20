@@ -28,6 +28,7 @@ import {
 } from "@/entities/alertlens";
 import type { Cluster } from "@/entities/alertlens";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
+import { TrendChart } from "@/entities/alertlens/ui/TrendChart";
 import { VolumeChart } from "@/entities/alertlens/ui/VolumeChart";
 import { KpiCards } from "@/entities/alertlens/ui/KpiCards";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
@@ -557,8 +558,16 @@ export function HomeClient() {
             <Panel title="Alert volume & correlation" delay={450}>
               <VolumeChart buckets={buckets} />
             </Panel>
-            <Panel title="Noise reduction trend" delay={550} right={<span className="text-[11px] text-gray-500">cumulative</span>}>
-              <NoiseTrend points={buckets.map((b) => b.noiseCum)} labels={buckets.map((b) => b.label)} final={summary.noise} />
+            <Panel title="Noise reduction trend" delay={550}>
+              <TrendChart
+                points={(() => {
+                  let seen = 0;
+                  return buckets.map((b) => {
+                    seen += b.total;
+                    return { label: b.label, noise: b.noiseCum, alerts: seen, incidents: b.incCum };
+                  });
+                })()}
+              />
             </Panel>
       </div>
 
@@ -809,29 +818,6 @@ function NoiseGauge({ value, from, to }: { value: number | null; from: number; t
         <div className="text-2xl font-bold text-green-800 tabular-nums leading-none">{value === null ? "—" : `${value}%`}</div>
         <div className="text-xs text-gray-600 mt-1">Noise reduction</div>
         <div className="text-[11px] text-green-700 mt-0.5 truncate">{from.toLocaleString()} alerts → {to} incidents</div>
-      </div>
-    </div>
-  );
-}
-
-function NoiseTrend({ points, labels, final }: { points: number[]; labels: string[]; final: number }) {
-  if (points.length < 2) return <p className="text-xs text-gray-500">Not enough time buckets to draw a trend.</p>;
-  const W = 300, H = 110, pad = 6;
-  const x = (i: number) => pad + (i / (points.length - 1)) * (W - 2 * pad);
-  const y = (v: number) => H - pad - (Math.min(100, v) / 100) * (H - 2 * pad);
-  const line = points.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-  return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-28" role="img" aria-label={`Cumulative noise reduction, ending at ${final}%`}>
-        {[0, 50, 100].map((g) => <line key={g} x1={pad} x2={W - pad} y1={y(g)} y2={y(g)} stroke="#e5e7eb" strokeDasharray={g === 0 ? "" : "3 3"} />)}
-        <path className="kpi-fade" d={`${line} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} fill="#22c55e" opacity="0.15" />
-        <path className="kpi-draw" pathLength={1} d={line} fill="none" stroke="#15803d" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-        <circle className="kpi-pulse" cx={x(points.length - 1)} cy={y(points[points.length - 1])} r="3.5" fill="#fff" stroke="#15803d" strokeWidth="2" />
-      </svg>
-      <div className="flex justify-between text-[11px] text-gray-500 mt-1">
-        <span>{labels[0]}</span>
-        <span className="font-semibold text-green-800">{final}% noise reduction</span>
-        <span>{labels[labels.length - 1]}</span>
       </div>
     </div>
   );
