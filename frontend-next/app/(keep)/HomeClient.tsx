@@ -29,6 +29,7 @@ import {
 import type { Cluster } from "@/entities/alertlens";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
 import { TrendChart } from "@/entities/alertlens/ui/TrendChart";
+import { SeverityDonut } from "@/entities/alertlens/ui/SeverityDonut";
 import { VolumeChart } from "@/entities/alertlens/ui/VolumeChart";
 import { KpiCards } from "@/entities/alertlens/ui/KpiCards";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
@@ -312,7 +313,6 @@ export function HomeClient() {
     );
   }
 
-  const totalSeverity = severityCounts.reduce((n, s) => n + s.count, 0) || 1;
   const maxBucket = Math.max(1, ...buckets.map((b) => b.total));
   const maxService = Math.max(1, ...topServices.map((s) => s.count));
 
@@ -573,20 +573,8 @@ export function HomeClient() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
             {/* Alerts by severity */}
-            <Panel title="Alerts by severity">
-              <div className="flex items-center gap-4">
-                <Donut segments={severityCounts.map((s) => ({ color: severityColor(s.severity), value: s.count }))} total={totalSeverity} />
-                <ul className="flex flex-col gap-1.5 text-xs min-w-0">
-                  {severityCounts.map((s) => (
-                    <li key={s.severity} className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: severityColor(s.severity) }} />
-                      <span className="capitalize text-gray-600">{s.severity}</span>
-                      <span className="ml-auto font-semibold text-gray-800">{s.count}</span>
-                      <span className="text-gray-400 w-9 text-right">({Math.round((100 * s.count) / totalSeverity)}%)</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <Panel title="Alerts by severity" delay={750}>
+              <SeverityDonut slices={severityCounts.map((s) => ({ ...s, color: severityColor(s.severity) }))} />
             </Panel>
 
             {/* Top affected services */}
@@ -755,40 +743,6 @@ function FlowCard({
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function Donut({ segments, total }: { segments: { color: string; value: number }[]; total: number }) {
-  const r = 15.9155;
-  let offset = 25;
-  return (
-    <div className="relative w-28 h-28 shrink-0">
-      <svg viewBox="0 0 36 36" className="w-full h-full">
-        <circle cx="18" cy="18" r={r} fill="none" stroke="#f3f4f6" strokeWidth="5" />
-        {segments.map((s, i) => {
-          const pct = (100 * s.value) / total;
-          const el = (
-            <circle
-              key={i}
-              cx="18"
-              cy="18"
-              r={r}
-              fill="none"
-              stroke={s.color}
-              strokeWidth="5"
-              strokeDasharray={`${pct} ${100 - pct}`}
-              strokeDashoffset={offset}
-            />
-          );
-          offset -= pct;
-          return el;
-        })}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-bold text-gray-900 leading-none">{total}</span>
-        <span className="text-[10px] text-gray-400 mt-0.5">Total alerts</span>
-      </div>
     </div>
   );
 }
