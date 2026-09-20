@@ -28,6 +28,7 @@ import {
 } from "@/entities/alertlens";
 import type { Cluster } from "@/entities/alertlens";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
+import { VolumeChart } from "@/entities/alertlens/ui/VolumeChart";
 import { KpiCards } from "@/entities/alertlens/ui/KpiCards";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
 import { timeAgo } from "@/entities/alertlens/lib/format";
@@ -131,9 +132,9 @@ export function HomeClient() {
   // the batch's span (minutes for a short batch, hours for a multi-day one) and
   // empty buckets are kept so quiet stretches between bursts stay visible.
   const buckets = useMemo(() => {
-    if (!alerts.length) return [] as { label: string; total: number; correlated: number; noiseCum: number; incCum: number }[];
+    if (!alerts.length) return [] as { label: string; total: number; correlated: number; noiseCum: number; incCum: number; critical: number }[];
     const clusteredIds = new Set(clusters.flatMap((c) => c.alerts.map((a) => a.id)));
-    const points = alerts.map((a) => ({ t: new Date(a.timestamp).getTime(), corr: clusteredIds.has(a.id) }));
+    const points = alerts.map((a) => ({ t: new Date(a.timestamp).getTime(), corr: clusteredIds.has(a.id), crit: a.severity === "critical" }));
     const min = Math.min(...points.map((p) => p.t));
     const max = Math.max(...points.map((p) => p.t));
     const span = Math.max(max - min, 1);
@@ -147,11 +148,13 @@ export function HomeClient() {
       correlated: 0,
       noiseCum: 0,
       incCum: 0,
+      critical: 0,
     }));
     for (const p of points) {
       const b = out[Math.floor((p.t - start) / width)];
       b.total += 1;
       if (p.corr) b.correlated += 1;
+      if (p.crit) b.critical += 1;
     }
     // Cumulative noise reduction: 1 - (incidents opened so far / alerts so far).
     const opened = new Array(count).fill(0);
@@ -311,7 +314,6 @@ export function HomeClient() {
   const totalSeverity = severityCounts.reduce((n, s) => n + s.count, 0) || 1;
   const maxBucket = Math.max(1, ...buckets.map((b) => b.total));
   const maxService = Math.max(1, ...topServices.map((s) => s.count));
-  const labelEvery = Math.max(1, Math.ceil(buckets.length / 3));
 
   return (
     <div className="flex flex-col gap-4">
@@ -551,67 +553,10 @@ export function HomeClient() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
-            {/* Alerts over time */}
-            <Panel
-              title="Alert volume & correlation"
-              delay={450}
-              
-              right={
-                <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-200" />Ingested</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-600" />Correlated</span>
-                </div>
-              }
-            >
-              <div className="flex gap-2">
-                <div className="flex flex-col justify-between h-32 text-[10px] text-gray-400 text-right pb-4">
-                  <span>{maxBucket}</span>
-                  <span>{Math.round(maxBucket / 2)}</span>
-                  <span>0</span>
-                </div>
-                <div className="flex-1 relative min-w-0">
-                  <div className="absolute inset-x-0 top-0 h-28 flex flex-col justify-between pointer-events-none">
-                    <div className="border-t border-dashed border-gray-100" />
-                    <div className="border-t border-dashed border-gray-100" />
-                    <div className="border-t border-gray-200" />
-                  </div>
-                  <div className="relative flex items-end gap-[3px] h-28">
-                    {buckets.map((b, bi) => (
-                      <div
-                        key={b.label}
-                        className="flex-1 h-full relative min-w-0"
-                        title={`${b.label} — ${b.total} ingested, ${b.correlated} correlated`}
-                      >
-                        <div className="kpi-bar absolute bottom-0 inset-x-0 rounded-t-sm bg-green-200" style={{ height: `${(b.total / maxBucket) * 100}%`, animationDelay: `${600 + bi * 35}ms` }} />
-                        <div className="kpi-bar absolute bottom-0 inset-x-0 rounded-t-sm bg-green-600" style={{ height: `${(b.correlated / maxBucket) * 100}%`, animationDelay: `${700 + bi * 35}ms` }} />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Labels are absolutely placed inside fixed-width slots so their
-                      text can never widen the chart (in-flow nowrap text set a
-                      minimum width the plot could not shrink below and spilled
-                      into the next panel). Late labels anchor to the right edge
-                      so they stay inside the card instead of being clipped. */}
-                  <div className="flex gap-[3px] mt-1 h-4 overflow-hidden">
-                    {buckets.map((b, i) => (
-                      <span key={b.label} className="relative flex-1 min-w-0 h-4">
-                        {i % labelEvery === 0 && (
-                          <span
-                            className={clsx(
-                              "absolute top-0 whitespace-nowrap text-[11px] text-gray-500",
-                              i / buckets.length > 0.7 ? "right-0" : "left-0"
-                            )}
-                          >
-                            {b.label}
-                          </span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            {/* Alert volume & correlation */}
+            <Panel title="Alert volume & correlation" delay={450}>
+              <VolumeChart buckets={buckets} />
             </Panel>
-
             <Panel title="Noise reduction trend" delay={550} right={<span className="text-[11px] text-gray-500">cumulative</span>}>
               <NoiseTrend points={buckets.map((b) => b.noiseCum)} labels={buckets.map((b) => b.label)} final={summary.noise} />
             </Panel>
