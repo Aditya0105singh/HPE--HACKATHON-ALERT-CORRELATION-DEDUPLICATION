@@ -550,7 +550,7 @@ export function HomeClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
             {/* Alerts over time */}
             <Panel
               title="Alert volume & correlation"
@@ -614,16 +614,6 @@ export function HomeClient() {
 
             <Panel title="Noise reduction trend" delay={550} right={<span className="text-[11px] text-gray-500">cumulative</span>}>
               <NoiseTrend points={buckets.map((b) => b.noiseCum)} labels={buckets.map((b) => b.label)} final={summary.noise} />
-            </Panel>
-            <Panel title="Alerts → Incident funnel" delay={650}>
-              <Funnel
-                rows={[
-                  { label: "Raw alerts", value: summary.raw },
-                  { label: "Unique signals", value: summary.unique },
-                  { label: "Correlated alerts", value: correlatedAlerts },
-                  { label: "Actionable incidents", value: clusters.length },
-                ]}
-              />
             </Panel>
       </div>
 
@@ -899,25 +889,5 @@ function NoiseTrend({ points, labels, final }: { points: number[]; labels: strin
         <span>{labels[labels.length - 1]}</span>
       </div>
     </div>
-  );
-}
-
-function Funnel({ rows }: { rows: { label: string; value: number }[] }) {
-  // Widths are a fixed taper for readability; the numbers carry the real scale.
-  const widths = [100, 78, 56, 36];
-  const shades = ["bg-green-200", "bg-green-300", "bg-green-500", "bg-green-700"];
-  return (
-    <ul className="flex flex-col gap-1.5">
-      {rows.map((r, i) => (
-        <li key={r.label} className="flex items-center gap-3">
-          <div className="flex-1 flex justify-center">
-            <div className={clsx("kpi-hbar h-8 rounded-lg", shades[i])} style={{ width: `${widths[i]}%`, transformOrigin: "center", animationDelay: `${750 + i * 130}ms` }} />
-          </div>
-          <div className="w-32 shrink-0 text-xs text-gray-600 leading-tight">
-            <span className="font-bold text-gray-900 tabular-nums">{r.value.toLocaleString()}</span> {r.label}
-          </div>
-        </li>
-      ))}
-    </ul>
   );
 }
