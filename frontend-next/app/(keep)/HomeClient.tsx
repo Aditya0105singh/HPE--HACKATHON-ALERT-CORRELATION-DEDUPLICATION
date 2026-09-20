@@ -648,7 +648,7 @@ export function HomeClient() {
       <div className="grid grid-cols-1 gap-3 items-start">
             {/* Alerts by severity */}
             <Panel title="Alerts by severity" delay={750}>
-              <div className="max-w-2xl mx-auto"><SeverityDonut slices={severityCounts.map((s) => ({ ...s, color: severityColor(s.severity) }))} /></div>
+              <SeverityDonut slices={severityCounts.map((s) => ({ ...s, color: severityColor(s.severity) }))} />
             </Panel>
 
       </div>

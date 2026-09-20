@@ -18,8 +18,8 @@ export function SeverityDonut({ slices }: { slices: SeveritySlice[] }) {
   let offset = 25; // start at 12 o'clock
 
   return (
-    <div className="flex flex-col sm:flex-row xl:flex-col 2xl:flex-row items-center gap-4" onMouseLeave={() => setActive(null)}>
-      <div className="relative w-36 h-36 shrink-0">
+    <div className="flex flex-col md:flex-row items-center gap-6" onMouseLeave={() => setActive(null)}>
+      <div className="relative w-44 h-44 shrink-0">
         <svg viewBox="0 0 36 36" className="w-full h-full" role="img" aria-label={`Alerts by severity, ${total} total`}>
           <circle cx="18" cy="18" r={r} fill="none" stroke="#f3f4f6" strokeWidth="4.5" />
           {slices.map((s, i) => {
@@ -57,28 +57,45 @@ export function SeverityDonut({ slices }: { slices: SeveritySlice[] }) {
         </div>
       </div>
 
-      <ul className="flex flex-col gap-1 text-xs min-w-0 w-full">
-        {slices.map((s) => {
-          const pct = Math.round((100 * s.count) / total);
-          return (
-            <li
+      <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
+        {/* Proportion bar: the same slices as the donut, laid out flat. */}
+        <div className="flex h-3 w-full rounded-full overflow-hidden bg-gray-100">
+          {slices.map((s) => (
+            <div
               key={s.severity}
+              className="kpi-hbar h-full transition-opacity"
+              style={{ width: `${(100 * s.count) / total}%`, background: s.color, opacity: active && active !== s.severity ? 0.35 : 1, transformOrigin: "left" }}
               onMouseEnter={() => setActive(s.severity)}
-              className={clsx("rounded-lg px-2 py-1.5 transition-colors cursor-default", active === s.severity ? "bg-green-50" : "")}
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
-                <span className="capitalize text-gray-700">{s.severity}</span>
-                <span className="ml-auto font-bold text-gray-900 tabular-nums">{s.count.toLocaleString()}</span>
-                <span className="text-gray-500 w-9 text-right tabular-nums">{pct}%</span>
-              </div>
-              <div className="mt-1 h-1 rounded-full bg-gray-100 overflow-hidden">
-                <div className="kpi-hbar h-full rounded-full" style={{ width: `${pct}%`, background: s.color, animationDelay: "500ms" }} />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+              title={`${s.severity}: ${s.count}`}
+            />
+          ))}
+        </div>
+        <ul className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-2 text-xs">
+          {slices.map((s) => {
+            const pct = Math.round((100 * s.count) / total);
+            return (
+              <li
+                key={s.severity}
+                onMouseEnter={() => setActive(s.severity)}
+                className={clsx(
+                  "rounded-xl border px-3 py-2.5 transition-all cursor-default",
+                  active === s.severity ? "border-green-300 bg-green-50 -translate-y-0.5 shadow-sm" : "border-gray-100 bg-white/70"
+                )}
+                style={{ borderTop: `3px solid ${s.color}` }}
+              >
+                <div className="capitalize text-gray-600 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                  {s.severity}
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <b className="text-lg text-gray-900 tabular-nums">{s.count.toLocaleString()}</b>
+                  <span className="text-gray-500 tabular-nums">{pct}%</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }
