@@ -28,6 +28,7 @@ import {
 } from "@/entities/alertlens";
 import type { Cluster } from "@/entities/alertlens";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
+import { KpiCards } from "@/entities/alertlens/ui/KpiCards";
 import { StormMenu } from "@/entities/alertlens/ui/StormControls";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 
@@ -130,7 +131,7 @@ export function HomeClient() {
   // the batch's span (minutes for a short batch, hours for a multi-day one) and
   // empty buckets are kept so quiet stretches between bursts stay visible.
   const buckets = useMemo(() => {
-    if (!alerts.length) return [] as { label: string; total: number; correlated: number; noiseCum: number }[];
+    if (!alerts.length) return [] as { label: string; total: number; correlated: number; noiseCum: number; incCum: number }[];
     const clusteredIds = new Set(clusters.flatMap((c) => c.alerts.map((a) => a.id)));
     const points = alerts.map((a) => ({ t: new Date(a.timestamp).getTime(), corr: clusteredIds.has(a.id) }));
     const min = Math.min(...points.map((p) => p.t));
@@ -145,6 +146,7 @@ export function HomeClient() {
       total: 0,
       correlated: 0,
       noiseCum: 0,
+      incCum: 0,
     }));
     for (const p of points) {
       const b = out[Math.floor((p.t - start) / width)];
@@ -162,6 +164,7 @@ export function HomeClient() {
     out.forEach((b, i) => {
       seen += b.total;
       inc += opened[i];
+      b.incCum = inc;
       b.noiseCum = seen ? Math.max(0, 100 * (1 - inc / seen)) : 0;
     });
     return out;
@@ -326,15 +329,21 @@ export function HomeClient() {
         </div>
       </div>
 
-      {/* Pipeline flow */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_1.15fr] gap-3 items-center">
-        <FlowCard icon={HiOutlineBell} value={summary.raw} label="Raw alerts" sub={spanText ? `over ${spanText}` : undefined} spark={buckets.map((b) => b.total)} />
-        <FlowArrow />
-        <FlowCard icon={HiOutlineShare} value={summary.unique} label="Unique signals" sub={summary.raw ? `−${Math.round(100 * (1 - summary.unique / summary.raw))}% after dedup` : undefined} spark={buckets.map((b) => b.correlated)} />
-        <FlowArrow />
-        <FlowCard icon={HiOutlineDocumentText} value={clusters.length} label="Actionable incidents" sub={`${correlatedAlerts} alerts correlated`} />
-        <NoiseGauge value={clusters.length ? summary.noise : null} from={summary.raw} to={clusters.length} />
-      </div>
+      <KpiCards
+        d={{
+          raw: summary.raw,
+          unique: summary.unique,
+          correlated: correlatedAlerts,
+          incidents: clusters.length,
+          noise: clusters.length ? summary.noise : null,
+          totalSeries: buckets.map((b) => b.total),
+          correlatedSeries: buckets.map((b) => b.correlated),
+          incidentSeries: buckets.map((b) => b.incCum),
+          peak: maxBucket,
+          peakLabel: buckets.find((b) => b.total === maxBucket)?.label ?? "",
+          p1: clusters.filter((c) => priorityOf(c) === "P1").length,
+        }}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-3 items-start">
         <div className="min-w-0">

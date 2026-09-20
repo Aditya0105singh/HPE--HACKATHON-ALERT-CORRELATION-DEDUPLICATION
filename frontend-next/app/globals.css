@@ -199,3 +199,21 @@ html.workaround-dark {
 .tremor-Badge-root.text-stone-600 { color: #44403c; }
 .tremor-Badge-root.text-zinc-600 { color: #3f3f46; }
 .tremor-Badge-root.text-neutral-600 { color: #404040; }
+
+/* Overview KPI cards: entrance + chart animations */
+@keyframes kpi-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes kpi-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes kpi-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes kpi-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kpi-pulse { 0%,100% { r: 3.5; } 50% { r: 5; } }
+@keyframes kpi-ring { from { stroke-dasharray: 0 100; } }
+.kpi-card { animation: kpi-rise .6s cubic-bezier(.16,1,.3,1) both; transition: transform .25s ease, box-shadow .25s ease; }
+.kpi-card:hover { transform: translateY(-3px); }
+.kpi-bar { transform-origin: bottom; animation: kpi-grow .7s cubic-bezier(.16,1,.3,1) both; }
+.kpi-draw { stroke-dasharray: 1; animation: kpi-draw 1.2s ease-out .3s both; }
+.kpi-fade { animation: kpi-fade 1s ease-out .8s both; }
+.kpi-pulse { animation: kpi-pulse 2s ease-in-out 1.5s infinite; }
+.kpi-ring { animation: kpi-ring 1.4s cubic-bezier(.16,1,.3,1) .3s both; }
+@media (prefers-reduced-motion: reduce) {
+  .kpi-card, .kpi-bar, .kpi-draw, .kpi-fade, .kpi-pulse, .kpi-ring { animation: none !important; }
+}
