@@ -59,7 +59,19 @@ const SEVERITY_COLOR: Record<string, string> = {
 };
 const severityColor = (s: string) => SEVERITY_COLOR[s] ?? "#9ca3af";
 const RISK_COLOR: Record<string, string> = { high: "#ef4444", medium: "#f97316", low: "#3b82f6" };
-const RISK_LEVELS = ["high", "medium", "low"];
+const PRIORITIES = ["P1", "P2", "P3", "P4"];
+// Priority is banded from the measured escalation risk score - the pipeline has
+// no separate priority field, so the bands (75/50/25%) are the only assumption.
+function priorityOf(c: Cluster): string {
+  const r = c.risk.score;
+  return r >= 0.75 ? "P1" : r >= 0.5 ? "P2" : r >= 0.25 ? "P3" : "P4";
+}
+const PRIORITY_STYLE: Record<string, string> = {
+  P1: "bg-red-50 text-red-700",
+  P2: "bg-orange-50 text-orange-700",
+  P3: "bg-blue-50 text-blue-700",
+  P4: "bg-gray-100 text-gray-600",
+};
 const ROW_CAP = 10;
 
 function lastSeen(cluster: Cluster): string {
@@ -118,7 +130,7 @@ export function HomeClient() {
   // the batch's span (minutes for a short batch, hours for a multi-day one) and
   // empty buckets are kept so quiet stretches between bursts stay visible.
   const buckets = useMemo(() => {
-    if (!alerts.length) return [] as { label: string; total: number; correlated: number }[];
+    if (!alerts.length) return [] as { label: string; total: number; correlated: number; noiseCum: number }[];
     const clusteredIds = new Set(clusters.flatMap((c) => c.alerts.map((a) => a.id)));
     const points = alerts.map((a) => ({ t: new Date(a.timestamp).getTime(), corr: clusteredIds.has(a.id) }));
     const min = Math.min(...points.map((p) => p.t));
@@ -132,14 +144,36 @@ export function HomeClient() {
       label: fmtBucket(start + i * width, span),
       total: 0,
       correlated: 0,
+      noiseCum: 0,
     }));
     for (const p of points) {
       const b = out[Math.floor((p.t - start) / width)];
       b.total += 1;
       if (p.corr) b.correlated += 1;
     }
+    // Cumulative noise reduction: 1 - (incidents opened so far / alerts so far).
+    const opened = new Array(count).fill(0);
+    for (const c of clusters) {
+      const first = Math.min(...c.alerts.map((a) => new Date(a.timestamp).getTime()));
+      opened[Math.min(count - 1, Math.max(0, Math.floor((first - start) / width)))] += 1;
+    }
+    let seen = 0;
+    let inc = 0;
+    out.forEach((b, i) => {
+      seen += b.total;
+      inc += opened[i];
+      b.noiseCum = seen ? Math.max(0, 100 * (1 - inc / seen)) : 0;
+    });
     return out;
   }, [alerts, clusters]);
+
+  const correlatedAlerts = useMemo(() => clusters.reduce((n, c) => n + c.size, 0), [clusters]);
+  const spanText = useMemo(() => {
+    if (alerts.length < 2) return "";
+    const ts = alerts.map((a) => new Date(a.timestamp).getTime());
+    const h = (Math.max(...ts) - Math.min(...ts)) / 3600000;
+    return h >= 48 ? `${Math.round(h / 24)} days` : h >= 1 ? `${Math.round(h)}h` : `${Math.max(1, Math.round(h * 60))} min`;
+  }, [alerts]);
 
   const severityCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -228,7 +262,7 @@ export function HomeClient() {
   const visibleClusters = useMemo(
     () =>
       [...clusters]
-        .filter((c) => !riskFilter || c.risk.level === riskFilter)
+        .filter((c) => !riskFilter || priorityOf(c) === riskFilter)
         .sort((a, b) => b.risk.score - a.risk.score),
     [clusters, riskFilter]
   );
@@ -274,7 +308,7 @@ export function HomeClient() {
   const totalSeverity = severityCounts.reduce((n, s) => n + s.count, 0) || 1;
   const maxBucket = Math.max(1, ...buckets.map((b) => b.total));
   const maxService = Math.max(1, ...topServices.map((s) => s.count));
-  const labelEvery = Math.max(1, Math.ceil(buckets.length / 5));
+  const labelEvery = Math.max(1, Math.ceil(buckets.length / 3));
 
   return (
     <div className="flex flex-col gap-4">
@@ -293,128 +327,28 @@ export function HomeClient() {
       </div>
 
       {/* Pipeline flow */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] gap-3 items-center">
-        <FlowCard icon={HiOutlineBell} value={summary.raw} label="Raw alerts" spark={buckets.map((b) => b.total)} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_1.15fr] gap-3 items-center">
+        <FlowCard icon={HiOutlineBell} value={summary.raw} label="Raw alerts" sub={spanText ? `over ${spanText}` : undefined} spark={buckets.map((b) => b.total)} />
         <FlowArrow />
-        <FlowCard icon={HiOutlineShare} value={summary.unique} label="Unique after dedup" spark={buckets.map((b) => b.correlated)} />
+        <FlowCard icon={HiOutlineShare} value={summary.unique} label="Unique signals" sub={summary.raw ? `−${Math.round(100 * (1 - summary.unique / summary.raw))}% after dedup` : undefined} spark={buckets.map((b) => b.correlated)} />
         <FlowArrow />
-        <FlowCard icon={HiOutlineDocumentText} value={clusters.length} label="Actionable incidents" />
-        <FlowArrow />
-        <FlowCard icon={HiOutlineShieldCheck} value={clusters.length ? `${summary.noise}%` : "—"} label="Noise reduction" accent />
+        <FlowCard icon={HiOutlineDocumentText} value={clusters.length} label="Actionable incidents" sub={`${correlatedAlerts} alerts correlated`} />
+        <NoiseGauge value={clusters.length ? summary.noise : null} from={summary.raw} to={clusters.length} />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_290px] gap-3 items-start">
-        <div className="flex flex-col gap-3 min-w-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 min-[1700px]:grid-cols-[1fr_1.5fr_1fr] gap-3">
-            {/* Alerts by severity */}
-            <Panel title="Alerts by severity" className="order-1">
-              <div className="flex items-center gap-4">
-                <Donut segments={severityCounts.map((s) => ({ color: severityColor(s.severity), value: s.count }))} total={totalSeverity} />
-                <ul className="flex flex-col gap-1.5 text-xs min-w-0">
-                  {severityCounts.map((s) => (
-                    <li key={s.severity} className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: severityColor(s.severity) }} />
-                      <span className="capitalize text-gray-600">{s.severity}</span>
-                      <span className="ml-auto font-semibold text-gray-800">{s.count}</span>
-                      <span className="text-gray-400 w-9 text-right">({Math.round((100 * s.count) / totalSeverity)}%)</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Panel>
-
-            {/* Alerts over time */}
-            <Panel
-              title="Alerts over time"
-              className="sm:col-span-2 order-3 min-[1700px]:col-span-1 min-[1700px]:order-2"
-              right={
-                <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-200" />Ingested</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-600" />Correlated</span>
-                </div>
-              }
-            >
-              <div className="flex gap-2">
-                <div className="flex flex-col justify-between h-32 text-[10px] text-gray-400 text-right pb-4">
-                  <span>{maxBucket}</span>
-                  <span>{Math.round(maxBucket / 2)}</span>
-                  <span>0</span>
-                </div>
-                <div className="flex-1 relative min-w-0">
-                  <div className="absolute inset-x-0 top-0 h-28 flex flex-col justify-between pointer-events-none">
-                    <div className="border-t border-dashed border-gray-100" />
-                    <div className="border-t border-dashed border-gray-100" />
-                    <div className="border-t border-gray-200" />
-                  </div>
-                  <div className="relative flex items-end gap-[3px] h-28">
-                    {buckets.map((b) => (
-                      <div
-                        key={b.label}
-                        className="flex-1 h-full relative min-w-0"
-                        title={`${b.label} — ${b.total} ingested, ${b.correlated} correlated`}
-                      >
-                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-200" style={{ height: `${(b.total / maxBucket) * 100}%` }} />
-                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-600" style={{ height: `${(b.correlated / maxBucket) * 100}%` }} />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Labels are absolutely placed inside fixed-width slots so their
-                      text can never widen the chart (in-flow nowrap text set a
-                      minimum width the plot could not shrink below and spilled
-                      into the next panel). Late labels anchor to the right edge
-                      so they stay inside the card instead of being clipped. */}
-                  <div className="flex gap-[3px] mt-1 h-4 overflow-hidden">
-                    {buckets.map((b, i) => (
-                      <span key={b.label} className="relative flex-1 min-w-0 h-4">
-                        {i % labelEvery === 0 && (
-                          <span
-                            className={clsx(
-                              "absolute top-0 whitespace-nowrap text-[11px] text-gray-500",
-                              i / buckets.length > 0.7 ? "right-0" : "left-0"
-                            )}
-                          >
-                            {b.label}
-                          </span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Panel>
-
-            {/* Top affected services */}
-            <Panel title="Top affected services" className="order-2 min-[1700px]:order-3">
-              <ul className="flex flex-col gap-2.5">
-                {topServices.map((s) => (
-                  <li key={s.service} className="text-xs">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-gray-600 truncate">{s.service}</span>
-                      <span className="font-semibold text-gray-800">{s.count}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-green-50 overflow-hidden">
-                      <div className="h-full rounded-full bg-green-600" style={{ width: `${(s.count / maxService) * 100}%` }} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/topology" className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline mt-3">
-                View all services <HiOutlineArrowRight size={12} />
-              </Link>
-            </Panel>
-          </div>
-
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-3 items-start">
+        <div className="min-w-0">
           {/* Recent incidents */}
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
             <div className="flex items-center justify-between gap-2 flex-wrap p-3.5 border-b border-gray-100">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-gray-900 text-base mr-1">Recent incidents</span>
+                <span className="font-semibold text-gray-900 text-base mr-1">Active incidents <span className="text-green-700">({clusters.length})</span></span>
                 <FilterPill active={riskFilter === null} onClick={() => setRiskFilter(null)}>
                   All {clusters.length}
                 </FilterPill>
-                {RISK_LEVELS.map((lvl) => (
-                  <FilterPill key={lvl} active={riskFilter === lvl} onClick={() => setRiskFilter(riskFilter === lvl ? null : lvl)}>
-                    <span className="capitalize">{lvl}</span> {clusters.filter((c) => c.risk.level === lvl).length}
+                {PRIORITIES.map((pr) => (
+                  <FilterPill key={pr} active={riskFilter === pr} onClick={() => setRiskFilter(riskFilter === pr ? null : pr)}>
+                    {pr} {clusters.filter((c) => priorityOf(c) === pr).length}
                   </FilterPill>
                 ))}
               </div>
@@ -486,9 +420,10 @@ export function HomeClient() {
                     <tr className="text-left text-[11px] text-gray-400 border-b border-gray-100">
                       <th className="font-medium px-3.5 py-2 w-8">#</th>
                       <th className="font-medium px-3.5 py-2">Incident</th>
+                      <th className="font-medium px-3.5 py-2">Priority</th>
                       <th className="font-medium px-3.5 py-2 hidden 2xl:table-cell">Root cause (AI)</th>
                       <th className="font-medium px-3.5 py-2">Affected services</th>
-                      <th className="font-medium px-3.5 py-2">Alerts</th>
+                      <th className="font-medium px-3.5 py-2">Signals</th>
                       <th className="font-medium px-3.5 py-2">Risk</th>
                       <th className="font-medium px-3.5 py-2">Status</th>
                       <th className="font-medium px-3.5 py-2 hidden 2xl:table-cell">Last updated</th>
@@ -524,16 +459,19 @@ export function HomeClient() {
                                 <HiOutlineExclamationTriangle size={16} />
                               </span>
                               <div className="min-w-0">
-                                <div className="font-semibold text-gray-900 truncate max-w-[170px]">{c.root_cause.alertname}</div>
+                                <div className="font-semibold text-gray-900 truncate max-w-[120px]">{c.root_cause.alertname}</div>
                                 <div className="text-[11px] text-gray-400">#{c.cluster_id}</div>
                               </div>
                             </div>
+                          </td>
+                          <td className="px-3.5 py-2.5">
+                            <span className={clsx("inline-block text-[11px] font-bold px-2 py-0.5 rounded-md", PRIORITY_STYLE[priorityOf(c)])}>{priorityOf(c)}</span>
                           </td>
                           <td className="px-3.5 py-2.5 hidden 2xl:table-cell max-w-[220px]">
                             <div className="text-xs text-gray-500 line-clamp-2">{c.summary || `Root cause on ${c.root_cause.service}.`}</div>
                           </td>
                           <td className="px-3.5 py-2.5">
-                            <div className="flex flex-wrap gap-1 max-w-[150px]">
+                            <div className="flex flex-wrap gap-1 max-w-[130px]">
                               {services.slice(0, 2).map((s) => (
                                 <span key={s} className="text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">{s}</span>
                               ))}
@@ -579,8 +517,6 @@ export function HomeClient() {
             )}
           </div>
         </div>
-
-        {/* Right rail */}
         <div className="flex flex-col gap-3">
           <Panel title="AI Insights" icon={<HiOutlineSparkles className="text-green-600" size={16} />}>
             <ul className="flex flex-col gap-2">
@@ -601,6 +537,122 @@ export function HomeClient() {
             </ul>
           </Panel>
 
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            {/* Alerts over time */}
+            <Panel
+              title="Alert volume & correlation"
+              
+              right={
+                <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-200" />Ingested</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-600" />Correlated</span>
+                </div>
+              }
+            >
+              <div className="flex gap-2">
+                <div className="flex flex-col justify-between h-32 text-[10px] text-gray-400 text-right pb-4">
+                  <span>{maxBucket}</span>
+                  <span>{Math.round(maxBucket / 2)}</span>
+                  <span>0</span>
+                </div>
+                <div className="flex-1 relative min-w-0">
+                  <div className="absolute inset-x-0 top-0 h-28 flex flex-col justify-between pointer-events-none">
+                    <div className="border-t border-dashed border-gray-100" />
+                    <div className="border-t border-dashed border-gray-100" />
+                    <div className="border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex items-end gap-[3px] h-28">
+                    {buckets.map((b) => (
+                      <div
+                        key={b.label}
+                        className="flex-1 h-full relative min-w-0"
+                        title={`${b.label} — ${b.total} ingested, ${b.correlated} correlated`}
+                      >
+                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-200" style={{ height: `${(b.total / maxBucket) * 100}%` }} />
+                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-600" style={{ height: `${(b.correlated / maxBucket) * 100}%` }} />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Labels are absolutely placed inside fixed-width slots so their
+                      text can never widen the chart (in-flow nowrap text set a
+                      minimum width the plot could not shrink below and spilled
+                      into the next panel). Late labels anchor to the right edge
+                      so they stay inside the card instead of being clipped. */}
+                  <div className="flex gap-[3px] mt-1 h-4 overflow-hidden">
+                    {buckets.map((b, i) => (
+                      <span key={b.label} className="relative flex-1 min-w-0 h-4">
+                        {i % labelEvery === 0 && (
+                          <span
+                            className={clsx(
+                              "absolute top-0 whitespace-nowrap text-[11px] text-gray-500",
+                              i / buckets.length > 0.7 ? "right-0" : "left-0"
+                            )}
+                          >
+                            {b.label}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Panel>
+
+            <Panel title="Noise reduction trend" right={<span className="text-[11px] text-gray-500">cumulative</span>}>
+              <NoiseTrend points={buckets.map((b) => b.noiseCum)} labels={buckets.map((b) => b.label)} final={summary.noise} />
+            </Panel>
+            <Panel title="Alerts → Incident funnel">
+              <Funnel
+                rows={[
+                  { label: "Raw alerts", value: summary.raw },
+                  { label: "Unique signals", value: summary.unique },
+                  { label: "Correlated alerts", value: correlatedAlerts },
+                  { label: "Actionable incidents", value: clusters.length },
+                ]}
+              />
+            </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
+            {/* Alerts by severity */}
+            <Panel title="Alerts by severity">
+              <div className="flex items-center gap-4">
+                <Donut segments={severityCounts.map((s) => ({ color: severityColor(s.severity), value: s.count }))} total={totalSeverity} />
+                <ul className="flex flex-col gap-1.5 text-xs min-w-0">
+                  {severityCounts.map((s) => (
+                    <li key={s.severity} className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: severityColor(s.severity) }} />
+                      <span className="capitalize text-gray-600">{s.severity}</span>
+                      <span className="ml-auto font-semibold text-gray-800">{s.count}</span>
+                      <span className="text-gray-400 w-9 text-right">({Math.round((100 * s.count) / totalSeverity)}%)</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Panel>
+
+            {/* Top affected services */}
+            <Panel title="Top affected services">
+              <ul className="flex flex-col gap-2.5">
+                {topServices.map((s) => (
+                  <li key={s.service} className="text-xs">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-gray-600 truncate">{s.service}</span>
+                      <span className="font-semibold text-gray-800">{s.count}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-green-50 overflow-hidden">
+                      <div className="h-full rounded-full bg-green-600" style={{ width: `${(s.count / maxService) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <Link href="/topology" className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline mt-3">
+                View all services <HiOutlineArrowRight size={12} />
+              </Link>
+            </Panel>
           {evaluation && (
             <Panel
               title="Measured accuracy"
@@ -656,7 +708,6 @@ export function HomeClient() {
               ))}
             </ul>
           </Panel>
-        </div>
       </div>
     </div>
   );
@@ -714,12 +765,14 @@ function FlowCard({
   value,
   label,
   spark,
+  sub,
   accent,
 }: {
   icon: React.ElementType;
   value: string | number;
   label: string;
   spark?: number[];
+  sub?: string;
   accent?: boolean;
 }) {
   const max = spark && spark.length ? Math.max(1, ...spark) : 1;
@@ -732,7 +785,8 @@ function FlowCard({
         <div className="text-2xl font-bold text-gray-900 tabular-nums leading-none">
           {typeof value === "number" ? value.toLocaleString() : value}
         </div>
-        <div className="text-xs text-gray-500 mt-1 truncate">{label}</div>
+        <div className="text-xs text-gray-600 mt-1 truncate">{label}</div>
+        {sub && <div className="text-[11px] text-green-700 mt-0.5 truncate">{sub}</div>}
       </div>
       {spark && spark.length > 1 && (
         <div className="ml-auto flex items-end gap-[2px] h-9 w-16 shrink-0">
@@ -785,5 +839,69 @@ function Metric({ label, value }: { label: string; value: string }) {
       <div className="text-base font-bold text-green-800 leading-none">{value}</div>
       <div className="text-[10px] text-gray-500 mt-1">{label}</div>
     </div>
+  );
+}
+
+function NoiseGauge({ value, from, to }: { value: number | null; from: number; to: number }) {
+  const pct = value ?? 0;
+  const r = 15.9155;
+  return (
+    <div className="rounded-xl border border-green-200 bg-green-50/40 p-4 shadow-sm flex items-center gap-3 min-w-0">
+      <div className="relative w-16 h-16 shrink-0">
+        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+          <circle cx="18" cy="18" r={r} fill="none" stroke="#dcfce7" strokeWidth="4" />
+          <circle cx="18" cy="18" r={r} fill="none" stroke="#15803d" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${pct} ${100 - pct}`} />
+        </svg>
+        <HiOutlineShieldCheck className="absolute inset-0 m-auto text-green-700" size={20} />
+      </div>
+      <div className="min-w-0">
+        <div className="text-2xl font-bold text-green-800 tabular-nums leading-none">{value === null ? "—" : `${value}%`}</div>
+        <div className="text-xs text-gray-600 mt-1">Noise reduction</div>
+        <div className="text-[11px] text-green-700 mt-0.5 truncate">{from.toLocaleString()} alerts → {to} incidents</div>
+      </div>
+    </div>
+  );
+}
+
+function NoiseTrend({ points, labels, final }: { points: number[]; labels: string[]; final: number }) {
+  if (points.length < 2) return <p className="text-xs text-gray-500">Not enough time buckets to draw a trend.</p>;
+  const W = 300, H = 110, pad = 6;
+  const x = (i: number) => pad + (i / (points.length - 1)) * (W - 2 * pad);
+  const y = (v: number) => H - pad - (Math.min(100, v) / 100) * (H - 2 * pad);
+  const line = points.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-28" role="img" aria-label={`Cumulative noise reduction, ending at ${final}%`}>
+        {[0, 50, 100].map((g) => <line key={g} x1={pad} x2={W - pad} y1={y(g)} y2={y(g)} stroke="#e5e7eb" strokeDasharray={g === 0 ? "" : "3 3"} />)}
+        <path d={`${line} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} fill="#22c55e" opacity="0.15" />
+        <path d={line} fill="none" stroke="#15803d" strokeWidth="2" strokeLinejoin="round" />
+        <circle cx={x(points.length - 1)} cy={y(points[points.length - 1])} r="3.5" fill="#15803d" />
+      </svg>
+      <div className="flex justify-between text-[11px] text-gray-500 mt-1">
+        <span>{labels[0]}</span>
+        <span className="font-semibold text-green-800">{final}% noise reduction</span>
+        <span>{labels[labels.length - 1]}</span>
+      </div>
+    </div>
+  );
+}
+
+function Funnel({ rows }: { rows: { label: string; value: number }[] }) {
+  // Widths are a fixed taper for readability; the numbers carry the real scale.
+  const widths = [100, 78, 56, 36];
+  const shades = ["bg-green-200", "bg-green-300", "bg-green-500", "bg-green-700"];
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {rows.map((r, i) => (
+        <li key={r.label} className="flex items-center gap-3">
+          <div className="flex-1 flex justify-center">
+            <div className={clsx("h-7 rounded-md", shades[i])} style={{ width: `${widths[i]}%` }} />
+          </div>
+          <div className="w-32 shrink-0 text-xs text-gray-600 leading-tight">
+            <span className="font-bold text-gray-900 tabular-nums">{r.value.toLocaleString()}</span> {r.label}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
