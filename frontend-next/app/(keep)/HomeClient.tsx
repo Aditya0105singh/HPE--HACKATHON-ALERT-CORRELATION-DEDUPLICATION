@@ -554,6 +554,7 @@ export function HomeClient() {
             {/* Alerts over time */}
             <Panel
               title="Alert volume & correlation"
+              delay={450}
               
               right={
                 <div className="flex items-center gap-3 text-[11px] text-gray-500">
@@ -575,14 +576,14 @@ export function HomeClient() {
                     <div className="border-t border-gray-200" />
                   </div>
                   <div className="relative flex items-end gap-[3px] h-28">
-                    {buckets.map((b) => (
+                    {buckets.map((b, bi) => (
                       <div
                         key={b.label}
                         className="flex-1 h-full relative min-w-0"
                         title={`${b.label} — ${b.total} ingested, ${b.correlated} correlated`}
                       >
-                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-200" style={{ height: `${(b.total / maxBucket) * 100}%` }} />
-                        <div className="absolute bottom-0 inset-x-0 rounded-t-sm bg-green-600" style={{ height: `${(b.correlated / maxBucket) * 100}%` }} />
+                        <div className="kpi-bar absolute bottom-0 inset-x-0 rounded-t-sm bg-green-200" style={{ height: `${(b.total / maxBucket) * 100}%`, animationDelay: `${600 + bi * 35}ms` }} />
+                        <div className="kpi-bar absolute bottom-0 inset-x-0 rounded-t-sm bg-green-600" style={{ height: `${(b.correlated / maxBucket) * 100}%`, animationDelay: `${700 + bi * 35}ms` }} />
                       </div>
                     ))}
                   </div>
@@ -611,10 +612,10 @@ export function HomeClient() {
               </div>
             </Panel>
 
-            <Panel title="Noise reduction trend" right={<span className="text-[11px] text-gray-500">cumulative</span>}>
+            <Panel title="Noise reduction trend" delay={550} right={<span className="text-[11px] text-gray-500">cumulative</span>}>
               <NoiseTrend points={buckets.map((b) => b.noiseCum)} labels={buckets.map((b) => b.label)} final={summary.noise} />
             </Panel>
-            <Panel title="Alerts → Incident funnel">
+            <Panel title="Alerts → Incident funnel" delay={650}>
               <Funnel
                 rows={[
                   { label: "Raw alerts", value: summary.raw },
@@ -730,16 +731,21 @@ function Panel({
   right,
   icon,
   className,
+  delay = 0,
   children,
 }: {
   title: string;
   right?: React.ReactNode;
   icon?: React.ReactNode;
   className?: string;
+  delay?: number;
   children: React.ReactNode;
 }) {
   return (
-    <div className={clsx("rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0", className)}>
+    <div
+      className={clsx("kpi-card rounded-2xl border border-white/80 p-4 min-w-0", className)}
+      style={{ background: "linear-gradient(160deg,#fff 60%,#f0fdf4)", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.12)", animationDelay: `${delay}ms` }}
+    >
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-1.5 font-semibold text-gray-900 text-sm">
           {icon}
@@ -883,9 +889,9 @@ function NoiseTrend({ points, labels, final }: { points: number[]; labels: strin
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-28" role="img" aria-label={`Cumulative noise reduction, ending at ${final}%`}>
         {[0, 50, 100].map((g) => <line key={g} x1={pad} x2={W - pad} y1={y(g)} y2={y(g)} stroke="#e5e7eb" strokeDasharray={g === 0 ? "" : "3 3"} />)}
-        <path d={`${line} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} fill="#22c55e" opacity="0.15" />
-        <path d={line} fill="none" stroke="#15803d" strokeWidth="2" strokeLinejoin="round" />
-        <circle cx={x(points.length - 1)} cy={y(points[points.length - 1])} r="3.5" fill="#15803d" />
+        <path className="kpi-fade" d={`${line} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} fill="#22c55e" opacity="0.15" />
+        <path className="kpi-draw" pathLength={1} d={line} fill="none" stroke="#15803d" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        <circle className="kpi-pulse" cx={x(points.length - 1)} cy={y(points[points.length - 1])} r="3.5" fill="#fff" stroke="#15803d" strokeWidth="2" />
       </svg>
       <div className="flex justify-between text-[11px] text-gray-500 mt-1">
         <span>{labels[0]}</span>
@@ -905,7 +911,7 @@ function Funnel({ rows }: { rows: { label: string; value: number }[] }) {
       {rows.map((r, i) => (
         <li key={r.label} className="flex items-center gap-3">
           <div className="flex-1 flex justify-center">
-            <div className={clsx("h-7 rounded-md", shades[i])} style={{ width: `${widths[i]}%` }} />
+            <div className={clsx("kpi-hbar h-8 rounded-lg", shades[i])} style={{ width: `${widths[i]}%`, transformOrigin: "center", animationDelay: `${750 + i * 130}ms` }} />
           </div>
           <div className="w-32 shrink-0 text-xs text-gray-600 leading-tight">
             <span className="font-bold text-gray-900 tabular-nums">{r.value.toLocaleString()}</span> {r.label}
