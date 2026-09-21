@@ -50,6 +50,11 @@ W_SERVICE = 0.25
 W_DEPENDENCY = 0.25
 W_TEMPLATE = 0.20
 
+# Reviewer-learned adjustments, keyed by the set of services in a pattern.
+# Empty by default, so behaviour is exactly the constants above until a human
+# rejects or merges an incident (see feedback.py). Inspectable and resettable.
+PATTERN_WEIGHTS: dict[frozenset, dict[str, float]] = {}
+
 WINDOW_BASE_MIN = 5.0     # adaptive window floor
 WINDOW_MAX_MIN = 15.0     # ...and ceiling
 TIME_SCALE_MIN = 4.0      # exponential decay constant
@@ -221,6 +226,20 @@ def _tokens(signal: Signal) -> set[str]:
     return tokens
 
 
+def default_weights() -> dict[str, float]:
+    return {"time": W_TIME, "service": W_SERVICE, "dependency": W_DEPENDENCY, "template": W_TEMPLATE}
+
+
+def weights_for(service_a: str, service_b: str) -> dict[str, float]:
+    """Weights for a pair: a learned pattern override if both services sit in
+    one, otherwise the design defaults."""
+    pair = {service_a, service_b}
+    for pattern, weights in PATTERN_WEIGHTS.items():
+        if pair <= pattern:
+            return weights
+    return default_weights()
+
+
 @dataclass
 class SimilarityBreakdown:
     """Kept per accepted pair so a cluster can explain how it was formed."""
@@ -248,7 +267,8 @@ def similarity(
     s = service_affinity(a, b)
     d = graph.closeness(a.service, b.service)
     tpl = template_similarity(a, b)
-    total = W_TIME * t + W_SERVICE * s + W_DEPENDENCY * d + W_TEMPLATE * tpl
+    w = weights_for(a.service, b.service)
+    total = w["time"] * t + w["service"] * s + w["dependency"] * d + w["template"] * tpl
     return SimilarityBreakdown(t, s, d, tpl, total, gate)
 
 

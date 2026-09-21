@@ -20,6 +20,7 @@ import {
   useEngineAudit,
   useEngineDraft,
   useEngineEvidence,
+  useEngineFeedback,
 } from "@/entities/engine/useEngine";
 import type { Evidence, EvidenceSignal } from "@/entities/engine/types";
 
@@ -336,6 +337,132 @@ function ConfidenceCard({ ev }: { ev: Evidence }) {
   );
 }
 
+const STEPS: { key: string; label: string }[] = [
+  { key: "open", label: "Open" },
+  { key: "drafting", label: "Drafting" },
+  { key: "in_review", label: "In review" },
+  { key: "published", label: "Published" },
+  { key: "resolved", label: "Resolved" },
+];
+
+function Lifecycle({ draftId }: { draftId: string }) {
+  const { data: d } = useEngineDraft(draftId);
+  if (!d) return null;
+  const idx = STEPS.findIndex((s) => s.key === d.lifecycle);
+  const when = (key: string) => {
+    const h = [...d.history].reverse().find((x) => x.state === key);
+    return h ? clock(h.at) : null;
+  };
+  const dead = d.status === "rejected" || d.status === "merged";
+  return (
+    <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 flex flex-wrap items-center gap-x-2 gap-y-2" style={{ boxShadow: "0 1px 2px rgba(16,24,40,.05)" }}>
+      {STEPS.map((s, i) => {
+        const done = !dead && i <= idx;
+        return (
+          <div key={s.key} className="flex items-center gap-2">
+            <div className={clsx("flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border",
+              done ? "bg-green-700 text-white border-green-700" : "bg-white text-gray-500 border-gray-200")}>
+              {done && "✓ "}{s.label}
+              {done && when(s.key) && <span className="font-normal opacity-80">{when(s.key)}</span>}
+            </div>
+            {i < STEPS.length - 1 && <span className="text-gray-300">›</span>}
+          </div>
+        );
+      })}
+      {dead && <span className="text-xs font-bold text-gray-700">Ended: {d.status}</span>}
+      {d.updates > 0 && (
+        <span className="ml-auto text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
+          {d.updates} late signal{d.updates > 1 ? "s" : ""} attached to this incident, no duplicate ticket
+        </span>
+      )}
+    </div>
+  );
+}
+
+function LateArrivals({ draftId, actor }: { draftId: string; actor: string }) {
+  const { data: d } = useEngineDraft(draftId);
+  const { lateSignal, resolve } = useEngineActions();
+  const [busy, setBusy] = useState(false);
+  if (!d) return null;
+  const open = d.status === "awaiting_review" || (d.status === "published" && d.lifecycle !== "resolved");
+  const run = async (kind: "matching" | "unrelated") => {
+    setBusy(true);
+    try {
+      const out = await lateSignal(draftId, kind);
+      if (out.attached) {
+        toast.success(out.commented_on_jira ? `Attached, comment added to ${out.commented_on_jira} (no new issue)` : `Attached to the same incident via ${out.gate}`);
+      } else {
+        toast.info(`Not attached: ${out.reason}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-3 rounded-xl border border-gray-200 bg-white/80 p-3">
+      <div className="text-[11px] font-bold uppercase tracking-wide text-gray-700 mb-2">Stateful incident — try a late arrival</div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button disabled={busy || !open} onClick={() => run("matching")}
+          className="rounded-lg border border-green-300 bg-green-50 hover:bg-green-100 disabled:opacity-50 text-green-900 text-xs font-semibold px-3 py-1.5">
+          Send a related late alert
+        </button>
+        <button disabled={busy || !open} onClick={() => run("unrelated")}
+          className="rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-800 text-xs font-semibold px-3 py-1.5">
+          Send an unrelated alert
+        </button>
+        {d.status === "published" && d.lifecycle !== "resolved" && (
+          <button disabled={busy || !actor}
+            onClick={async () => { try { await resolve(draftId, actor); toast.success("Marked resolved"); } catch (e: any) { toast.error(e?.message || "Failed"); } }}
+            className="rounded-lg bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5">
+            Mark resolved
+          </button>
+        )}
+      </div>
+      <p className="text-[11px] text-gray-600 mt-2">
+        A related alert passes the shared-context gate and joins this incident. Before publishing it refreshes the draft; after
+        publishing it becomes a comment on the same Jira issue. An unrelated alert is parked as noise.
+      </p>
+      {d.jira_comments.length > 0 && (
+        <ul className="mt-2 text-xs text-gray-800 space-y-0.5">
+          {d.jira_comments.map((c, i) => (
+            <li key={i} className="font-mono">💬 {c.issue}: {c.body}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function FeedbackCard() {
+  const { data: fb } = useEngineFeedback();
+  const { resetFeedback } = useEngineActions();
+  if (!fb || fb.decisions.length === 0) return null;
+  return (
+    <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-[11px] font-bold uppercase tracking-wide text-violet-900">What reviewers taught the correlator</div>
+        <button onClick={() => resetFeedback()} className="text-[11px] font-semibold text-violet-900 underline">Reset to design weights</button>
+      </div>
+      <ul className="text-xs text-gray-800 space-y-1">
+        {fb.decisions.map((x, i) => (
+          <li key={i}>
+            <b>{x.action}</b> on {x.services.join(", ")}
+            {x.adjustment && (
+              <span className="font-mono text-[11px] block text-gray-700">
+                {Object.keys(x.adjustment.after).filter((k) => x.adjustment!.before[k] !== x.adjustment!.after[k])
+                  .map((k) => `${k} ${x.adjustment!.before[k].toFixed(2)} → ${x.adjustment!.after[k].toFixed(2)}`).join(" · ")}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="text-[11px] text-gray-600 mt-1">A rule-based nudge for this service pattern only, visible and resettable. No model is retrained.</p>
+    </div>
+  );
+}
+
 function TicketCard({ draftId, ev }: { draftId: string; ev: Evidence }) {
   const { data: draft } = useEngineDraft(draftId);
   const { data: audit } = useEngineAudit();
@@ -501,6 +628,9 @@ function TicketCard({ draftId, ev }: { draftId: string; ev: Evidence }) {
         )}
       </div>
 
+      <LateArrivals draftId={draftId} actor={actor} />
+      <FeedbackCard />
+
       {trail.length > 0 && (
         <div className="mt-3">
           <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 mb-1">Audit trail</h3>
@@ -561,6 +691,7 @@ export default function InvestigationClient({ draftId }: { draftId: string }) {
         )}
       </PageHero>
 
+      <Lifecycle draftId={draftId} />
       <Funnel ev={ev} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-4 items-start">

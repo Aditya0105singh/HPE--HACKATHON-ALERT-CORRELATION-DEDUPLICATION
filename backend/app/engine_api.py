@@ -20,9 +20,11 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .engine import scenarios
+from .engine import adapters, scenarios
 from .engine.evidence import build_evidence
+from .engine import feedback as feedback_mod
 from .engine.golden import golden_scenario
+from .engine.lifecycle import attach_late_signal
 from .engine.causal import CausalResult
 from .engine.correlate import Cluster, DependencyGraph
 from .engine.drafting import IncidentDraft
@@ -40,6 +42,7 @@ class _EngineState:
     queue: ReviewQueue = field(default_factory=ReviewQueue)
     scenario_desc: str = ""
     graph: DependencyGraph | None = None
+    criticality: dict[str, float] | None = None
 
 
 _state = _EngineState()
@@ -137,6 +140,10 @@ def _draft_detail(item: QueueItem) -> dict:
         "jira_fields": draft.to_jira_fields() if item.status == DraftStatus.PUBLISHED else None,
         "note": item.note,
         "decided_at": item.decided_at.isoformat() if item.decided_at else None,
+        "lifecycle": item.lifecycle,
+        "history": item.history,
+        "jira_comments": item.jira_comments,
+        "updates": item.updates,
     }
 
 
@@ -230,6 +237,7 @@ def _execute(sc: "scenarios.Scenario", use_llm: bool = False) -> dict:
         pass
     _state.queue = queue
     _state.graph = graph
+    _state.criticality = scenarios.criticality_map(sc)
     _state.scenario_desc = sc.describe()
 
     return {"report": _report_dict(), "queue": [_queue_summary(i) for i in queue.pending()]}
@@ -243,6 +251,7 @@ def golden(use_llm: bool = False) -> dict:
     never depends on a random seed. Jira is NOT touched; the draft lands in the
     review queue awaiting a human.
     """
+    feedback_mod.reset()   # the demo must tell the same story every time
     return _execute(golden_scenario(), use_llm=use_llm)
 
 
@@ -297,6 +306,75 @@ def approve(draft_id: str, body: ApproveRequest) -> dict:
     return _draft_detail(item)
 
 
+class LateSignalRequest(BaseModel):
+    kind: str = "matching"   # matching | unrelated
+
+
+def _late_signal(inc, kind: str):
+    """A demo late arrival, in CloudWatch's native shapes so it exercises the adapter."""
+    from datetime import timedelta
+    from .engine import adapters
+
+    at = inc.cluster.end + timedelta(minutes=6)
+    if kind == "unrelated":
+        return adapters.from_cloudwatch_alarm({
+            "AlarmName": "batch-report-CPUUtilization-alarm", "NewStateValue": "ALARM",
+            "NewStateReason": "Threshold Crossed: 1 datapoint [93.0 (26/08/26 14:09:00)] was greater than the threshold (85.0).",
+            "StateChangeTime": at.isoformat().replace("+00:00", "Z"), "Region": "ap-south-1",
+            "Trigger": {"MetricName": "CPUUtilization", "Namespace": "AWS/ECS", "Threshold": 85.0,
+                        "ComparisonOperator": "GreaterThanThreshold",
+                        "Dimensions": [{"name": "ServiceName", "value": "batch-report"}]},
+        })
+    # matching: the failing dependency is still throwing the same errors, seen
+    # on a service that calls it, so it passes the shared-context gate.
+    victim = next((s.service for s in inc.cluster.signals if s.service != inc.causal.root_cause_service),
+                  inc.causal.root_cause_service)
+    root = inc.causal.root_cause_signal
+    message = (root.message if root else "still failing")[:80]
+    sigs = adapters.from_cloudwatch_logs({
+        "logGroupName": f"/aws/ecs/{victim}",
+        "events": [{"timestamp": int(at.timestamp() * 1000),
+                    "message": f"ERROR still failing after recovery attempt: {message}",
+                    "logStreamName": f"{victim}/task/late01"}],
+    })
+    return sigs[0] if sigs else None
+
+
+@router.post("/queue/{draft_id}/late-signal")
+def late_signal(draft_id: str, body: LateSignalRequest) -> dict:
+    """Demo hook: a signal arrives after the incident was created."""
+    result = _state.result
+    if result is None or _state.graph is None:
+        raise HTTPException(404, "no run yet")
+    inc = next((i for i in result.incidents if i.draft.draft_id == draft_id), None)
+    if inc is None:
+        raise HTTPException(404, f"no incident for draft {draft_id}")
+    sig = _late_signal(inc, body.kind)
+    if sig is None:
+        raise HTTPException(400, "could not build a late signal")
+    try:
+        outcome = attach_late_signal(result, _state.graph, _state.queue, sig,
+                                     criticality=_state.criticality)
+    except Exception as e:  # ApprovalRequired etc.
+        raise HTTPException(400, str(e))
+    return {**outcome, "item": _draft_detail(_state.queue.items[draft_id])}
+
+
+class ResolveRequest(BaseModel):
+    actor: str
+
+
+@router.post("/queue/{draft_id}/resolve")
+def resolve(draft_id: str, body: ResolveRequest) -> dict:
+    try:
+        item = _state.queue.resolve(draft_id, body.actor)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+    return _draft_detail(item)
+
+
 @router.post("/queue/{draft_id}/reject")
 def reject(draft_id: str, body: RejectRequest) -> dict:
     try:
@@ -305,6 +383,7 @@ def reject(draft_id: str, body: RejectRequest) -> dict:
         raise HTTPException(404, str(e))
     except Exception as e:
         raise HTTPException(400, str(e))
+    _apply_feedback(item, "reject")
     return _draft_detail(item)
 
 
@@ -316,7 +395,104 @@ def merge(draft_id: str, body: MergeRequest) -> dict:
         raise HTTPException(404, str(e))
     except Exception as e:
         raise HTTPException(400, str(e))
+    _apply_feedback(item, "merge")
     return _draft_detail(item)
+
+
+def _apply_feedback(item: QueueItem, action: str) -> None:
+    adj = feedback_mod.apply_feedback(action, item.draft.affected_services)
+    if adj and _state.queue.feedback:
+        _state.queue.feedback[-1].adjustment = adj
+        changed = ", ".join(
+            f"{k} {adj['before'][k]:.2f}->{adj['after'][k]:.2f}"
+            for k in adj["after"] if adj["before"][k] != adj["after"][k]
+        )
+        _state.queue._log("system", "weights_adjusted", item.draft.draft_id, f"{action}: {changed}")
+
+
+@router.get("/feedback")
+def get_feedback() -> dict:
+    """What reviewers have taught the correlator so far, and the live weights."""
+    return {
+        "decisions": [
+            {"draft_id": f.draft_id, "action": f.action, "services": f.services,
+             "note": f.note, "adjustment": f.adjustment}
+            for f in _state.queue.feedback
+        ],
+        "patterns": feedback_mod.current(),
+    }
+
+
+@router.post("/feedback/reset")
+def reset_feedback() -> dict:
+    feedback_mod.reset()
+    return {"patterns": []}
+
+
+# --------------------------------------------------------------------------
+# live ingest (push receivers - read-only, nothing here writes outward)
+# --------------------------------------------------------------------------
+
+
+def _ingest(signals: list, edges: set | None = None) -> dict:
+    """Route pushed telemetry: into the running system, or start a new batch.
+
+    With a run in progress every signal goes through the same lifecycle router
+    as a late arrival: it attaches to an open incident only if it passes the
+    shared-context gate, otherwise it is parked as noise. With no run yet, the
+    first push starts one.
+    """
+    if not signals:
+        return {"received": 0, "mode": "empty"}
+
+    if _state.result is None or _state.graph is None:
+        graph = DependencyGraph(edges or set())
+        queue = ReviewQueue()
+        result = run_pipeline(signals, graph, queue=queue, use_llm=False)
+        _state.result, _state.graph, _state.queue = result, graph, queue
+        _state.criticality, _state.evaluation = None, None
+        _state.scenario_desc = "live ingest"
+        return {"received": len(signals), "mode": "new_batch",
+                "incidents": len(result.incidents), "noise": len(result.noise)}
+
+    if edges:
+        _state.graph.add_edges(edges)
+    attached, parked, drafts = 0, 0, set()
+    for sig in signals:
+        out = attach_late_signal(_state.result, _state.graph, _state.queue, sig,
+                                 criticality=_state.criticality)
+        if out["attached"]:
+            attached += 1
+            drafts.add(out["draft_id"])
+        else:
+            parked += 1
+    return {"received": len(signals), "mode": "attached", "attached": attached,
+            "parked_as_noise": parked, "drafts": sorted(drafts)}
+
+
+@router.post("/ingest/grafana")
+def ingest_grafana(payload: dict) -> dict:
+    """Grafana unified-alerting webhook (POST target for a contact point)."""
+    return _ingest(adapters.from_grafana_webhook(payload))
+
+
+@router.post("/ingest/cloudwatch/alarm")
+def ingest_cloudwatch_alarm(payload: dict) -> dict:
+    """CloudWatch alarm state change (e.g. delivered via SNS -> HTTPS)."""
+    sig = adapters.from_cloudwatch_alarm(payload)
+    return _ingest([sig] if sig else [])
+
+
+@router.post("/ingest/otel/logs")
+def ingest_otel_logs(payload: dict) -> dict:
+    """OTLP/JSON logs from an OpenTelemetry Collector."""
+    return _ingest(adapters.from_otlp_logs(payload))
+
+
+@router.post("/ingest/otel/traces")
+def ingest_otel_traces(payload: dict) -> dict:
+    """OTLP/JSON traces. Every span teaches the dependency graph an edge."""
+    return _ingest(adapters.from_otlp_traces(payload), adapters.service_dependency_edges(payload))
 
 
 @router.get("/audit")

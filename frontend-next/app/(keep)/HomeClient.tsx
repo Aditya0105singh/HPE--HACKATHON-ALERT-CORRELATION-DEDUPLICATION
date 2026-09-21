@@ -33,6 +33,7 @@ import { SeverityDonut } from "@/entities/alertlens/ui/SeverityDonut";
 import { VolumeChart } from "@/entities/alertlens/ui/VolumeChart";
 import { KpiCards } from "@/entities/alertlens/ui/KpiCards";
 import { InjectFailureButton } from "@/entities/engine/InjectFailureButton";
+import { EngineRunCard } from "@/entities/engine/EngineRunCard";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 
 // ---------------------------------------------------------------------------
@@ -327,6 +328,7 @@ export function HomeClient() {
           {heading}
           <div className="flex flex-wrap items-center gap-2 mt-3">
             {[
+              [`Dataset: ${status?.dataset ?? "none"}`, "bg-gray-50 text-gray-700 border-gray-200"],
               [`${summary.raw.toLocaleString()} alerts`, "bg-white text-gray-700 border-gray-200"],
               [`${clusters.length} incidents`, "bg-white text-gray-700 border-gray-200"],
               ...(clusters.length ? [[`${summary.noise}% less noise`, "bg-green-100 text-green-800 border-green-200"]] : []),
@@ -348,6 +350,8 @@ export function HomeClient() {
           </div>
         </div>
       </div>
+
+      <EngineRunCard />
 
       <KpiCards
         d={{

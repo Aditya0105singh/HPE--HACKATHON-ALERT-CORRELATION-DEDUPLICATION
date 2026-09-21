@@ -241,3 +241,13 @@ def cluster_factory():
 @pytest.fixture
 def dna_match_factory():
     return make_dna_match
+
+
+@pytest.fixture(autouse=True)
+def _reset_learned_weights():
+    """Reviewer feedback adjusts a module-level table; never leak it between tests."""
+    from app.engine.correlate import PATTERN_WEIGHTS
+
+    PATTERN_WEIGHTS.clear()
+    yield
+    PATTERN_WEIGHTS.clear()

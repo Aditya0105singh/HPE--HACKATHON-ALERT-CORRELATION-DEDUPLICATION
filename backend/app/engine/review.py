@@ -142,6 +142,7 @@ class JiraClient:
         # Idempotency: a retry or a mid-window restart must not create a
         # second ticket for the same incident.
         self._published: dict[str, dict] = {}
+        self.comments: list[dict] = []
 
     def create_issue(self, draft: IncidentDraft, token: ApprovalToken | None) -> dict:
         """The single write path in the entire system."""
@@ -158,6 +159,24 @@ class JiraClient:
         result = self._transport(payload)
         self._published[draft.draft_id] = result
         return result
+
+
+    def add_comment(self, draft_id: str, body: str) -> dict:
+        """Append new evidence to an issue that a human already approved.
+
+        Not a second write path: it can only extend an issue this client
+        created, and an issue can only exist after a consumed approval token.
+        It cannot create an issue, and there is nothing to comment on before
+        approval, so it cannot be used to publish anything.
+        """
+        issue = self._published.get(draft_id)
+        if issue is None:
+            raise ApprovalRequired(
+                f"refusing to comment on {draft_id}: no approved Jira issue exists for it"
+            )
+        comment = {"issue": issue["key"], "body": body, "at": datetime.now(timezone.utc).isoformat()}
+        self.comments.append(comment)
+        return comment
 
 
 class MockJiraTransport:
@@ -191,6 +210,17 @@ class QueueItem:
     reviewer: str | None = None
     decided_at: datetime | None = None
     note: str = ""
+    # open -> drafting -> in_review -> published -> resolved. Rejected and merged
+    # incidents stop where they were decided. Kept as history so the UI can show
+    # when each transition happened, not just where the incident is now.
+    lifecycle: str = "open"
+    history: list[dict] = field(default_factory=list)
+    jira_comments: list[dict] = field(default_factory=list)
+    updates: int = 0   # late signals attached since the first draft
+
+    def move(self, state: str, note: str = "") -> None:
+        self.lifecycle = state
+        self.history.append({"state": state, "at": datetime.now(timezone.utc).isoformat(), "note": note})
 
 
 @dataclass
@@ -206,6 +236,7 @@ class CorrectionFeedback:
     action: str
     services: list[str] = field(default_factory=list)
     note: str = ""
+    adjustment: dict | None = None   # before/after similarity weights, if any
 
 
 class ReviewQueue:
@@ -222,6 +253,9 @@ class ReviewQueue:
 
     def submit(self, draft: IncidentDraft) -> QueueItem:
         item = QueueItem(draft=draft)
+        item.move("open", "correlated into an incident")
+        item.move("drafting", "ticket assembled from computed evidence")
+        item.move("in_review", "waiting for a human decision")
         self.items[draft.draft_id] = item
         self._log("system", "drafted", draft.draft_id,
                   f"{draft.priority} · {len(draft.affected_services)} service(s)")
@@ -253,6 +287,7 @@ class ReviewQueue:
         item.reviewer = actor
         item.decided_at = datetime.now(timezone.utc)
         item.draft.status = DraftStatus.PUBLISHED.value
+        item.move("published", f"{item.jira_key} created after approval by {actor}")
 
         self._log(actor, action.value, draft_id, f"published as {item.jira_key}")
         return item
@@ -286,6 +321,47 @@ class ReviewQueue:
             draft_id=draft_id, action="merge",
             services=item.draft.affected_services, note=f"into={into} {note}".strip(),
         ))
+        return item
+
+    # -- lifecycle -------------------------------------------------------
+
+    def attach_update(self, draft_id: str, new_draft: IncidentDraft, note: str) -> QueueItem:
+        """A late signal joined this incident: refresh the draft, keep one identity.
+
+        The draft id and status are preserved, so the incident never becomes a
+        second ticket. If the issue is already published the new evidence goes
+        to Jira as a comment, never as a new issue.
+        """
+        item = self.items.get(draft_id)
+        if item is None:
+            raise KeyError(f"no draft {draft_id} in the review queue")
+        if item.status in (DraftStatus.REJECTED, DraftStatus.MERGED):
+            raise ApprovalRequired(f"draft {draft_id} is {item.status.value}; it accepts no updates")
+
+        new_draft.draft_id = draft_id
+        new_draft.status = item.draft.status
+        item.draft = new_draft
+        item.updates += 1
+        item.history.append({"state": item.lifecycle, "at": datetime.now(timezone.utc).isoformat(),
+                             "note": f"late signal attached: {note}"})
+        self._log("system", "attached", draft_id, note)
+
+        if item.status == DraftStatus.PUBLISHED:
+            comment = self.jira.add_comment(draft_id, f"New evidence attached to this incident: {note}")
+            item.jira_comments.append(comment)
+            self._log("system", "jira_comment", draft_id, f"comment added to {item.jira_key}")
+        return item
+
+    def resolve(self, draft_id: str, actor: str) -> QueueItem:
+        item = self.items.get(draft_id)
+        if item is None:
+            raise KeyError(f"no draft {draft_id} in the review queue")
+        if item.status != DraftStatus.PUBLISHED:
+            raise ApprovalRequired("only a published incident can be marked resolved")
+        if not actor or not actor.strip():
+            raise ApprovalRequired("resolving requires a named human actor")
+        item.move("resolved", f"marked resolved by {actor}")
+        self._log(actor, "resolve", draft_id, "incident resolved")
         return item
 
     # -- internals -------------------------------------------------------

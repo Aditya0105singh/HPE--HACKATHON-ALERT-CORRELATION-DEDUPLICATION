@@ -6,6 +6,8 @@ import type {
   DemoRunRequest,
   DraftDetail,
   Evidence,
+  FeedbackState,
+  LateSignalResult,
   PipelineReport,
   QueueSummary,
   Topology,
@@ -73,6 +75,16 @@ export const useEngineEvidence = (draftId: string | null, options: SWRConfigurat
   const api = useApi();
   return useSWR<Evidence>(
     api.isReady() && draftId ? `${QUEUE_KEY}/${draftId}/evidence` : null,
+    (url: string) => api.get(url),
+    options
+  );
+};
+
+/** GET /engine/feedback — what reviewer decisions taught the correlator. */
+export const useEngineFeedback = (options: SWRConfiguration = {}) => {
+  const api = useApi();
+  return useSWR<FeedbackState>(
+    api.isReady() ? "/engine/feedback" : null,
     (url: string) => api.get(url),
     options
   );
@@ -149,5 +161,29 @@ export const useEngineActions = () => {
     return result;
   }, [api, refreshAll]);
 
-  return { runDemo, injectGolden, approve, reject, merge, refreshAll };
+  /** Demo hook: a signal arrives after the incident exists. */
+  const lateSignal = useCallback(
+    async (draftId: string, kind: "matching" | "unrelated") => {
+      const result = await api.post<LateSignalResult>(`${QUEUE_KEY}/${draftId}/late-signal`, { kind });
+      await refreshAll();
+      return result;
+    },
+    [api, refreshAll]
+  );
+
+  const resolve = useCallback(
+    async (draftId: string, actor: string) => {
+      const result = await api.post<DraftDetail>(`${QUEUE_KEY}/${draftId}/resolve`, { actor });
+      await refreshAll();
+      return result;
+    },
+    [api, refreshAll]
+  );
+
+  const resetFeedback = useCallback(async () => {
+    await api.post("/engine/feedback/reset", {});
+    await refreshAll();
+  }, [api, refreshAll]);
+
+  return { runDemo, injectGolden, approve, reject, merge, lateSignal, resolve, resetFeedback, refreshAll };
 };

@@ -55,6 +55,35 @@ export interface DraftDetail extends QueueSummary {
   jira_fields: { summary: string; description: string; labels: string[] } | null;
   note: string;
   decided_at: string | null;
+  lifecycle: "open" | "drafting" | "in_review" | "published" | "resolved";
+  history: { state: string; at: string; note: string }[];
+  jira_comments: { issue: string; body: string; at: string }[];
+  updates: number;
+}
+
+export interface FeedbackState {
+  decisions: {
+    draft_id: string;
+    action: string;
+    services: string[];
+    note: string;
+    adjustment: {
+      pattern: string[];
+      action: string;
+      before: Record<string, number>;
+      after: Record<string, number>;
+    } | null;
+  }[];
+  patterns: { pattern: string[]; weights: Record<string, number> }[];
+}
+
+export interface LateSignalResult {
+  attached: boolean;
+  gate?: string;
+  reason?: string;
+  draft_id: string | null;
+  commented_on_jira?: string | null;
+  incidents: number;
 }
 
 export interface Evaluation {
