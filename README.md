@@ -27,6 +27,9 @@ engine:
 | Review | "AWAITING HUMAN REVIEW - Jira not created" until a named person approves |
 | Act | Approve -> single-use approval token -> one (mock) Jira issue |
 | Live | A late related alert attaches to the same incident, or becomes a comment on the same Jira issue |
+| Context | Resembles seeded past incident INC-0417 (90% similar) and shows how it was resolved; context only, never forces a grouping |
+
+Two more one-click scenarios sit next to the Inject failure button: the same failure inside a declared **maintenance window** (still drafted, not escalated as a page) and a **flapping** service (4 threshold crossings become 1 incident with a flap count).
 
 ## Hard constraints and where they are enforced
 
@@ -48,6 +51,7 @@ engine:
 | Live CloudWatch polling with a read-only IAM role | Not connected (needs AWS credentials) |
 | Jira | **Mock transport** behind the real client interface; a swap needs URL, email, API token, project key |
 | LLM narrative | Deterministic template fallback; the grounded LLM path is written but needs a key |
+| Historical matches | Seeded demo history (5 illustrative past incidents), not real tickets |
 | Counterfactual check | Rule-based graph ablation, not a trained causal model |
 | Reviewer feedback | Rule-based nudge to similarity weights for that service pattern; visible and resettable |
 | State | In memory per backend run; the dataset pipeline persists to SQLite |

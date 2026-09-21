@@ -160,3 +160,53 @@ def golden_scenario() -> Scenario:
         "root": "postgres-primary", "telemetry": "full", "signals": 17,
     })
     return sc
+
+
+# --------------------------------------------------------------------------
+# suppression demos
+# --------------------------------------------------------------------------
+
+
+def flapping_scenario() -> Scenario:
+    """One service repeatedly crossing a threshold and recovering.
+
+    payment-svc CPU alarms fire four times, six minutes apart (recoveries are not
+    signals). Without flap handling that is four tickets; the engine reports ONE
+    incident with a flap count.
+    """
+    sc = Scenario(topology=GOLDEN_TOPOLOGY)
+    sc.incident_count = 1
+    incident = "INC-flap-payment-cpu"
+    for i in range(4):
+        ts = _T0 + timedelta(minutes=6 * i)
+        sc.cloudwatch_alarms.append({
+            "AlarmName": "payment-svc-CPUUtilization-alarm",
+            "AlarmDescription": "CPU above threshold",
+            "NewStateValue": "ALARM",
+            "NewStateReason": (
+                f"Threshold Crossed: 1 datapoint [{91.0 + i}.0 ({ts.strftime('%d/%m/%y %H:%M:%S')})] "
+                "was greater than the threshold (85.0)."
+            ),
+            "StateChangeTime": ts.isoformat().replace("+00:00", "Z"),
+            "Region": "ap-south-1",
+            "Trigger": {
+                "MetricName": "CPUUtilization", "Namespace": "AWS/ECS", "Statistic": "AVERAGE",
+                "Threshold": 85.0, "ComparisonOperator": "GreaterThanThreshold",
+                "Dimensions": [{"name": "ServiceName", "value": "payment-svc"}],
+            },
+        })
+        sc.mark("cloudwatch_metric", "payment-svc", ts, incident, root=(i == 0))
+    sc.manifest.append({"incident": incident, "archetype": "flapping_cpu", "root": "payment-svc",
+                        "telemetry": "metrics", "signals": 4})
+    return sc
+
+
+def maintenance_windows():
+    """A declared deploy window covering every service in the golden incident."""
+    from .severity import MaintenanceWindow
+
+    return [MaintenanceWindow(
+        services={"postgres-primary", "order-api", "payment-svc", "checkout-bff"},
+        start=_T0 - timedelta(minutes=30), end=_T0 + timedelta(minutes=60),
+        reason="planned database failover drill",
+    )]

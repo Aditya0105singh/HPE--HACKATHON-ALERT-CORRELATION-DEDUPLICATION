@@ -94,3 +94,50 @@ def test_golden_is_deterministic():
     b = client.post("/engine/golden").json()["queue"][0]
     assert (a["priority"], a["severity_score"], a["signal_count"]) == (
         b["priority"], b["severity_score"], b["signal_count"])
+
+
+def test_history_match_is_context_not_a_verdict(run):
+    client, body = run
+    d = client.get(f"/engine/queue/{body['queue'][0]['draft_id']}").json()
+    m = d["historical_match"]
+    assert m and m["incident_id"] == "INC-0417" and m["similarity_pct"] >= 40
+    assert m["source"] == "seeded demo history"
+    # offered as a step to consider, and it did not change the grouping or priority
+    assert any("INC-0417" in s for s in d["investigation_steps"])
+    assert d["priority"] == "P1" and d["signal_count"] == 6
+
+
+def test_unrelated_incident_has_no_strong_history_match():
+    from app.engine.history import match_history
+    from app.engine.correlate import Cluster
+    from app.engine.signal import Signal, SignalSource, Severity
+    from datetime import datetime, timezone
+
+    sig = Signal(id="x", source=SignalSource.CLOUDWATCH_LOG, service="thing",
+                 severity=Severity.HIGH, timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                 message="widget calibration drifted beyond tolerance")
+    assert match_history(Cluster(cluster_id=1, signals=[sig])) is None
+
+
+def test_maintenance_window_suppresses_the_page_but_still_drafts():
+    client = TestClient(app)
+    body = client.post("/engine/scenario/maintenance").json()
+    q = body["queue"][0]
+    assert q["suppressed"] is True and q["status"] == "awaiting_review"
+    d = client.get(f"/engine/queue/{q['draft_id']}").json()
+    assert "maintenance window" in d["suppression_reason"]
+    # partial coverage must NOT suppress: same incident, no window
+    plain = client.post("/engine/scenario/golden").json()["queue"][0]
+    assert plain["suppressed"] is False
+
+
+def test_flapping_service_is_one_incident_with_a_flap_count():
+    client = TestClient(app)
+    body = client.post("/engine/scenario/flapping").json()
+    assert body["report"]["signals_ingested"] == 4 and body["report"]["incidents_formed"] == 1
+    ev = client.get(f"/engine/queue/{body['queue'][0]['draft_id']}/evidence").json()
+    assert ev["severity"]["flap_count"] == 4
+
+
+def test_unknown_scenario_is_a_404():
+    assert TestClient(app).post("/engine/scenario/nope").status_code == 404

@@ -313,6 +313,32 @@ function SeverityCard({ ev }: { ev: Evidence }) {
   );
 }
 
+function HistoryCard({ draftId }: { draftId: string }) {
+  const { data: d } = useEngineDraft(draftId);
+  if (!d) return null;
+  const m = d.historical_match;
+  return (
+    <Card title="Historical match — has this happened before?" tag={<Tag kind="computed" />} delay={230}>
+      {m ? (
+        <>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-lg font-extrabold text-gray-900">{m.incident_id}</span>
+            <span className="text-xs font-semibold text-green-800 bg-green-100 rounded-full px-2 py-0.5">{m.similarity_pct}% similar</span>
+          </div>
+          <p className="text-xs text-gray-800 mt-1">{m.title}</p>
+          <p className="text-xs text-gray-900 mt-2"><b>Resolved by:</b> {m.resolution}</p>
+          <p className="text-[11px] text-gray-600 mt-1">Took {m.resolution_minutes} minutes. Shared symptom terms: {m.shared_terms.join(", ")}.</p>
+        </>
+      ) : (
+        <p className="text-xs text-gray-800">No strong match: this looks like a novel incident.</p>
+      )}
+      <p className="text-[11px] text-gray-500 mt-2">
+        Context only: it never forces a grouping. The library is seeded demo history, not real past tickets.
+      </p>
+    </Card>
+  );
+}
+
 function ConfidenceCard({ ev }: { ev: Evidence }) {
   const c = ev.correlation.confidence;
   return (
@@ -374,6 +400,28 @@ function Lifecycle({ draftId }: { draftId: string }) {
         <span className="ml-auto text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
           {d.updates} late signal{d.updates > 1 ? "s" : ""} attached to this incident, no duplicate ticket
         </span>
+      )}
+    </div>
+  );
+}
+
+function SuppressionBanner({ draftId, ev }: { draftId: string; ev: Evidence }) {
+  const { data: d } = useEngineDraft(draftId);
+  if (!d) return null;
+  const flaps = ev.severity.flap_count;
+  if (!d.suppressed && flaps <= 1) return null;
+  return (
+    <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+      {d.suppressed && (
+        <p>
+          <b>Not escalated as an active page.</b> {d.suppression_reason}. The incident is still drafted and waits for
+          review, so nothing is lost, but nobody is woken up for it.
+        </p>
+      )}
+      {flaps > 1 && (
+        <p className={d.suppressed ? "mt-1" : ""}>
+          <b>Flapping: {flaps} threshold crossings collapsed into this one incident</b> instead of {flaps} separate tickets.
+        </p>
       )}
     </div>
   );
@@ -692,6 +740,7 @@ export default function InvestigationClient({ draftId }: { draftId: string }) {
       </PageHero>
 
       <Lifecycle draftId={draftId} />
+      <SuppressionBanner draftId={draftId} ev={ev} />
       <Funnel ev={ev} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-4 items-start">
@@ -700,6 +749,7 @@ export default function InvestigationClient({ draftId }: { draftId: string }) {
           <RootCauseCard ev={ev} />
           <SeverityCard ev={ev} />
           <ConfidenceCard ev={ev} />
+          <HistoryCard draftId={draftId} />
         </div>
       </div>
 

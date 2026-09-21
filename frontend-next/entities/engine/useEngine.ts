@@ -155,8 +155,8 @@ export const useEngineActions = () => {
 
   /** POST /engine/golden — the fixed demo failure, run through the real engine.
    * Nothing reaches Jira: the draft lands in the review queue. */
-  const injectGolden = useCallback(async () => {
-    const result = await api.post<{ report: PipelineReport; queue: QueueSummary[] }>("/engine/golden", {});
+  const injectGolden = useCallback(async (scenario: string = "golden") => {
+    const result = await api.post<{ report: PipelineReport; queue: QueueSummary[] }>(`/engine/scenario/${scenario}`, {});
     await refreshAll();
     return result;
   }, [api, refreshAll]);

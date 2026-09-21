@@ -59,6 +59,16 @@ export interface DraftDetail extends QueueSummary {
   history: { state: string; at: string; note: string }[];
   jira_comments: { issue: string; body: string; at: string }[];
   updates: number;
+  suppression_reason: string;
+  historical_match: {
+    incident_id: string;
+    title: string;
+    similarity_pct: number;
+    resolution: string;
+    resolution_minutes: number;
+    shared_terms: string[];
+    source: string;
+  } | null;
 }
 
 export interface FeedbackState {

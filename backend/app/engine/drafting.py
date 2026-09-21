@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from .causal import CausalResult
+from .history import match_history
 from .correlate import Cluster
 from .severity import SeverityBreakdown
 from .signal import Signal, SignalSource
@@ -81,6 +82,7 @@ class IncidentDraft:
     suppressed: bool = False
     suppression_reason: str = ""
     redaction_kinds: list[str] = field(default_factory=list)
+    historical_match: dict | None = None   # context only, from history.py
     status: str = "awaiting_review"
 
     def to_jira_fields(self) -> dict:
@@ -366,6 +368,8 @@ def build_draft(
         redaction_kinds=redaction_kinds,
     )
 
+    draft.historical_match = match_history(cluster)
+
     narrative = _llm_narrative(draft) if use_llm else None
     if narrative and narrative[0]:
         draft.summary, steps = narrative
@@ -375,5 +379,14 @@ def build_draft(
         draft.summary = _fallback_summary(cluster, causal, severity)
         draft.investigation_steps = _fallback_steps(causal, cluster)
         draft.summary_source = "template"
+
+    # Past resolution is offered as a step to consider, computed and deterministic
+    # (the LLM never sees or writes it), and clearly attributed to its incident.
+    if draft.historical_match:
+        m = draft.historical_match
+        draft.investigation_steps.append(
+            f"Compare with {m['incident_id']} ({m['similarity_pct']}% similar, seeded history): "
+            f"it was resolved by: {m['resolution']}"
+        )
 
     return draft

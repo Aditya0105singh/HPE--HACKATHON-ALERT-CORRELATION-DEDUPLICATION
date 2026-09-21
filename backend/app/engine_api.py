@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from .engine import adapters, scenarios
 from .engine.evidence import build_evidence
 from .engine import feedback as feedback_mod
-from .engine.golden import golden_scenario
+from .engine.golden import flapping_scenario, golden_scenario, maintenance_windows
 from .engine.lifecycle import attach_late_signal
 from .engine.causal import CausalResult
 from .engine.correlate import Cluster, DependencyGraph
@@ -140,6 +140,8 @@ def _draft_detail(item: QueueItem) -> dict:
         "jira_fields": draft.to_jira_fields() if item.status == DraftStatus.PUBLISHED else None,
         "note": item.note,
         "decided_at": item.decided_at.isoformat() if item.decided_at else None,
+        "historical_match": draft.historical_match,
+        "suppression_reason": draft.suppression_reason,
         "lifecycle": item.lifecycle,
         "history": item.history,
         "jira_comments": item.jira_comments,
@@ -217,7 +219,7 @@ def demo_run(body: DemoRunRequest) -> dict:
     return _execute(sc, use_llm=body.use_llm)
 
 
-def _execute(sc: "scenarios.Scenario", use_llm: bool = False) -> dict:
+def _execute(sc: "scenarios.Scenario", use_llm: bool = False, maintenance: list | None = None) -> dict:
     """Run a scenario through the real engine and make it the current state."""
     sigs = scenarios.build_signals(sc)
     graph = DependencyGraph(scenarios.dependency_edges(sc))
@@ -225,7 +227,7 @@ def _execute(sc: "scenarios.Scenario", use_llm: bool = False) -> dict:
     queue = ReviewQueue()
     result = run_pipeline(
         sigs, graph, queue=queue, use_llm=use_llm,
-        criticality=scenarios.criticality_map(sc),
+        criticality=scenarios.criticality_map(sc), maintenance=maintenance,
     )
 
     _state.result = result
@@ -251,8 +253,31 @@ def golden(use_llm: bool = False) -> dict:
     never depends on a random seed. Jira is NOT touched; the draft lands in the
     review queue awaiting a human.
     """
-    feedback_mod.reset()   # the demo must tell the same story every time
-    return _execute(golden_scenario(), use_llm=use_llm)
+    return _run_named("golden", use_llm)
+
+
+_SCENARIOS = {
+    "golden": ("golden incident: connection-pool exhaustion on postgres-primary", golden_scenario, None),
+    "maintenance": ("golden incident inside a declared maintenance window", golden_scenario, maintenance_windows),
+    "flapping": ("flapping service: payment-svc CPU crossing its threshold 4 times", flapping_scenario, None),
+}
+
+
+def _run_named(name: str, use_llm: bool = False) -> dict:
+    if name not in _SCENARIOS:
+        raise HTTPException(404, f"unknown scenario {name!r}; choose from {sorted(_SCENARIOS)}")
+    label, build, windows = _SCENARIOS[name]
+    feedback_mod.reset()   # every demo scenario starts from the design weights
+    out = _execute(build(), use_llm=use_llm, maintenance=windows() if windows else None)
+    _state.scenario_desc = label
+    out["report"] = _report_dict()
+    return out
+
+
+@router.post("/scenario/{name}")
+def run_scenario(name: str, use_llm: bool = False) -> dict:
+    """Named, deterministic demo scenarios: golden | maintenance | flapping."""
+    return _run_named(name, use_llm)
 
 
 @router.get("/queue/{draft_id}/evidence")
