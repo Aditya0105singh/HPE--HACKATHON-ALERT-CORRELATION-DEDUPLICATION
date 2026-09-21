@@ -17,12 +17,12 @@ import {
 import {
   EmptyStateCard,
   KeepLoader,
-  PageSubtitle,
-  PageTitle,
+  PageHero,
   SeverityLabel,
 } from "@/shared/ui";
 import type { UISeverity } from "@/shared/ui";
 import { MdOutlineNotificationsActive } from "react-icons/md";
+import { HiOutlineExclamationTriangle } from "react-icons/hi2";
 import {
   useForecast,
   useIncident,
@@ -101,26 +101,19 @@ export function IncidentDetailClient({ incidentId }: { incidentId: string }) {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div>
-        <Link href="/incidents" className="text-xs text-gray-500 hover:text-green-500">
-          ← Incidents
-        </Link>
-        <div className="flex items-start justify-between gap-3 flex-wrap mt-1">
-          <div className="min-w-0">
-            <PageTitle>{incident.root_cause.alertname}</PageTitle>
-            <PageSubtitle>
-              Root cause on {incident.root_cause.service} ·{" "}
-              {timeAgo(incident.root_cause.timestamp)}
-            </PageSubtitle>
-          </div>
-          <div className="flex items-center gap-2">
-            <SeverityLabel
-              severity={incident.root_cause.severity as UISeverity}
-            />
-            <Badge color={color}>{incident.risk.level} risk</Badge>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        icon={HiOutlineExclamationTriangle}
+        eyebrow={
+          <Link href="/incidents" className="hover:text-green-700 font-medium">
+            ← Incidents
+          </Link>
+        }
+        title={incident.root_cause.alertname}
+        subtitle={<>Root cause on {incident.root_cause.service} · {timeAgo(incident.root_cause.timestamp)}</>}
+      >
+        <SeverityLabel severity={incident.root_cause.severity as UISeverity} />
+        <Badge color={color}>{incident.risk.level} risk</Badge>
+      </PageHero>
 
       <Card className="p-4">
         <Text>{incident.summary}</Text>

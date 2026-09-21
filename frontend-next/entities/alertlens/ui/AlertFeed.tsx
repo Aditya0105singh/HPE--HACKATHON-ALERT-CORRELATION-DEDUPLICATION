@@ -10,8 +10,7 @@ import {
   DropdownMenu,
   EmptyStateCard,
   KeepLoader,
-  PageSubtitle,
-  PageTitle,
+  PageHero,
   SeverityLabel,
 } from "@/shared/ui";
 import type { UISeverity } from "@/shared/ui";
@@ -300,11 +299,7 @@ export function AlertFeed({
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <PageTitle>{title}</PageTitle>
-          <PageSubtitle>{subtitle}</PageSubtitle>
-        </div>
+      <PageHero icon={AiOutlineAlert} title={title} subtitle={subtitle}>
         <div className="flex items-center gap-2">
           <TextInput
             className="max-w-xs"
@@ -326,7 +321,7 @@ export function AlertFeed({
             ))}
           </DropdownMenu.Menu>
         </div>
-      </div>
+      </PageHero>
 
       <div className="flex flex-col lg:flex-row gap-4 items-start">
         <AlertFacets

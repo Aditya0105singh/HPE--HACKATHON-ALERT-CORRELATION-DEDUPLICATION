@@ -11,7 +11,7 @@ import {
   HiOutlineShare,
   HiOutlineShieldCheck,
 } from "react-icons/hi2";
-import { EmptyStateCard, KeepLoader, PageSubtitle, PageTitle } from "@/shared/ui";
+import { EmptyStateCard, KeepLoader, PageHero } from "@/shared/ui";
 import { useIncidentPanel, usePipelineState } from "@/entities/alertlens";
 import type { Cluster } from "@/entities/alertlens";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
@@ -105,12 +105,11 @@ export function IncidentsClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div>
-        <PageTitle>Incidents</PageTitle>
-        <PageSubtitle>
-          Correlated incidents with root cause, impact and recommended actions.
-        </PageSubtitle>
-      </div>
+      <PageHero
+        icon={MdOutlineNotificationsActive}
+        title="Incidents"
+        subtitle="Correlated incidents with root cause, impact and recommended actions."
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Raw alerts" value={stats.raw} icon={HiOutlineBell} color="green" />

@@ -26,6 +26,12 @@ function hash(str: string): number {
 
 type Phase = "scatter" | "collapse" | "reveal";
 
+const MAX_GROUPS = 8; // largest incidents drawn individually; the rest are pooled
+const MAX_DOTS_PER_GROUP = 40;
+const MAX_NOISE_DOTS = 120;
+
+type Group = { key: string; label: string; size: number; alerts: { id: string }[]; color: string };
+
 type Dot = {
   id: string;
   sx: number;
@@ -49,37 +55,63 @@ export function ChaosOrder() {
   const [phase, setPhase] = useState<Phase>("scatter");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // With hundreds of incidents (the BGL batch) drawing every dot is a smear, so
+  // the largest incidents are drawn individually and the rest are pooled into
+  // one group. Dot counts are sampled for drawing only; labels show true sizes.
+  const groups = useMemo<Group[]>(() => {
+    const sorted = [...clusters].sort((a, b) => b.size - a.size);
+    const top: Group[] = sorted.slice(0, MAX_GROUPS).map((c) => ({
+      key: String(c.cluster_id),
+      label: c.root_cause.service,
+      size: c.size,
+      alerts: c.alerts.slice(0, MAX_DOTS_PER_GROUP),
+      color: PALETTE[c.cluster_id % PALETTE.length],
+    }));
+    const rest = sorted.slice(MAX_GROUPS);
+    if (rest.length) {
+      top.push({
+        key: "rest",
+        label: `${rest.length} more incidents`,
+        size: rest.reduce((n, c) => n + c.size, 0),
+        alerts: rest.flatMap((c) => c.alerts).slice(0, MAX_DOTS_PER_GROUP),
+        color: "#94a3b8",
+      });
+    }
+    return top;
+  }, [clusters]);
+
   const dots = useMemo<Dot[]>(() => {
     const out: Dot[] = [];
 
-    clusters.forEach((c, ci) => {
-      const cx = ((ci + 1) / (clusters.length + 1)) * 100;
-      c.alerts.forEach((a, i) => {
-        const angle = (i / c.alerts.length) * Math.PI * 2 - Math.PI / 2;
+    groups.forEach((g, ci) => {
+      const cx = ((ci + 1) / (groups.length + 1)) * 100;
+      g.alerts.forEach((a, i) => {
+        const angle = (i / g.alerts.length) * Math.PI * 2 - Math.PI / 2;
         out.push({
           id: a.id,
           sx: 4 + ((hash(a.id) % 9000) / 9000) * 92,
           sy: 6 + ((hash(a.id + "y") % 9000) / 9000) * 74,
           tx: cx + Math.cos(angle) * 4.2,
           ty: 36 + Math.sin(angle) * 10,
-          color: PALETTE[c.cluster_id % PALETTE.length],
+          color: g.color,
         });
       });
     });
 
-    noise.forEach((a, i) => {
+    const noiseShown = noise.length > MAX_NOISE_DOTS ? noise.filter((_, i) => i % Math.ceil(noise.length / MAX_NOISE_DOTS) === 0) : noise;
+    noiseShown.forEach((a, i) => {
       out.push({
         id: a.id,
         sx: 4 + ((hash(a.id) % 9000) / 9000) * 92,
         sy: 6 + ((hash(a.id + "y") % 9000) / 9000) * 74,
-        tx: 6 + (i / Math.max(noise.length - 1, 1)) * 88,
+        tx: 6 + (i / Math.max(noiseShown.length - 1, 1)) * 88,
         ty: 88,
         color: "#9ca3af",
       });
     });
 
     return out;
-  }, [clusters, noise]);
+  }, [groups, noise]);
 
   const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
@@ -110,6 +142,7 @@ export function ChaosOrder() {
           <Text className="text-xs text-gray-500">
             {rawCount} raw alerts collapsing into {clusters.length} incidents,
             with {noise.length} left as background noise.
+            {clusters.length > MAX_GROUPS && ` Showing the ${MAX_GROUPS} largest incidents; the rest are pooled.`}
           </Text>
         </div>
         <Button size="xs" variant="secondary" color="emerald" icon={LuPlay} onClick={play}>
@@ -139,25 +172,22 @@ export function ChaosOrder() {
         ))}
 
         {phase === "reveal" &&
-          clusters.map((c, ci) => (
+          groups.map((g, ci) => (
             <div
-              key={c.cluster_id}
-              className="absolute text-[11px] font-medium text-center -translate-x-1/2 whitespace-nowrap text-gray-800"
+              key={g.key}
+              className="absolute text-[11px] font-medium text-center -translate-x-1/2 text-gray-800 max-w-[11%]"
               style={{
-                left: `${((ci + 1) / (clusters.length + 1)) * 100}%`,
+                left: `${((ci + 1) / (groups.length + 1)) * 100}%`,
                 top: "56%",
               }}
             >
-              {/* Swatch carries the cluster colour; the text stays dark, since
+              {/* Swatch carries the group colour; the text stays dark, since
                   palette yellow as text was 1.78:1. */}
-              <span className="inline-flex items-center gap-1">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: PALETTE[c.cluster_id % PALETTE.length] }}
-                />
-                {c.root_cause.service}
+              <span className="inline-flex items-center gap-1 max-w-full">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                <span className="truncate">{g.label}</span>
               </span>
-              <div className="text-gray-500">{c.size} alerts</div>
+              <div className="text-gray-500">{g.size} alerts</div>
             </div>
           ))}
 

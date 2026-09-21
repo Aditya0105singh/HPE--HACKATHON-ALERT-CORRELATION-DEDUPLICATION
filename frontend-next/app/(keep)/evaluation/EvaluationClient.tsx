@@ -4,10 +4,10 @@ import { Card, ProgressBar, Text, Title } from "@tremor/react";
 import {
   EmptyStateCard,
   KeepLoader,
-  PageSubtitle,
-  PageTitle,
+  PageHero,
 } from "@/shared/ui";
 import { LuBrainCircuit } from "react-icons/lu";
+import { HiOutlineShieldCheck } from "react-icons/hi2";
 import { useEvaluation } from "@/entities/alertlens";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
 import {
@@ -56,14 +56,11 @@ export function EvaluationClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div>
-        <PageTitle>Model Evaluation</PageTitle>
-        <PageSubtitle>
-          Measured against the generator&apos;s hidden ground truth across{" "}
-          {data.seeds_tested} fixed seeds. The pipeline never reads ground
-          truth — this is an external measurement.
-        </PageSubtitle>
-      </div>
+      <PageHero
+        icon={HiOutlineShieldCheck}
+        title="Model Evaluation"
+        subtitle={<>Measured against the generator&apos;s hidden ground truth across {data.seeds_tested} fixed seeds. The pipeline never reads ground truth — this is an external measurement.</>}
+      />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard

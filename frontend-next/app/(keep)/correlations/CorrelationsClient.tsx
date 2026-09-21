@@ -8,8 +8,7 @@ import { LuZap } from "react-icons/lu";
 import {
   EmptyStateCard,
   KeepLoader,
-  PageSubtitle,
-  PageTitle,
+  PageHero,
   SeverityLabel,
 } from "@/shared/ui";
 import type { UISeverity } from "@/shared/ui";
@@ -83,13 +82,11 @@ export function CorrelationsClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div>
-        <PageTitle>Correlations</PageTitle>
-        <PageSubtitle>
-          Deduplicated alerts grouped into incidents by the correlation engine.
-          Each group shares a suspected root cause.
-        </PageSubtitle>
-      </div>
+      <PageHero
+        icon={TbChartDots3}
+        title="Correlations"
+        subtitle="Deduplicated alerts grouped into incidents by the correlation engine. Each group shares a suspected root cause."
+      />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard

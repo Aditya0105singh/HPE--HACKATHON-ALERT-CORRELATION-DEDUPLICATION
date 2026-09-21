@@ -30,3 +30,4 @@ export { DebugJSON } from "./DebugJSON";
 export { getIconForStatusString } from "./utils/getIconForStatusString";
 
 export type { UISeverity } from "./utils/severity-utils";
+export { PageHero } from "./PageHero";

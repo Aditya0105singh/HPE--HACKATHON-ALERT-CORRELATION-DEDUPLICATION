@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge, Card, Text } from "@tremor/react";
 import { DisplayColumnDef } from "@tanstack/react-table";
 import { GenericTable } from "@/components/table/GenericTable";
-import { PageSubtitle, PageTitle, KeepLoader, SeverityLabel } from "@/shared/ui";
+import { PageHero, KeepLoader, SeverityLabel } from "@/shared/ui";
 import type { UISeverity } from "@/shared/ui";
 import { EmptyStateCard } from "@/shared/ui";
 import { IoMdGitMerge } from "react-icons/io";
@@ -47,7 +47,7 @@ export function DeduplicationClient() {
         id: "alertname",
         header: "Alert",
         cell: ({ row }) => (
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-[22rem]">
             <div className="font-medium truncate">{row.original.alertname}</div>
             <div className="text-xs text-gray-500 truncate">
               {row.original.message}
@@ -130,13 +130,11 @@ export function DeduplicationClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div>
-        <PageTitle>Deduplication</PageTitle>
-        <PageSubtitle>
-          Monitoring re-fires the same alert every check interval. This first
-          noise-removal layer collapses those repeats before any ML runs.
-        </PageSubtitle>
-      </div>
+      <PageHero
+        icon={IoMdGitMerge}
+        title="Deduplication"
+        subtitle="Monitoring re-fires the same alert every check interval. This first noise-removal layer collapses those repeats before any ML runs."
+      />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard
