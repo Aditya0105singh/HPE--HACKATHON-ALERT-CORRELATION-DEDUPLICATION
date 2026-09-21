@@ -323,58 +323,11 @@ export interface DemoLoadOptions {
   scenario?: string | null;
 }
 
-/** A real webhook notification target — GET/POST/DELETE /providers. */
-export interface Provider {
-  id: string;
-  name: string;
-  type: "webhook";
-  url: string;
-  enabled: boolean;
-  created_at: string;
-}
-
-/** POST /providers/{id}/test result — the real HTTP outcome, not a canned reply. */
-export interface ProviderTestResult {
-  status: "success" | "failed";
-  http_status: number | null;
-  detail: string;
-}
-
-/** A real trigger->action rule — not Keep's YAML step engine, one condition, one action. */
-export type WorkflowTriggerType = "risk_threshold" | "new_critical_alert";
-export type WorkflowActionType = "notify" | "auto_escalate";
-
-export interface WorkflowRule {
-  id: string;
-  name: string;
-  trigger_type: WorkflowTriggerType;
-  trigger_config: { min_risk?: number };
-  action_type: WorkflowActionType;
-  action_config: { provider_id?: string };
-  enabled: boolean;
-  created_at: string;
-  /** ISO timestamp of this rule's most recent real firing, or null if it never has. */
-  last_fired_at: string | null;
-}
-
-/** GET /notifications — real history of every workflow rule firing. */
-export interface NotificationLogEntry {
-  id: string;
-  rule_id: string;
-  incident_key: string;
-  provider_id: string | null;
-  status: "success" | "failed";
-  detail: string | null;
-  created_at: string;
-}
-
 /** GET /settings/status — real system facts, not a settings form. */
 export interface SettingsStatus {
   dataset: string;
   persisted_alert_count: number;
   active_incident_count: number;
-  provider_count: number;
-  workflow_rule_count: number;
   llm_configured: boolean;
   llm_provider: string | null;
   db_path: string;

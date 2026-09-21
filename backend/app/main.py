@@ -32,7 +32,6 @@ from synthetic_alert_generator import generate_batch  # noqa: E402
 from . import clustering, db, dedup
 from .assistant import IncidentAssistantRequest, WorkspaceAssistantRequest, ask_incident_assistant, ask_workspace_assistant
 from .alert_dna import AlertDNA
-from .automation import evaluate_workflow_rules
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .correlation_explain import build_correlation_explanation
 from .incident_ticket import approve_ticket, get_ticket
@@ -40,7 +39,6 @@ from .dedup import deduplicate
 from .forecast import compute_forecast
 from .root_cause_confidence import build_root_cause_confidence
 from .playbook import generate_playbook
-from .providers import test_webhook
 from .real_data_bgl import load_bgl_alerts
 from .risk_score import escalation_risk
 from .summarizer import summarize, summarize_with_source
@@ -191,14 +189,9 @@ def _run_pipeline(alerts: list[dict]) -> dict:
         "noise": groups.get(-1, []),
         "raw_alerts": sorted(alerts, key=lambda a: a["timestamp"], reverse=True),
     })
-    # Real workflow rules (see automation.py) evaluated against this batch's
-    # clusters - dedup'd per rule+incident, so this is safe to call on every
-    # rerun (ack/assign/dismiss/escalate all rerun the pipeline).
-    evaluate_workflow_rules(clusters)
-    # An auto_escalate action above persists straight to the DB, bypassing
-    # the alerts list already built into _state - patch the escalated flag
-    # onto it in place so a rule firing is visible in *this* response,
-    # rather than only showing up after some later, unrelated rerun.
+    # Manual escalations persist straight to the DB, bypassing the alerts list
+    # already built into _state - patch the escalated flag onto it in place so
+    # it is visible in *this* response.
     actions = db.get_actions()
     for alert in _state["raw_alerts"]:
         action = actions.get(alert["id"])
@@ -654,98 +647,11 @@ def assistant_workspace(payload: WorkspaceAssistantRequest) -> dict:
     return ask_workspace_assistant(_state, payload)
 
 
-class ProviderCreate(BaseModel):
-    name: str
-    url: str
-    enabled: bool = True
-
-
-@app.get("/providers")
-def list_providers() -> list[dict]:
-    return db.list_providers()
-
-
-@app.post("/providers")
-def create_provider(body: ProviderCreate) -> dict:
-    provider_id = uuid.uuid4().hex[:8]
-    return db.create_provider(provider_id, body.name, body.url, body.enabled)
-
-
-@app.delete("/providers/{provider_id}")
-def delete_provider(provider_id: str) -> dict:
-    db.delete_provider(provider_id)
-    return {"status": "deleted"}
-
-
-@app.post("/providers/{provider_id}/test")
-def test_provider(provider_id: str) -> dict:
-    """Sends one real HTTP POST to the provider's URL and reports exactly
-    what happened - not a canned success message."""
-    provider = db.get_provider(provider_id)
-    if not provider:
-        raise HTTPException(status_code=404, detail=f"Provider {provider_id} not found")
-    return test_webhook(provider["url"])
-
-
-class WorkflowRuleCreate(BaseModel):
-    name: str
-    trigger_type: str  # "risk_threshold" | "new_critical_alert"
-    trigger_config: dict = {}
-    action_type: str  # "notify" | "auto_escalate"
-    action_config: dict = {}
-    enabled: bool = True
-
-
-class WorkflowRuleUpdate(BaseModel):
-    enabled: bool
-
-
-def _with_last_fired(rule: dict) -> dict:
-    return {**rule, "last_fired_at": db.last_fired_at(rule["id"])}
-
-
-@app.get("/workflows")
-def list_workflow_rules() -> list[dict]:
-    return [_with_last_fired(r) for r in db.list_workflow_rules()]
-
-
-@app.post("/workflows")
-def create_workflow_rule(body: WorkflowRuleCreate) -> dict:
-    rule_id = uuid.uuid4().hex[:8]
-    rule = db.create_workflow_rule(
-        rule_id, body.name, body.trigger_type, body.trigger_config,
-        body.action_type, body.action_config, body.enabled,
-    )
-    return _with_last_fired(rule)
-
-
-@app.put("/workflows/{rule_id}")
-def update_workflow_rule(rule_id: str, body: WorkflowRuleUpdate) -> dict:
-    rule = db.set_workflow_rule_enabled(rule_id, body.enabled)
-    if not rule:
-        raise HTTPException(status_code=404, detail=f"Workflow rule {rule_id} not found")
-    return _with_last_fired(rule)
-
-
-@app.delete("/workflows/{rule_id}")
-def delete_workflow_rule(rule_id: str) -> dict:
-    db.delete_workflow_rule(rule_id)
-    return {"status": "deleted"}
-
-
-@app.get("/notifications")
-def list_notifications() -> list[dict]:
-    """Real history of every workflow rule firing - see automation.py."""
-    return db.list_notifications()
-
-
 @app.get("/settings/status")
 def settings_status() -> dict:
-    """Real system status - which dataset is loaded, how many alerts are
-    actually persisted, and whether an LLM provider is genuinely reachable
-    (reuses the same check /debug/summarizer-check uses) - not a settings
-    form for things this backend doesn't actually have (users, roles, API
-    keys)."""
+    """Real system status: which dataset is loaded, how many alerts are
+    persisted, and whether an LLM provider is genuinely reachable (reuses the
+    same check /debug/summarizer-check uses)."""
     from . import summarizer
 
     configured = summarizer._configured_providers()
@@ -753,53 +659,9 @@ def settings_status() -> dict:
         "dataset": _state.get("dataset", "none"),
         "persisted_alert_count": len(db.load_alerts()),
         "active_incident_count": len(_state.get("clusters", [])),
-        "provider_count": len(db.list_providers()),
-        "workflow_rule_count": len(db.list_workflow_rules()),
         "llm_configured": bool(configured),
         "llm_provider": configured[0][0] if configured else None,
         "db_path": str(db.DB_PATH),
-    }
-
-
-@app.get("/rules/config")
-def rules_config() -> dict:
-    """Read-only dump of the real, already-tuned correlation engine
-    parameters - not an editable rules CRUD. Grid-searched values (see
-    clustering.py) are a sharp real optimum, not a knob meant to be turned
-    from a settings page."""
-    return {
-        "dedup": {
-            "window_seconds": dedup.WINDOW_SECONDS,
-            "description": (
-                f"Two alerts collapse into one when the same check fires on "
-                f"the same service within {dedup.WINDOW_SECONDS // 60} minutes "
-                f"of each other. Fingerprint = sha1(service | alertname | "
-                f"timestamp bucketed to {dedup.WINDOW_SECONDS}s)."
-            ),
-        },
-        "clustering": {
-            "eps": clustering.EPS,
-            "min_samples": clustering.MIN_SAMPLES,
-            "time_scale_minutes": clustering.TIME_SCALE_MIN,
-            "time_penalty": clustering.TIME_PENALTY,
-            "description": (
-                "Alerts are grouped into one incident when they're both "
-                "textually related (TF-IDF cosine distance) and close in "
-                f"time. eps={clustering.EPS} was grid-searched against the "
-                "synthetic generator's hidden ground truth across 8 seeds: "
-                "91.7% incident detection, 91.4% cluster purity, 91.5% "
-                "noise exclusion. It's a sharp inflection point, not a soft "
-                "optimum - eps=1.02 alone drops cluster purity to 75%."
-            ),
-        },
-        "root_cause": {
-            "description": (
-                "The earliest alert in a cluster is picked as the root "
-                "cause (failures propagate forward in time), broken toward "
-                "higher severity when several alerts fire in the same "
-                "minute."
-            ),
-        },
     }
 
 

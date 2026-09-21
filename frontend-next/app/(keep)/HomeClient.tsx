@@ -257,8 +257,8 @@ export function HomeClient() {
           label: status?.llm_configured ? `LLM service (${status.llm_provider})` : "LLM service (not configured)",
           ok: !!status?.llm_configured,
         },
-        { label: `Notification providers (${status?.provider_count ?? 0})`, ok: (status?.provider_count ?? 0) > 0 },
-        { label: `Workflow rules (${status?.workflow_rule_count ?? 0})`, ok: (status?.workflow_rule_count ?? 0) > 0 },
+        { label: "Human review gate (no auto-publish)", ok: true },
+        { label: "Jira (mock transport)", ok: true },
       ],
     };
   }, [status, clusters.length]);

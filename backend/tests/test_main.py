@@ -306,68 +306,6 @@ class TestAssistantEndpoints:
         assert "mode" not in resp.json()  # incident-mode response shape, not workspace
 
 
-class TestProvidersCRUD:
-    def test_create_list_delete(self, client):
-        assert client.get("/providers").json() == []
-        created = client.post("/providers", json={"name": "Hook", "url": "https://example.com"}).json()
-        assert created["name"] == "Hook"
-        assert len(client.get("/providers").json()) == 1
-        client.delete(f"/providers/{created['id']}")
-        assert client.get("/providers").json() == []
-
-    def test_test_provider_success(self, client, monkeypatch):
-        # main.py does `from .providers import test_webhook`, binding its
-        # own local name — patching app.providers.test_webhook wouldn't
-        # affect what main.py actually calls.
-        import app.main as main_module
-        monkeypatch.setattr(main_module, "test_webhook", lambda url: {"status": "success", "http_status": 200, "detail": "ok"})
-        created = client.post("/providers", json={"name": "Hook", "url": "https://example.com"}).json()
-        resp = client.post(f"/providers/{created['id']}/test")
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "success"
-
-    def test_test_provider_missing_404(self, client):
-        resp = client.post("/providers/nonexistent/test")
-        assert resp.status_code == 404
-
-
-class TestWorkflowsCRUD:
-    def test_create_list_update_delete(self, client):
-        created = client.post("/workflows", json={
-            "name": "High risk", "trigger_type": "risk_threshold",
-            "trigger_config": {"min_risk": 0.8}, "action_type": "auto_escalate",
-        }).json()
-        assert created["enabled"] is True
-        assert created["last_fired_at"] is None
-
-        rules = client.get("/workflows").json()
-        assert any(r["id"] == created["id"] for r in rules)
-
-        updated = client.put(f"/workflows/{created['id']}", json={"enabled": False})
-        assert updated.json()["enabled"] is False
-
-        client.delete(f"/workflows/{created['id']}")
-        assert not any(r["id"] == created["id"] for r in client.get("/workflows").json())
-
-    def test_update_missing_workflow_404(self, client):
-        resp = client.put("/workflows/nonexistent", json={"enabled": True})
-        assert resp.status_code == 404
-
-
-class TestNotifications:
-    def test_empty_by_default(self, client):
-        assert client.get("/notifications").json() == []
-
-    def test_reflects_a_fired_workflow_rule(self, client):
-        client.post("/workflows", json={
-            "name": "Always fire", "trigger_type": "risk_threshold",
-            "trigger_config": {"min_risk": 0.0}, "action_type": "auto_escalate",
-        })
-        _load_seeded_batch(client, seed=42, incidents=3, noise=5)
-        notifications = client.get("/notifications").json()
-        assert len(notifications) > 0
-
-
 class TestSettingsStatus:
     def test_shape_and_reflects_loaded_dataset(self, client):
         _load_seeded_batch(client)
@@ -376,13 +314,6 @@ class TestSettingsStatus:
         assert status["persisted_alert_count"] > 0
         assert "llm_configured" in status
         assert "db_path" in status
-
-
-class TestRulesConfig:
-    def test_shape(self, client):
-        config = client.get("/rules/config").json()
-        assert set(config.keys()) == {"dedup", "clustering", "root_cause"}
-        assert config["clustering"]["eps"] == pytest.approx(1.00)
 
 
 class TestMaintenanceWindowsCRUD:
