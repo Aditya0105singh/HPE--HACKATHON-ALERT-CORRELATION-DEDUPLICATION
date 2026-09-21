@@ -1,4 +1,4 @@
-"""HUMAN REVIEW GATE — Ensylon hard constraint #1: never auto-publish.
+"""HUMAN REVIEW GATE — Hard constraint #1: never auto-publish.
 
 Every drafted ticket passes through a human decision before it reaches Jira.
 There is no configuration flag, no admin override, and no "auto-approve above

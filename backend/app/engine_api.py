@@ -1,6 +1,6 @@
-"""HTTP surface for the Ensylon AIOps engine — the Hours 18-24 gap.
+"""HTTP surface for the AIOps engine — the Hours 18-24 gap.
 
-The engine itself (app/ensylon/) has been real, tested code since Phase 1:
+The engine itself (app/engine/) has been real, tested code since Phase 1:
 adapters, detection, correlation, the causal engine, severity scoring, and a
 review gate proven against 192 measured scenarios. Nothing in that engine
 changes here. This module only exposes it over HTTP so it can actually be
@@ -20,26 +20,29 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .ensylon import scenarios
-from .ensylon.causal import CausalResult
-from .ensylon.correlate import Cluster, DependencyGraph
-from .ensylon.drafting import IncidentDraft
-from .ensylon.pipeline import Evaluation, PipelineResult, run as run_pipeline
-from .ensylon.review import DraftStatus, QueueItem, ReviewQueue
-from .ensylon.severity import SeverityBreakdown
+from .engine import scenarios
+from .engine.evidence import build_evidence
+from .engine.golden import golden_scenario
+from .engine.causal import CausalResult
+from .engine.correlate import Cluster, DependencyGraph
+from .engine.drafting import IncidentDraft
+from .engine.pipeline import Evaluation, PipelineResult, run as run_pipeline
+from .engine.review import DraftStatus, QueueItem, ReviewQueue
+from .engine.severity import SeverityBreakdown
 
-router = APIRouter(prefix="/ensylon", tags=["ensylon"])
+router = APIRouter(prefix="/engine", tags=["engine"])
 
 
 @dataclass
-class _EnsylonState:
+class _EngineState:
     result: PipelineResult | None = None
     evaluation: Evaluation | None = None
     queue: ReviewQueue = field(default_factory=ReviewQueue)
     scenario_desc: str = ""
+    graph: DependencyGraph | None = None
 
 
-_state = _EnsylonState()
+_state = _EngineState()
 
 
 # --------------------------------------------------------------------------
@@ -204,26 +207,56 @@ def demo_run(body: DemoRunRequest) -> dict:
         stagger_minutes=body.stagger_minutes,
         topology=body.topology,
     )
+    return _execute(sc, use_llm=body.use_llm)
+
+
+def _execute(sc: "scenarios.Scenario", use_llm: bool = False) -> dict:
+    """Run a scenario through the real engine and make it the current state."""
     sigs = scenarios.build_signals(sc)
     graph = DependencyGraph(scenarios.dependency_edges(sc))
 
     queue = ReviewQueue()
     result = run_pipeline(
-        sigs, graph, queue=queue, use_llm=body.use_llm,
+        sigs, graph, queue=queue, use_llm=use_llm,
         criticality=scenarios.criticality_map(sc),
     )
 
     _state.result = result
     _state.evaluation = None
     try:
-        from .ensylon.pipeline import evaluate
+        from .engine.pipeline import evaluate
         _state.evaluation = evaluate(result, sc.incident_count)
     except Exception:
         pass
     _state.queue = queue
+    _state.graph = graph
     _state.scenario_desc = sc.describe()
 
     return {"report": _report_dict(), "queue": [_queue_summary(i) for i in queue.pending()]}
+
+
+@router.post("/golden")
+def golden(use_llm: bool = False) -> dict:
+    """The fixed demo failure: 17 signals -> 1 incident (+1 rejected decoy).
+
+    Deterministic: the same call always produces the same incident, so a demo
+    never depends on a random seed. Jira is NOT touched; the draft lands in the
+    review queue awaiting a human.
+    """
+    return _execute(golden_scenario(), use_llm=use_llm)
+
+
+@router.get("/queue/{draft_id}/evidence")
+def get_evidence(draft_id: str) -> dict:
+    """Why this incident: per-signal join evidence, exclusions, root-cause
+    candidates, severity and confidence breakdowns."""
+    result = _state.result
+    if result is None or _state.graph is None:
+        raise HTTPException(404, "no run yet")
+    for inc in result.incidents:
+        if inc.draft.draft_id == draft_id:
+            return build_evidence(inc, _state.graph, result.noise)
+    raise HTTPException(404, f"no incident for draft {draft_id}")
 
 
 @router.get("/report")
@@ -252,7 +285,7 @@ def get_draft(draft_id: str) -> dict:
 
 @router.post("/queue/{draft_id}/approve")
 def approve(draft_id: str, body: ApproveRequest) -> dict:
-    """The one path to Jira. See app/ensylon/review.py — this route is a
+    """The one path to Jira. See app/engine/review.py — this route is a
     thin wrapper; every guarantee (approval token, single-use, audit log)
     is enforced inside ReviewQueue.approve, not here."""
     try:

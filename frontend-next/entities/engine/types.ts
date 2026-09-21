@@ -1,7 +1,7 @@
-/** Mirrors the shapes returned by backend/app/ensylon_api.py exactly - see
+/** Mirrors the shapes returned by backend/app/engine_api.py exactly - see
  * that file's _queue_summary / _draft_detail / _report_dict for the source
  * of truth. Kept as a separate entity from the original AlertLens pipeline
- * types since this is a distinct engine (app/ensylon/) with its own API
+ * types since this is a distinct engine (app/engine/) with its own API
  * prefix, not a variant of the existing Cluster/Incident shapes. */
 
 export type Priority = "P1" | "P2" | "P3";

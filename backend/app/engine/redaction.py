@@ -1,4 +1,4 @@
-"""PII / PHI / PCI redaction — Ensylon hard constraint #3.
+"""PII / PHI / PCI redaction — Hard constraint #3.
 
 Runs at the ingestion boundary, before a signal reaches any persistent store
 or any external API (including the LLM used for drafting). Placing it here

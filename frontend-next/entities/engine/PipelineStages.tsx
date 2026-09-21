@@ -17,7 +17,7 @@ import type { PipelineReport, QueueSummary } from "./types";
 // (Section 1 / closing page), but wired to a real run instead of frozen
 // illustrative numbers. PURPOSE/ALGORITHM/PARAMETERS text is static — it
 // describes the fixed algorithm, which doesn't change run to run — while
-// every number is read straight from the last /ensylon/demo/run response.
+// every number is read straight from the last /engine/demo/run response.
 
 interface Stage {
   n: number;

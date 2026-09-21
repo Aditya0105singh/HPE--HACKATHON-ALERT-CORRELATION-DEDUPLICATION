@@ -1,6 +1,6 @@
 """The Signal envelope — one shape every source normalizes into.
 
-Ensylon's brief names four telemetry sources with four completely different
+The brief names four telemetry sources with four completely different
 payload schemas (CloudWatch metric alarms, CloudWatch log events, Grafana
 webhook alerts, OTel logs and trace spans). Everything downstream — detection,
 correlation, the causal engine, scoring — reads this envelope and nothing else,

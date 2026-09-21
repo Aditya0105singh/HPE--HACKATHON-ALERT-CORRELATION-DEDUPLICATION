@@ -21,7 +21,7 @@ from app import incident_ticket  # noqa: E402
 from app.clustering import EPS, cluster_alerts, group_by_label, pick_root_cause  # noqa: E402
 from app.correlation_explain import build_correlation_explanation  # noqa: E402
 from app.dedup import deduplicate  # noqa: E402
-from app.ensylon.review import ReviewQueue  # noqa: E402
+from app.engine.review import ReviewQueue  # noqa: E402
 from app.playbook import generate_playbook  # noqa: E402
 from app.risk_score import escalation_risk  # noqa: E402
 

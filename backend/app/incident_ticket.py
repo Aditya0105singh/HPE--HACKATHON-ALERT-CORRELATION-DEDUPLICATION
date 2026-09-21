@@ -1,10 +1,10 @@
 """Turns an AlertLens incident into a reviewable ticket draft, and publishes it
-through the Ensylon review gate.
+through the review gate.
 
 Nothing new is invented here: the draft is assembled from the cluster the
 pipeline already produced, the correlation explanation
 (app/correlation_explain.py) and the playbook (app/playbook.py). Publishing
-reuses app/ensylon/review.py, which mints a human approval token and refuses to
+reuses app/engine/review.py, which mints a human approval token and refuses to
 create a ticket without one.
 
 Jira reality check: no Jira credentials exist in this deployment, so the review
@@ -21,8 +21,8 @@ from typing import Any
 
 from .clustering import _ts
 from .correlation_explain import build_correlation_explanation
-from .ensylon.drafting import ExcludedSignal, IncidentDraft, TimelineEntry
-from .ensylon.review import ReviewQueue
+from .engine.drafting import ExcludedSignal, IncidentDraft, TimelineEntry
+from .engine.review import ReviewQueue
 from .playbook import generate_playbook
 
 MAX_TIMELINE = 12

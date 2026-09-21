@@ -55,7 +55,7 @@ const SECTIONS: NavSection[] = [
     title: "INCIDENTS",
     links: [
       { href: "/incidents", label: "Incidents", icon: MdOutlineNotificationsActive, testId: "incidents" },
-      { href: "/ensylon", label: "Review Queue", icon: HiOutlineShieldCheck, testId: "ensylon" },
+      { href: "/review", label: "Review Queue", icon: HiOutlineShieldCheck, testId: "review" },
       { href: "/timemachine", label: "Time Machine", icon: TbTimeline, testId: "timemachine" },
     ],
   },

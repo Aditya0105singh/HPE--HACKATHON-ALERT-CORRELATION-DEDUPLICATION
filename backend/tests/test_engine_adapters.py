@@ -9,7 +9,7 @@ attribute in a type envelope, Grafana's `valueString` encoding).
 
 from __future__ import annotations
 
-from app.ensylon.adapters import (
+from app.engine.adapters import (
     from_cloudwatch_alarm,
     from_cloudwatch_logs,
     from_grafana_webhook,
@@ -17,7 +17,7 @@ from app.ensylon.adapters import (
     from_otlp_traces,
     service_dependency_edges,
 )
-from app.ensylon.signal import Severity, SignalSource
+from app.engine.signal import Severity, SignalSource
 
 # --------------------------------------------------------------------------
 # CloudWatch alarm

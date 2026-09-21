@@ -335,11 +335,11 @@ app = FastAPI(title="Alert Correlation & Dedup Engine", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
 
-# Ensylon AIOps engine (app/ensylon/) — a separate pipeline exposed under
+# AIOps engine (app/engine/) — a separate pipeline exposed under
 # its own prefix rather than folded into the routes above, so it can evolve
 # independently of the original AlertLens demo endpoints.
-from .ensylon_api import router as ensylon_router  # noqa: E402
-app.include_router(ensylon_router)
+from .engine_api import router as engine_router  # noqa: E402
+app.include_router(engine_router)
 
 
 @app.post("/ingest")
@@ -585,7 +585,7 @@ def get_incident_ticket(incident_id: str) -> dict:
 
 @app.post("/incidents/{incident_id}/ticket/approve")
 def approve_incident_ticket(incident_id: str, actor: str = "on-call") -> dict:
-    """Publish the draft through the Ensylon review gate, which requires a
+    """Publish the draft through the review gate, which requires a
     named human approver. No Jira credentials are configured here, so the
     gate's mock transport records the payload and returns a synthetic key -
     the response reports that as jira.mode == "simulated"."""

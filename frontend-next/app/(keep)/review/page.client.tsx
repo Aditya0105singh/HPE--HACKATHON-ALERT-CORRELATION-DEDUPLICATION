@@ -23,15 +23,15 @@ import {
 } from "react-icons/hi2";
 import { EmptyStateCard, KeepLoader, PageSubtitle, PageTitle } from "@/shared/ui";
 import {
-  useEnsylonReport,
-  useEnsylonQueue,
-  useEnsylonAudit,
-  useEnsylonTopologies,
-  useEnsylonDraft,
-  useEnsylonActions,
-} from "@/entities/ensylon/useEnsylon";
-import { PipelineStages } from "@/entities/ensylon/PipelineStages";
-import type { DraftStatus, Priority, QueueSummary } from "@/entities/ensylon/types";
+  useEngineReport,
+  useEngineQueue,
+  useEngineAudit,
+  useEngineTopologies,
+  useEngineDraft,
+  useEngineActions,
+} from "@/entities/engine/useEngine";
+import { PipelineStages } from "@/entities/engine/PipelineStages";
+import type { DraftStatus, Priority, QueueSummary } from "@/entities/engine/types";
 
 // NOTE ON THEMING: this app renders dark mode by applying a CSS
 // `filter: invert(1) hue-rotate(180deg)` to <html> (see WatchUpdateTheme /
@@ -76,10 +76,9 @@ function Hero() {
           <HiOutlineSparkles className="animate-glowPulse" size={13} />
           Live engine
         </span>
-        <span className="text-[11px] text-gray-400">Ensylon AIOps Hackathon</span>
       </div>
       <h1 className="relative text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
-        Ensylon AIOps
+        Review Queue
       </h1>
       <p className="relative mt-2 max-w-2xl text-sm text-gray-500">
         The real engine, running — ingest, detect, correlate, causal analysis,
@@ -154,8 +153,8 @@ function StatCard({
 // ---------------------------------------------------------------------------
 
 function RunControls() {
-  const { data: topologies } = useEnsylonTopologies();
-  const { runDemo } = useEnsylonActions();
+  const { data: topologies } = useEngineTopologies();
+  const { runDemo } = useEngineActions();
   const [nIncidents, setNIncidents] = useState(3);
   const [noise, setNoise] = useState(40);
   const [stagger, setStagger] = useState<0 | 45>(0);
@@ -238,7 +237,7 @@ function RunControls() {
 // ---------------------------------------------------------------------------
 
 function ReportSummary() {
-  const { data: report, isLoading } = useEnsylonReport();
+  const { data: report, isLoading } = useEngineReport();
 
   if (isLoading) return <KeepLoader includeMinHeight={false} loadingText="Loading report..." />;
   if (!report || !report.scenario) {
@@ -368,7 +367,7 @@ function ConfidenceBadge({
 }
 
 function DraftDetailPanel({ draftId }: { draftId: string }) {
-  const { data: draft, isLoading } = useEnsylonDraft(draftId);
+  const { data: draft, isLoading } = useEngineDraft(draftId);
   if (isLoading || !draft) return <KeepLoader includeMinHeight={false} loadingText="Loading ticket..." />;
 
   return (
@@ -483,7 +482,7 @@ function QueueRow({ item, actor, delay = 0 }: { item: QueueSummary; actor: strin
   const [expanded, setExpanded] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [mergeId, setMergeId] = useState("");
-  const { approve, reject, merge } = useEnsylonActions();
+  const { approve, reject, merge } = useEngineActions();
 
   const requireActor = () => {
     if (!actor.trim()) {
@@ -632,7 +631,7 @@ function QueueRow({ item, actor, delay = 0 }: { item: QueueSummary; actor: strin
 }
 
 function PipelineStagesSection({ queue }: { queue: QueueSummary[] }) {
-  const { data: report, isLoading } = useEnsylonReport();
+  const { data: report, isLoading } = useEngineReport();
   if (isLoading || !report || !report.scenario) return null;
   return <PipelineStages report={report} queue={queue} />;
 }
@@ -641,9 +640,9 @@ function PipelineStagesSection({ queue }: { queue: QueueSummary[] }) {
 // Page
 // ---------------------------------------------------------------------------
 
-export default function EnsylonPage() {
-  const { data: queue, isLoading } = useEnsylonQueue();
-  const { data: audit } = useEnsylonAudit();
+export default function ReviewPage() {
+  const { data: queue, isLoading } = useEngineQueue();
+  const { data: audit } = useEngineAudit();
   const [tab, setTab] = useState<DraftStatus>("awaiting_review");
   const [actor, setActor] = useState("");
 
