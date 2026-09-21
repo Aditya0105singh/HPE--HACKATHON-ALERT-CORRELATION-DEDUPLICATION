@@ -697,16 +697,6 @@ export function TopologyMap({
                         >
                           Import
                         </Button>
-                        <Button
-                          color="emerald"
-                          variant="primary"
-                          size="md"
-                          onClick={() =>
-                            router.push("/providers?labels=topology")
-                          }
-                        >
-                          Connect Providers
-                        </Button>
                       </div>
                     </EmptyStateCard>
                   </div>

@@ -41,12 +41,10 @@ type NavSection = {
   links: NavLink[];
 };
 
-// Header-less group at the top: Overview + the three alert views.
+// Header-less group at the top: Overview + the alert feed.
 const TOP_LINKS: NavLink[] = [
   { href: "/", label: "Overview", icon: AiOutlineHome, testId: "home", isExact: true },
   { href: "/feed", label: "Alert Feed", icon: AiOutlineAlert, testId: "feed" },
-  { href: "/firing", label: "Firing", icon: AiOutlineFire, testId: "firing" },
-  { href: "/5xx", label: "Critical 5xx", icon: AiOutlineGroup, testId: "critical" },
 ];
 
 // `isDemo` marks surfaces backed by sample data rather than the AlertLens API.
@@ -71,10 +69,6 @@ const SECTIONS: NavSection[] = [
   {
     title: "CONFIGURATION",
     links: [
-      { href: "/rules", label: "Rules", icon: MdOutlineRuleFolder, testId: "rules" },
-      { href: "/workflows", label: "Workflows", icon: LuWorkflow, testId: "workflows" },
-      { href: "/providers", label: "Providers", icon: VscDebugDisconnect, testId: "providers" },
-      { href: "/notifications-hub", label: "Notifications", icon: MdOutlineNotificationsActive, testId: "notifications-hub" },
       { href: "/maintenance", label: "Maintenance", icon: MdOutlineEventBusy, testId: "maintenance" },
       { href: "/settings", label: "Settings", icon: HiOutlineCog6Tooth, testId: "settings" },
     ],
@@ -84,7 +78,6 @@ const SECTIONS: NavSection[] = [
     links: [
       { href: "/evaluation", label: "Evaluation", icon: LuBrainCircuit, testId: "evaluation" },
       { href: "/pipeline", label: "Pipeline", icon: LuWorkflow, testId: "pipeline" },
-      { href: "/ai", label: "AI", icon: HiOutlineSparkles, testId: "ai" },
     ],
   },
 ];

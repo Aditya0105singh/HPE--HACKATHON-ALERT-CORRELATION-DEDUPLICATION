@@ -79,18 +79,6 @@ const NAVIGATION_OPTIONS = [
     navigate: "/pipeline",
   },
   {
-    icon: AiOutlineGroup,
-    label: "Go to dashboards",
-    shortcut: ["db"],
-    navigate: "/dashboard",
-  },
-  {
-    icon: VscDebugDisconnect,
-    label: "Go to the providers page",
-    shortcut: ["pr"],
-    navigate: "/providers",
-  },
-  {
     icon: UserGroupIcon,
     label: "Go to settings",
     shortcut: ["s"],

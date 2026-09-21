@@ -32,3 +32,6 @@ Thumbs.db
 *.log
 .cc-history/
 frontend.zip
+
+# Local logs
+*.log
