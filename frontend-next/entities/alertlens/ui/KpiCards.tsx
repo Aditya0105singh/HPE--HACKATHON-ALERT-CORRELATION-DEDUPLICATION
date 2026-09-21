@@ -30,7 +30,7 @@ export interface KpiData {
 }
 
 /** Counts up from 0 on mount / when the target changes (skipped for reduced motion). */
-function useCountUp(target: number, decimals = 0, ms = 900) {
+export function useCountUp(target: number, decimals = 0, ms = 900) {
   const [v, setV] = useState(0);
   useEffect(() => {
     if (typeof window === "undefined" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {

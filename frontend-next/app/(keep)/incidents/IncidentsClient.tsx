@@ -7,6 +7,7 @@ import {
   HiOutlineBell,
   HiOutlineChevronRight,
   HiOutlineDocumentText,
+  HiOutlineExclamationTriangle,
   HiOutlineShare,
   HiOutlineShieldCheck,
 } from "react-icons/hi2";
@@ -38,6 +39,16 @@ function deriveStatus(c: Cluster): string {
   if (root.escalated || (root.assignee && root.assignee !== "n/a")) return "Investigating";
   return "Open";
 }
+
+const SEV_COLOR: Record<string, string> = { critical: "#ef4444", high: "#f97316", medium: "#eab308", low: "#22c55e", info: "#3b82f6" };
+// Banded from the measured risk score; the pipeline has no priority field.
+const priorityOf = (c: Cluster) => (c.risk.score >= 0.75 ? "P1" : c.risk.score >= 0.5 ? "P2" : c.risk.score >= 0.25 ? "P3" : "P4");
+const PRIORITY_STYLE: Record<string, string> = {
+  P1: "bg-red-50 text-red-700",
+  P2: "bg-orange-50 text-orange-700",
+  P3: "bg-blue-50 text-blue-700",
+  P4: "bg-gray-100 text-gray-600",
+};
 
 const lastSeen = (c: Cluster) => {
   const stamps = c.alerts.map((a) => a.timestamp).sort();
@@ -155,7 +166,7 @@ export function IncidentsClient() {
             </div>
 
             <ul className="divide-y divide-gray-50">
-              {visible.map((c) => {
+              {visible.map((c, idx) => {
                 const st = deriveStatus(c);
                 const isSel = openIncidentId === c.cluster_id;
                 const risk = Math.round(c.risk.score * 100);
@@ -164,21 +175,31 @@ export function IncidentsClient() {
                     <button
                       onClick={() => openIncident(c.cluster_id)}
                       aria-current={isSel}
+                      style={{ animationDelay: `${Math.min(idx, 12) * 45}ms` }}
                       className={clsx(
-                        "w-full text-left p-3 flex flex-col gap-1.5 transition-colors",
-                        isSel ? "bg-green-50/70" : "hover:bg-gray-50"
+                        "kpi-row w-full text-left px-4 py-3 flex flex-col gap-2 transition-all",
+                        isSel ? "bg-green-50/80 shadow-[inset_3px_0_0_#16a34a]" : "hover:bg-green-50/50 hover:shadow-[inset_3px_0_0_#16a34a]"
                       )}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-3">
+                        <span
+                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ background: `${SEV_COLOR[c.root_cause.severity] ?? "#9ca3af"}1f`, color: SEV_COLOR[c.root_cause.severity] ?? "#9ca3af" }}
+                        >
+                          <HiOutlineExclamationTriangle size={18} />
+                        </span>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-semibold text-gray-900 line-clamp-2 break-words">
                             {c.root_cause.alertname}
                           </div>
-                          <div className="text-[11px] text-gray-400 mt-0.5">
+                          <div className="text-[11px] text-gray-500 mt-0.5">
                             #{c.cluster_id} · {c.root_cause.service} · {timeAgo(lastSeen(c))}
                           </div>
                         </div>
-                        <HiOutlineChevronRight className="text-gray-300 shrink-0 mt-1" size={14} />
+                        <span className={clsx("text-[11px] font-bold px-2.5 py-1 rounded-lg shrink-0", PRIORITY_STYLE[priorityOf(c)])}>
+                          {priorityOf(c)}
+                        </span>
+                        <HiOutlineChevronRight className="text-gray-300 shrink-0 mt-2" size={14} />
                       </div>
                       <div className="flex items-center gap-2">
                         <span
@@ -194,8 +215,8 @@ export function IncidentsClient() {
                         <div className="flex-1 flex items-center gap-1.5 min-w-0">
                           <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                             <div
-                              className="h-full rounded-full"
-                              style={{ width: `${risk}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af" }}
+                              className="kpi-hbar h-full rounded-full"
+                              style={{ width: `${risk}%`, background: RISK_COLOR[c.risk.level] ?? "#9ca3af", animationDelay: `${300 + Math.min(idx, 12) * 45}ms` }}
                             />
                           </div>
                           <span className="text-[11px] text-gray-500 w-8 text-right">{risk}%</span>
@@ -227,8 +248,8 @@ function Pill({
     <button
       onClick={onClick}
       className={clsx(
-        "text-[11px] px-2 py-1 rounded-md font-medium transition-colors",
-        active ? "bg-green-700 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+        "text-[11px] px-3 py-1 rounded-full font-semibold transition-all",
+        active ? "bg-green-700 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-700"
       )}
     >
       {children}

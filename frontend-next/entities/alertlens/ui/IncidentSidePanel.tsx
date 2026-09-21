@@ -201,9 +201,9 @@ export function IncidentSidePanel({
         className="fixed right-0 top-0 z-50 h-full w-full max-w-[min(680px,100vw)] bg-gray-50 shadow-2xl border-l border-gray-200 flex flex-col animate-drawerSlideLeftAndFade"
       >
         {/* Header */}
-        <div className="bg-white border-b border-gray-100 px-5 pt-4 shrink-0">
+        <div className="border-b border-green-100 px-5 pt-4 shrink-0" style={{ background: "linear-gradient(135deg,#f0fdf4 0%,#ffffff 60%,#ecfdf5 100%)" }}>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-gray-500">#{id}</span>
+            <span className="text-xs font-semibold text-gray-600">#{id}</span>
             <span className={clsx("text-[11px] font-semibold px-2 py-0.5 rounded-md ring-1 capitalize", SEVERITY_PILL[sev] ?? "bg-gray-50 text-gray-600 ring-gray-100")}>
               {sev}
             </span>
@@ -237,14 +237,14 @@ export function IncidentSidePanel({
           </div>
 
           <div className="flex items-start gap-3 mt-2.5">
-            <span className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-              <HiOutlineExclamationTriangle size={22} />
+            <span className={clsx("kpi-pop w-12 h-12 rounded-2xl flex items-center justify-center shrink-0", sev === "critical" ? "bg-red-100 text-red-600" : sev === "high" ? "bg-orange-100 text-orange-600" : sev === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700")}>
+              <HiOutlineExclamationTriangle size={24} />
             </span>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-gray-900 break-words leading-tight">
+              <h2 className="text-xl font-extrabold tracking-tight text-gray-900 break-words leading-tight">
                 {cluster.root_cause.alertname}
               </h2>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 {cluster.root_cause.service}
                 {downstream.length > 0 && <> causing issues across {downstream.length} downstream service(s)</>}
               </p>
@@ -267,14 +267,14 @@ export function IncidentSidePanel({
             </Chip>
           </div>
 
-          <div className="flex gap-4 mt-3 overflow-x-auto">
+          <div className="flex gap-1.5 mt-4 pb-3 overflow-x-auto">
             {TABS.map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
                 className={clsx(
-                  "text-[13px] pb-2.5 border-b-2 -mb-px font-medium whitespace-nowrap transition-colors",
-                  tab === key ? "border-green-600 text-green-700" : "border-transparent text-gray-400 hover:text-gray-600"
+                  "text-[13px] px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all",
+                  tab === key ? "bg-green-700 text-white shadow-sm" : "text-gray-600 hover:bg-green-50 hover:text-green-700"
                 )}
               >
                 {label}
@@ -847,9 +847,13 @@ function Card({
   return (
     <div
       className={clsx(
-        "rounded-2xl border p-4 min-w-0 shadow-sm",
-        tint === "green" ? "border-green-100 bg-green-50/50" : "border-gray-200 bg-white"
+        "kpi-card rounded-2xl border p-4 min-w-0",
+        tint === "green" ? "border-green-100" : "border-white/80"
       )}
+      style={{
+        background: tint === "green" ? "linear-gradient(160deg,#f0fdf4,#ffffff)" : "linear-gradient(160deg,#fff 60%,#f0fdf4)",
+        boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 8px 24px -14px rgba(16,24,40,.15)",
+      }}
     >
       <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="text-sm font-bold text-gray-900">{title}</h3>
@@ -908,7 +912,7 @@ function Chip({ children, tone = "slate" }: { children: React.ReactNode; tone?: 
     amber: "bg-amber-50 text-amber-700 ring-amber-200",
   };
   return (
-    <span className={clsx("text-[11px] font-medium px-2.5 py-1 rounded-lg ring-1 whitespace-nowrap", tones[tone] ?? tones.slate)}>
+    <span className={clsx("text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 whitespace-nowrap", tones[tone] ?? tones.slate)}>
       {children}
     </span>
   );
