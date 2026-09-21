@@ -119,3 +119,100 @@ export interface DemoRunRequest {
   topology?: string | null;
   use_llm?: boolean;
 }
+
+/** GET /engine/queue/{id}/evidence — see backend/app/engine/evidence.py. */
+export interface EvidenceSignal {
+  id: string;
+  at: string;
+  source: string;
+  service: string;
+  message: string;
+  severity: string;
+  occurrences: number;
+  trace_id: string | null;
+  template_id: string | null;
+  is_root_cause_signal: boolean;
+  value: number | null;
+  threshold: number | null;
+  detection_reason: string;
+  join: {
+    joined: boolean;
+    gate: string | null;
+    linked_to: string | null;
+    components: {
+      time_proximity: number;
+      service_affinity: number;
+      dependency_closeness: number;
+      template_similarity: number;
+      total: number;
+    } | null;
+  };
+  badges: { label: string; ok: boolean }[];
+}
+
+export interface EvidenceExcluded {
+  service: string;
+  at: string;
+  source: string;
+  message: string;
+  reason: string;
+  checks: { label: string; ok: boolean }[];
+}
+
+export interface RootCauseCandidate {
+  service: string;
+  rank_score: number;
+  temporal_precedence: number;
+  dependency_reach: number;
+  evidence_strength: number;
+  is_symptom: boolean;
+  symptom_of: string[];
+  survived_counterfactual: boolean;
+  uniquely_explains: string[];
+  rejection_reason: string;
+  first_seen: string | null;
+  signal_count: number;
+  source_kinds: string[];
+}
+
+export interface SeverityFactor {
+  key: string;
+  label: string;
+  weight: number;
+  value: number;
+  contribution: number;
+  note: string;
+}
+
+export interface Evidence {
+  draft_id: string;
+  raw_signals: number;
+  unique_signals: number;
+  signals: EvidenceSignal[];
+  excluded: EvidenceExcluded[];
+  correlation: {
+    weights: Record<string, number>;
+    confidence: {
+      parts: { label: string; points: number }[];
+      final: number;
+      gate_reasons: Record<string, number>;
+    };
+  };
+  root_cause: {
+    service: string | null;
+    confidence: number;
+    candidates: RootCauseCandidate[];
+    rejected_by_counterfactual: string[];
+    reasoning: string[];
+  };
+  severity: {
+    score: number;
+    priority: Priority;
+    p1_threshold: number;
+    p2_threshold: number;
+    factors: SeverityFactor[];
+    suppressed: boolean;
+    suppression_reason: string;
+    flap_count: number;
+  };
+}

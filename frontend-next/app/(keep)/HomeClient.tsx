@@ -32,7 +32,7 @@ import { TrendChart } from "@/entities/alertlens/ui/TrendChart";
 import { SeverityDonut } from "@/entities/alertlens/ui/SeverityDonut";
 import { VolumeChart } from "@/entities/alertlens/ui/VolumeChart";
 import { KpiCards } from "@/entities/alertlens/ui/KpiCards";
-import { StormMenu } from "@/entities/alertlens/ui/StormControls";
+import { InjectFailureButton } from "@/entities/engine/InjectFailureButton";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 
 // ---------------------------------------------------------------------------
@@ -344,7 +344,7 @@ export function HomeClient() {
           <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Data source</span>
           <div className="flex items-center gap-2 flex-wrap lg:justify-end">
             <DataSourceButtons />
-            <StormMenu />
+            <InjectFailureButton />
           </div>
         </div>
       </div>

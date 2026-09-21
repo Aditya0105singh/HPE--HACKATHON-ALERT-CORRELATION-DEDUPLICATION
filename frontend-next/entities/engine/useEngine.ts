@@ -5,6 +5,7 @@ import type {
   AuditEntry,
   DemoRunRequest,
   DraftDetail,
+  Evidence,
   PipelineReport,
   QueueSummary,
   Topology,
@@ -66,6 +67,17 @@ export const useEngineDraft = (draftId: string | null, options: SWRConfiguration
   );
 };
 
+/** GET /engine/queue/{id}/evidence — why this incident: join evidence,
+ * exclusions, root-cause candidates, severity + confidence breakdowns. */
+export const useEngineEvidence = (draftId: string | null, options: SWRConfiguration = {}) => {
+  const api = useApi();
+  return useSWR<Evidence>(
+    api.isReady() && draftId ? `${QUEUE_KEY}/${draftId}/evidence` : null,
+    (url: string) => api.get(url),
+    options
+  );
+};
+
 /** Mutations. Every write here maps to exactly one backend route in
  * engine_api.py, which is itself a thin wrapper over app/engine/review.py
  * — the actual approval-token gate lives there, not in this hook. */
@@ -74,7 +86,9 @@ export const useEngineActions = () => {
   const { mutate } = useSWRConfig();
 
   const refreshAll = useCallback(
-    () => Promise.all([mutate(QUEUE_KEY), mutate(REPORT_KEY), mutate(AUDIT_KEY)]),
+    // Every /engine/* cache entry: queue, report, audit, and each draft's
+    // detail + evidence, so an open investigation page reflects the decision.
+    () => mutate((key) => typeof key === "string" && key.startsWith("/engine/")),
     [mutate]
   );
 
@@ -127,5 +141,13 @@ export const useEngineActions = () => {
     [api, refreshAll]
   );
 
-  return { runDemo, approve, reject, merge, refreshAll };
+  /** POST /engine/golden — the fixed demo failure, run through the real engine.
+   * Nothing reaches Jira: the draft lands in the review queue. */
+  const injectGolden = useCallback(async () => {
+    const result = await api.post<{ report: PipelineReport; queue: QueueSummary[] }>("/engine/golden", {});
+    await refreshAll();
+    return result;
+  }, [api, refreshAll]);
+
+  return { runDemo, injectGolden, approve, reject, merge, refreshAll };
 };

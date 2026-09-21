@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   Badge,
@@ -548,6 +549,13 @@ function QueueRow({ item, actor, delay = 0 }: { item: QueueSummary; actor: strin
           <Text className="text-xs text-gray-400">
             {item.affected_services.join(", ")} · {item.signal_count} signals
           </Text>
+          <Link
+            href={`/review/${encodeURIComponent(item.draft_id)}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs font-semibold text-green-700 hover:underline"
+          >
+            Investigate why →
+          </Link>
         </div>
         <ConfidenceBadge label="corr" value={item.correlation_confidence.toFixed(2)} color="blue" />
         <ConfidenceBadge label="causal" value={`${item.causal_confidence}%`} color="purple" />
