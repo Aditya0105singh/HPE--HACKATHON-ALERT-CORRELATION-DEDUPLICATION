@@ -54,7 +54,7 @@ Two more one-click scenarios sit next to the Inject failure button: the same fai
 | Historical matches | Seeded demo history (5 illustrative past incidents), not real tickets |
 | Counterfactual check | Rule-based graph ablation, not a trained causal model |
 | Reviewer feedback | Rule-based nudge to similarity weights for that service pattern; visible and resettable |
-| State | In memory per backend run; the dataset pipeline persists to SQLite |
+| State | The engine run is rebuilt after a backend restart by replaying an event log in SQLite (scenarios are deterministic, so incidents, decisions and the Jira key come back); audit timestamps become the replay time |
 
 ## Run it
 
@@ -77,7 +77,7 @@ Open http://localhost:3001 and click **Inject failure**. To see scale, click **L
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q          # 243 tests
+cd backend && python -m pytest -q          # 248 tests
 cd frontend-next && npx jest               # 266 tests
 ```
 
@@ -90,7 +90,7 @@ backend/app/engine_api.py   HTTP surface: /engine/golden, /queue, /ingest/*, /fe
 backend/app/                the dataset pipeline used for the BGL / synthetic scale demo
 frontend-next/             Next.js UI: Overview, Incidents, Review Queue + incident investigation,
                             Correlations, Deduplication, Topology, Evaluation, Pipeline
-docs/                       demo script; the original hackathon README
+docs/                       demo script, deploy notes; the original hackathon README
 ```
 
 The evidence panels (Correlation Explorer, root-cause candidates, severity and confidence

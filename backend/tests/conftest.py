@@ -251,3 +251,13 @@ def _reset_learned_weights():
     PATTERN_WEIGHTS.clear()
     yield
     PATTERN_WEIGHTS.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_engine_persistence(monkeypatch):
+    """The engine event log writes to the real DB file; tests must never do that.
+    Tests that exercise persistence opt in explicitly with `isolated_db`."""
+    from app import engine_api
+
+    monkeypatch.setattr(engine_api, "_PERSIST", False)
+    monkeypatch.setattr(engine_api, "enable_persistence", lambda: None)

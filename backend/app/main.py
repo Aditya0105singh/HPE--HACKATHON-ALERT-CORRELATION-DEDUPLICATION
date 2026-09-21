@@ -311,6 +311,13 @@ def _initial_load() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
+    # Rebuild the engine run (incident, decisions, Jira keys) from its event log,
+    # then keep recording. Never blocks startup if the log is stale.
+    try:
+        engine_api.enable_persistence()
+        engine_api.restore_from_log()
+    except Exception:
+        pass
     # Loading sentence-transformers/torch is real, unavoidable work — on a
     # low-CPU/low-RAM free-tier host it can take minutes. Running it inline
     # here blocks uvicorn from ever binding its port, which reads as a
@@ -331,6 +338,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
 # AIOps engine (app/engine/) — a separate pipeline exposed under
 # its own prefix rather than folded into the routes above, so it can evolve
 # independently of the original AlertLens demo endpoints.
+from . import engine_api  # noqa: E402
 from .engine_api import router as engine_router  # noqa: E402
 app.include_router(engine_router)
 

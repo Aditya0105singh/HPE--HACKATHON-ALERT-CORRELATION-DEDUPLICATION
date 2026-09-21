@@ -20,6 +20,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from . import db
 from .engine import adapters, scenarios
 from .engine.evidence import build_evidence
 from .engine import feedback as feedback_mod
@@ -33,6 +34,85 @@ from .engine.review import DraftStatus, QueueItem, ReviewQueue
 from .engine.severity import SeverityBreakdown
 
 router = APIRouter(prefix="/engine", tags=["engine"])
+
+# --------------------------------------------------------------------------
+# persistence: an event log that is replayed on startup
+# --------------------------------------------------------------------------
+#
+# The engine run lives in memory, so a restart used to wipe the incident
+# mid-demo. Every route that changes state is recorded here, and because the
+# scenarios are deterministic, replaying the log rebuilds the same incidents,
+# decisions and Jira keys. Off by default (tests, scripts); main.py turns it on.
+
+_PERSIST = False
+_REPLAYING = False
+_REGISTRY: dict[str, tuple] = {}   # kind -> (function, {param: pydantic model})
+
+
+def enable_persistence() -> None:
+    global _PERSIST
+    _PERSIST = True
+
+
+def _jsonable(value):
+    return value.model_dump() if hasattr(value, "model_dump") else value
+
+
+def _recorded(kind: str, models: dict | None = None, starts_run=None):
+    """Record a successful call so restore_from_log can replay it.
+
+    `starts_run` is True, or a function of the result, when this call replaces
+    the whole run (so earlier events are obsolete and the log restarts).
+    """
+    models = models or {}
+
+    def deco(fn):
+        import functools
+        import inspect
+
+        _REGISTRY[kind] = (fn, models)
+        sig = inspect.signature(fn)
+
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            out = fn(*args, **kwargs)
+            if _PERSIST and not _REPLAYING:
+                try:
+                    bound = sig.bind(*args, **kwargs)
+                    payload = {k: _jsonable(v) for k, v in bound.arguments.items()}
+                    fresh = starts_run(out) if callable(starts_run) else bool(starts_run)
+                    if fresh:
+                        db.engine_events_clear()
+                    db.engine_event_add(kind, payload)
+                except Exception:
+                    pass  # persistence must never break a request
+            return out
+
+        return wrapper
+
+    return deco
+
+
+def restore_from_log() -> int:
+    """Replay the event log into memory. Returns how many events were applied."""
+    global _REPLAYING
+    applied = 0
+    _REPLAYING = True
+    try:
+        for event in db.engine_events_load():
+            entry = _REGISTRY.get(event["kind"])
+            if entry is None:
+                break
+            fn, models = entry
+            kwargs = {k: (models[k](**v) if k in models else v) for k, v in event["payload"].items()}
+            try:
+                fn(**kwargs)
+            except Exception:
+                break   # a stale or incompatible log must not stop startup
+            applied += 1
+    finally:
+        _REPLAYING = False
+    return applied
 
 
 @dataclass
@@ -201,6 +281,7 @@ def _report_dict() -> dict:
 
 
 @router.post("/demo/run")
+@_recorded("demo_run", {"body": DemoRunRequest}, starts_run=True)
 def demo_run(body: DemoRunRequest) -> dict:
     """Generate a fault-injected scenario and run the full pipeline on it.
 
@@ -246,6 +327,7 @@ def _execute(sc: "scenarios.Scenario", use_llm: bool = False, maintenance: list 
 
 
 @router.post("/golden")
+@_recorded("golden", starts_run=True)
 def golden(use_llm: bool = False) -> dict:
     """The fixed demo failure: 17 signals -> 1 incident (+1 rejected decoy).
 
@@ -275,6 +357,7 @@ def _run_named(name: str, use_llm: bool = False) -> dict:
 
 
 @router.post("/scenario/{name}")
+@_recorded("scenario", starts_run=True)
 def run_scenario(name: str, use_llm: bool = False) -> dict:
     """Named, deterministic demo scenarios: golden | maintenance | flapping."""
     return _run_named(name, use_llm)
@@ -318,6 +401,7 @@ def get_draft(draft_id: str) -> dict:
 
 
 @router.post("/queue/{draft_id}/approve")
+@_recorded("approve", {"body": ApproveRequest})
 def approve(draft_id: str, body: ApproveRequest) -> dict:
     """The one path to Jira. See app/engine/review.py — this route is a
     thin wrapper; every guarantee (approval token, single-use, audit log)
@@ -366,6 +450,7 @@ def _late_signal(inc, kind: str):
 
 
 @router.post("/queue/{draft_id}/late-signal")
+@_recorded("late_signal", {"body": LateSignalRequest})
 def late_signal(draft_id: str, body: LateSignalRequest) -> dict:
     """Demo hook: a signal arrives after the incident was created."""
     result = _state.result
@@ -390,6 +475,7 @@ class ResolveRequest(BaseModel):
 
 
 @router.post("/queue/{draft_id}/resolve")
+@_recorded("resolve", {"body": ResolveRequest})
 def resolve(draft_id: str, body: ResolveRequest) -> dict:
     try:
         item = _state.queue.resolve(draft_id, body.actor)
@@ -401,6 +487,7 @@ def resolve(draft_id: str, body: ResolveRequest) -> dict:
 
 
 @router.post("/queue/{draft_id}/reject")
+@_recorded("reject", {"body": RejectRequest})
 def reject(draft_id: str, body: RejectRequest) -> dict:
     try:
         item = _state.queue.reject(draft_id, body.actor, body.note)
@@ -413,6 +500,7 @@ def reject(draft_id: str, body: RejectRequest) -> dict:
 
 
 @router.post("/queue/{draft_id}/merge")
+@_recorded("merge", {"body": MergeRequest})
 def merge(draft_id: str, body: MergeRequest) -> dict:
     try:
         item = _state.queue.merge(draft_id, body.into, body.actor, body.note)
@@ -449,6 +537,7 @@ def get_feedback() -> dict:
 
 
 @router.post("/feedback/reset")
+@_recorded("feedback_reset")
 def reset_feedback() -> dict:
     feedback_mod.reset()
     return {"patterns": []}
@@ -496,12 +585,14 @@ def _ingest(signals: list, edges: set | None = None) -> dict:
 
 
 @router.post("/ingest/grafana")
+@_recorded("ingest_grafana", starts_run=lambda o: o.get("mode") == "new_batch")
 def ingest_grafana(payload: dict) -> dict:
     """Grafana unified-alerting webhook (POST target for a contact point)."""
     return _ingest(adapters.from_grafana_webhook(payload))
 
 
 @router.post("/ingest/cloudwatch/alarm")
+@_recorded("ingest_cloudwatch_alarm", starts_run=lambda o: o.get("mode") == "new_batch")
 def ingest_cloudwatch_alarm(payload: dict) -> dict:
     """CloudWatch alarm state change (e.g. delivered via SNS -> HTTPS)."""
     sig = adapters.from_cloudwatch_alarm(payload)
@@ -509,12 +600,14 @@ def ingest_cloudwatch_alarm(payload: dict) -> dict:
 
 
 @router.post("/ingest/otel/logs")
+@_recorded("ingest_otel_logs", starts_run=lambda o: o.get("mode") == "new_batch")
 def ingest_otel_logs(payload: dict) -> dict:
     """OTLP/JSON logs from an OpenTelemetry Collector."""
     return _ingest(adapters.from_otlp_logs(payload))
 
 
 @router.post("/ingest/otel/traces")
+@_recorded("ingest_otel_traces", starts_run=lambda o: o.get("mode") == "new_batch")
 def ingest_otel_traces(payload: dict) -> dict:
     """OTLP/JSON traces. Every span teaches the dependency graph an edge."""
     return _ingest(adapters.from_otlp_traces(payload), adapters.service_dependency_edges(payload))

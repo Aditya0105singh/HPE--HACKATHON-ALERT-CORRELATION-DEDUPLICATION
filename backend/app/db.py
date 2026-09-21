@@ -20,7 +20,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import Column, String, Boolean, DateTime, create_engine, text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DB_PATH = Path(__file__).resolve().parents[1] / "alertlens.db"
@@ -152,6 +152,36 @@ def set_escalated(alert_id: str, value: bool) -> None:
         action.escalated = value
         action.updated_at = datetime.utcnow()
         db.commit()
+
+
+class EngineEventRow(Base):
+    """Append-only log of the engine run: which scenario ran, then every human
+    decision, late signal and push since. Scenarios are deterministic, so
+    replaying this log after a restart rebuilds the same incident state."""
+
+    __tablename__ = "engine_events"
+    seq = Column(Integer, primary_key=True, autoincrement=True)
+    kind = Column(String, nullable=False)
+    payload = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+def engine_events_clear() -> None:
+    with SessionLocal() as db:
+        db.query(EngineEventRow).delete()
+        db.commit()
+
+
+def engine_event_add(kind: str, payload: dict) -> None:
+    with SessionLocal() as db:
+        db.add(EngineEventRow(kind=kind, payload=json.dumps(payload, default=str)))
+        db.commit()
+
+
+def engine_events_load() -> list[dict]:
+    with SessionLocal() as db:
+        rows = db.query(EngineEventRow).order_by(EngineEventRow.seq).all()
+        return [{"kind": r.kind, "payload": json.loads(r.payload)} for r in rows]
 
 
 class MaintenanceWindowRow(Base):
