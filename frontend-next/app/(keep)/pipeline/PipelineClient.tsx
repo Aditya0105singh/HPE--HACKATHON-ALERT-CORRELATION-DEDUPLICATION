@@ -11,6 +11,7 @@ import {
 import { LuWorkflow, LuChevronDown } from "react-icons/lu";
 import { usePipelineState } from "@/entities/alertlens";
 import { buildStages, type Stage } from "@/entities/alertlens/lib/buildStages";
+import { EnginePipelineSection } from "@/entities/engine/EngineCards";
 import { DataSourceButtons } from "@/entities/alertlens/ui/DataSourceMenu";
 
 function StageCard({
@@ -135,6 +136,10 @@ export function PipelineClient() {
           <DataSourceButtons />
         </div>
       </div>
+
+      <EnginePipelineSection />
+
+      <h2 className="text-sm font-bold text-gray-900 -mb-2">Loaded dataset pipeline</h2>
 
       {stages.length === 0 ? (
         <Card>

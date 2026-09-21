@@ -14,6 +14,7 @@ import {
 import { EmptyStateCard, KeepLoader, PageHero } from "@/shared/ui";
 import { useIncidentPanel, usePipelineState } from "@/entities/alertlens";
 import type { Cluster } from "@/entities/alertlens";
+import { EngineIncidentsCard } from "@/entities/engine/EngineCards";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 
@@ -110,6 +111,8 @@ export function IncidentsClient() {
         title="Incidents"
         subtitle="Correlated incidents with root cause, impact and recommended actions."
       />
+
+      <EngineIncidentsCard />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Raw alerts" value={stats.raw} icon={HiOutlineBell} color="green" />

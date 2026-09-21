@@ -23,6 +23,7 @@ import {
   Tr,
 } from "@/entities/alertlens/ui/Table";
 import { TbChartDots3 } from "react-icons/tb";
+import { EngineIncidentsCard } from "@/entities/engine/EngineCards";
 import { HiOutlineInbox } from "react-icons/hi2";
 import { IoMdGitMerge } from "react-icons/io";
 import { LuClock } from "react-icons/lu";
@@ -87,6 +88,8 @@ export function CorrelationsClient() {
         title="Correlations"
         subtitle="Deduplicated alerts grouped into incidents by the correlation engine. Each group shares a suspected root cause."
       />
+
+      <EngineIncidentsCard note="Open an incident to see the Correlation Explorer: for every signal, which shared-context link joined it, its similarity score, and what was rejected." />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard
