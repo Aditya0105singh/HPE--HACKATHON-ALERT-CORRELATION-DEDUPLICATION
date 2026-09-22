@@ -50,6 +50,7 @@ Two more one-click scenarios sit next to the Inject failure button: the same fai
 |---|---|
 | Correlation, causal ranking, severity, drafting, review gate, lifecycle | **Real, tested code** |
 | CloudWatch / Grafana / OTel parsers and push endpoints (`/engine/ingest/*`) | **Real parsers**, fed by generated payloads |
+| `/engine/ingest/generic` — fallback for an alert export in none of those four shapes | **Real**, field-name best-effort matching (e.g. a hackathon-day sample data file instead of a webhook) |
 | Live CloudWatch polling with a read-only IAM role | Not connected (needs AWS credentials) |
 | Jira | **Mock transport** behind the real client interface; a swap needs URL, email, API token, project key |
 | LLM narrative | Deterministic template fallback; the grounded LLM path is written but needs a key |
@@ -79,7 +80,7 @@ Open http://localhost:3001 and click **Inject failure**. To see scale, click **L
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q          # 299 tests
+cd backend && python -m pytest -q          # 306 tests
 cd frontend-next && npx jest               # 306 tests
 ```
 

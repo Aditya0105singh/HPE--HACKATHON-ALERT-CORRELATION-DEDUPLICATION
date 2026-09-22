@@ -409,3 +409,71 @@ def service_dependency_edges(payload: dict[str, Any]) -> set[tuple[str, str]]:
                 if parent and parent != service:
                     edges.add((parent, service))
     return edges
+
+
+# --------------------------------------------------------------------------
+# Generic fallback — any alert shape that isn't one of the four above
+# --------------------------------------------------------------------------
+
+# Accept whatever field name a given export happens to use for the same
+# concept. Order matters: first match wins.
+_SERVICE_KEYS = ("service", "service_name", "serviceName", "resource", "component", "host", "source", "app", "application")
+_SEVERITY_KEYS = ("severity", "level", "priority", "status")
+_TIME_KEYS = ("timestamp", "time", "ts", "created_at", "createdAt", "event_time", "eventTime", "date")
+_MESSAGE_KEYS = ("message", "description", "text", "summary", "title", "reason", "details")
+_ID_KEYS = ("id", "alert_id", "alertId", "uuid", "event_id")
+
+
+def _first(payload: dict[str, Any], keys: tuple[str, ...]) -> Any:
+    for key in keys:
+        if payload.get(key) not in (None, ""):
+            return payload[key]
+    return None
+
+
+def from_generic_records(payload: Any) -> list[Signal]:
+    """Best-effort adapter for a shape none of the named sources match.
+
+    Real hackathon input is a moving target — the brief itself warns the
+    problem statement may swap live webhooks for a sample data file in
+    whatever schema the organizers happened to export. Rather than betting
+    the whole ingest path on the four documented source schemas above, this
+    walks any flat list of alert-shaped dicts and matches common field-name
+    variants for service, severity, timestamp and message. A record missing
+    a mappable timestamp or service is skipped, same as every other adapter
+    here - reduced signal quality beats a crashed ingest.
+    """
+    if isinstance(payload, dict):
+        records = payload.get("alerts") or payload.get("signals") or payload.get("records") or payload.get("data") or payload.get("events")
+        if records is None and any(k in payload for k in _SERVICE_KEYS + _TIME_KEYS):
+            records = [payload]  # a single alert object, not wrapped in a list
+        records = records or []
+    elif isinstance(payload, list):
+        records = payload
+    else:
+        records = []
+
+    signals: list[Signal] = []
+    for i, rec in enumerate(records):
+        if not isinstance(rec, dict):
+            continue
+        try:
+            ts = normalize_timestamp(_first(rec, _TIME_KEYS))
+            service = str(_first(rec, _SERVICE_KEYS) or "unknown")
+            message = str(_first(rec, _MESSAGE_KEYS) or "")
+            raw_severity = str(_first(rec, _SEVERITY_KEYS) or "").strip().lower()
+            severity = _SEVERITY_ALIASES.get(raw_severity, Severity.INFO)
+            discriminator = str(_first(rec, _ID_KEYS) or f"{message[:40]}|{i}")
+
+            signals.append(Signal(
+                id=make_signal_id("generic", service, ts, discriminator),
+                source=SignalSource.APP_LOG,
+                service=service,
+                severity=severity,
+                timestamp=ts,
+                message=message,
+                labels={k: str(v) for k, v in rec.items() if isinstance(v, (str, int, float)) and k not in _SERVICE_KEYS},
+            ))
+        except Exception:
+            continue
+    return signals

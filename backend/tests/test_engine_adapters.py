@@ -12,6 +12,7 @@ from __future__ import annotations
 from app.engine.adapters import (
     from_cloudwatch_alarm,
     from_cloudwatch_logs,
+    from_generic_records,
     from_grafana_webhook,
     from_otlp_logs,
     from_otlp_traces,
@@ -232,3 +233,67 @@ def test_dependency_edges_include_healthy_spans():
     edges = service_dependency_edges(OTLP_TRACES)
     assert ("checkout-bff", "order-api") in edges
     assert ("order-api", "postgres-primary") in edges
+
+
+# --------------------------------------------------------------------------
+# Generic fallback — for whatever shape a hackathon-day sample file turns
+# out to be, since it won't necessarily be one of the four sources above.
+# --------------------------------------------------------------------------
+
+
+def test_generic_records_bare_list_with_alternate_field_names():
+    records = [
+        {"service_name": "checkout-bff", "level": "error", "time": "2026-08-26T14:02:03Z", "text": "timeout"},
+        {"resource": "order-api", "priority": "warn", "ts": 1787836991, "summary": "slow query"},
+    ]
+    signals = from_generic_records(records)
+    assert len(signals) == 2
+    assert {s.service for s in signals} == {"checkout-bff", "order-api"}
+    assert signals[0].severity == Severity.HIGH
+    assert signals[1].severity == Severity.WARNING
+
+
+def test_generic_records_wrapped_under_common_keys():
+    for key in ("alerts", "signals", "records", "data", "events"):
+        payload = {key: [{"service": "svc-a", "timestamp": "2026-08-26T14:00:00Z", "message": "x"}]}
+        signals = from_generic_records(payload)
+        assert len(signals) == 1, f"failed to unwrap under '{key}'"
+        assert signals[0].service == "svc-a"
+
+
+def test_generic_records_single_unwrapped_object():
+    payload = {"service": "svc-a", "timestamp": "2026-08-26T14:00:00Z", "message": "solo alert"}
+    signals = from_generic_records(payload)
+    assert len(signals) == 1
+    assert signals[0].service == "svc-a"
+
+
+def test_generic_records_skips_rows_with_no_usable_timestamp_not_the_whole_batch():
+    records = [
+        {"service": "svc-a", "message": "no timestamp at all"},
+        {"service": "svc-b", "timestamp": "2026-08-26T14:00:00Z", "message": "fine"},
+    ]
+    signals = from_generic_records(records)
+    assert len(signals) == 1
+    assert signals[0].service == "svc-b"
+
+
+def test_generic_records_missing_severity_defaults_to_info_not_a_crash():
+    signals = from_generic_records([{"service": "svc-a", "timestamp": "2026-08-26T14:00:00Z"}])
+    assert len(signals) == 1
+    assert signals[0].severity == Severity.INFO
+
+
+def test_generic_records_garbage_input_never_raises():
+    assert from_generic_records(None) == []
+    assert from_generic_records("not even json-shaped") == []
+    assert from_generic_records(42) == []
+    assert from_generic_records([]) == []
+    assert from_generic_records({}) == []
+    assert from_generic_records([1, "x", None, {"service": "ok", "timestamp": "2026-08-26T14:00:00Z"}]) != []
+    assert from_generic_records([{"garbage": True}, {"also": "garbage"}]) == []
+
+
+def test_generic_records_ids_are_stable_for_idempotent_reingest():
+    rec = [{"id": "abc-1", "service": "svc-a", "timestamp": "2026-08-26T14:00:00Z", "message": "x"}]
+    assert from_generic_records(rec)[0].id == from_generic_records(rec)[0].id

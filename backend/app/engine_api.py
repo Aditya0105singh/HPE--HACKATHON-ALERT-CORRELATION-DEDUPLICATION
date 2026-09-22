@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel
 
 from . import db
@@ -611,6 +611,22 @@ def ingest_otel_logs(payload: dict) -> dict:
 def ingest_otel_traces(payload: dict) -> dict:
     """OTLP/JSON traces. Every span teaches the dependency graph an edge."""
     return _ingest(adapters.from_otlp_traces(payload), adapters.service_dependency_edges(payload))
+
+
+@router.post("/ingest/generic")
+@_recorded("ingest_generic", starts_run=lambda o: o.get("mode") == "new_batch")
+def ingest_generic(payload: Any = Body(...)) -> dict:
+    """Fallback for an alert export that isn't CloudWatch/Grafana/OTel-shaped.
+
+    Accepts a bare list of alert dicts, or an object wrapping them under
+    `alerts`/`signals`/`records`/`data`/`events`, and best-effort-matches
+    common field-name variants (see adapters.from_generic_records). This is
+    the safety net for "we'll hand you a sample data file instead of a
+    webhook" — whatever the file's exact schema, this endpoint still feeds
+    the same real engine (dedup, detect, correlate, causal, severity, draft,
+    review, Jira), not a separate toy path.
+    """
+    return _ingest(adapters.from_generic_records(payload))
 
 
 @router.get("/audit")
