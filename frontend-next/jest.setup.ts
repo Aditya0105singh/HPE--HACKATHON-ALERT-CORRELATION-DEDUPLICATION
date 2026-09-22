@@ -61,16 +61,14 @@ jest.mock("@/entities/alerts/model", () => ({
   })),
 }));
 
-// Mock react-icons
-jest.mock("react-icons/gr", () => ({
-  GrTest: () => null,
-}));
-
-jest.mock("react-icons/md", () => ({
-  MdErrorOutline: () => null,
-}));
-
-jest.mock("react-icons/tb", () => ({
-  TbSparkles: () => null,
-}));
+// react-icons/{gr,md,tb} are deliberately NOT mocked (unlike hi2/ai, which
+// were never mocked either) — real icon components are cheap, stateless SVG
+// wrappers and render fine under jsdom. An earlier version of this file
+// replaced each module with a single named export standing in for the
+// *whole* module (e.g. `{ TbSparkles: () => null }`), which silently broke
+// every component importing any *other* icon from that module — dozens of
+// them across the app (TopologyClient, CorrelationsClient, PipelineStages,
+// IncidentsClient, ...) — with "type is invalid: expected ... got undefined"
+// the moment a test actually rendered one. See test_engine's EngineCards
+// suite for the failure this caused.
 
