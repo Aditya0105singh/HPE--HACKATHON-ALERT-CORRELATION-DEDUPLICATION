@@ -12,6 +12,15 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
+### Render (one-click via `render.yaml`)
+
+The repo root has a `render.yaml` (Blueprint) that builds `backend/` as a Python web
+service, health-checks `/pipeline`, and attaches a 1GB persistent disk at the backend's
+working directory so `alertlens.db` — and with it the engine's event log — survives
+restarts and deploys. In the Render dashboard: **New > Blueprint**, point it at this repo,
+and it reads `render.yaml` automatically. Free-tier services sleep after inactivity; the
+first request after a sleep takes a few seconds to wake up.
+
 - Needs the repo's `data/` folder next to `backend/` (the synthetic generator and BGL loader import from it).
 - State: the dataset pipeline and the engine event log persist to `backend/alertlens.db`
   (SQLite). On a host with an ephemeral disk the engine run is rebuilt from the log only if
