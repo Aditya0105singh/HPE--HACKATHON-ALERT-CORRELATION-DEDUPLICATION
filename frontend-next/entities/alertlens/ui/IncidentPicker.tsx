@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Badge, Card, Text } from "@tremor/react";
+import { Badge, Text } from "@tremor/react";
 import { LuChevronRight, LuListChecks } from "react-icons/lu";
 import { EmptyStateCard, KeepLoader, SeverityLabel } from "@/shared/ui";
 import type { UISeverity } from "@/shared/ui";
@@ -18,6 +18,11 @@ const RISK_ACCENT: Record<string, string> = {
   emerald: "border-t-emerald-400",
   gray: "border-t-gray-300",
 };
+
+const shell = {
+  background: "linear-gradient(160deg,#fff 60%,#f0fdf4)",
+  boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.12)",
+} as const;
 
 /**
  * Shared incident chooser for the analysis pages (/forecast, /timemachine)
@@ -52,23 +57,24 @@ export function IncidentPicker({
 
   if (clusters.length === 0) {
     return (
-      <Card>
+      <div className="kpi-card rounded-2xl border border-white/80 p-4" style={shell}>
         <EmptyStateCard
           noCard
           icon={LuListChecks}
           title={emptyTitle}
           description="Load an alert batch to get incidents to analyse."
         />
-      </Card>
+      </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
-      {clusters.map((c) => (
+      {clusters.map((c, i) => (
         <Link key={c.cluster_id} href={`${basePath}/${c.cluster_id}`} className="group">
-          <Card
-            className={`p-4 border-t-2 ${RISK_ACCENT[riskColor(c.risk.level)] ?? RISK_ACCENT.gray} transition-shadow hover:shadow-md h-full`}
+          <div
+            className={`kpi-card rounded-2xl border border-white/80 border-t-2 p-4 h-full transition-shadow hover:shadow-md ${RISK_ACCENT[riskColor(c.risk.level)] ?? RISK_ACCENT.gray}`}
+            style={{ ...shell, animationDelay: `${Math.min(i, 12) * 60}ms` }}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-2.5 min-w-0">
@@ -79,10 +85,10 @@ export function IncidentPicker({
                   className="mt-0.5"
                 />
                 <div className="min-w-0">
-                  <div className="font-medium truncate">
+                  <div className="font-semibold text-gray-900 truncate">
                     {c.root_cause.alertname}
                   </div>
-                  <Text className="text-xs text-gray-500 truncate">
+                  <Text className="text-xs text-gray-600 truncate">
                     {c.root_cause.service} · {timeAgo(c.root_cause.timestamp)}
                   </Text>
                 </div>
@@ -94,13 +100,13 @@ export function IncidentPicker({
                 <Badge size="xs" color={riskColor(c.risk.level)}>
                   {c.risk.level} risk
                 </Badge>
-                <Text className="text-xs text-gray-500">
+                <Text className="text-xs text-gray-600">
                   {c.size} alerts · {c.risk.services_affected} services
                 </Text>
               </div>
-              <LuChevronRight className="w-4 h-4 text-gray-300 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-green-400" />
+              <LuChevronRight className="w-4 h-4 text-gray-300 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-green-500" />
             </div>
-          </Card>
+          </div>
         </Link>
       ))}
     </div>

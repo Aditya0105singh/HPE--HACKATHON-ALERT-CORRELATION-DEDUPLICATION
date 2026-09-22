@@ -18,12 +18,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Badge, Card, Text } from "@tremor/react";
-import {
-  EmptyStateCard,
-  KeepLoader,
-  PageSubtitle,
-  PageTitle,
-} from "@/shared/ui";
+import { EmptyStateCard, KeepLoader, PageHero } from "@/shared/ui";
 import { TbTopologyRing } from "react-icons/tb";
 import { HiOutlineServerStack } from "react-icons/hi2";
 import { usePipelineState } from "@/entities/alertlens";
@@ -184,13 +179,11 @@ export function TopologyClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div>
-        <PageTitle>Service Topology</PageTitle>
-        <PageSubtitle>
-          Service dependencies inferred from correlated incidents — links are
-          drawn from a root-cause service to the other services in its incident.
-        </PageSubtitle>
-      </div>
+      <PageHero
+        icon={TbTopologyRing}
+        title="Service Topology"
+        subtitle="Service dependencies inferred from correlated incidents — links are drawn from a root-cause service to the other services in its incident."
+      />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard

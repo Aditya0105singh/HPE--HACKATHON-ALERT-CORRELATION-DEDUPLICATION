@@ -5,12 +5,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Badge, Button, Card, ProgressBar, Text, Title } from "@tremor/react";
 import { LuPause, LuPlay } from "react-icons/lu";
-import {
-  EmptyStateCard,
-  KeepLoader,
-  PageSubtitle,
-  PageTitle,
-} from "@/shared/ui";
+import { EmptyStateCard, KeepLoader, PageHero } from "@/shared/ui";
 import { LuGauge } from "react-icons/lu";
 import { useForecast, useIncident } from "@/entities/alertlens";
 import { StatCard } from "@/entities/alertlens/ui/StatCard";
@@ -87,25 +82,20 @@ export function ForecastDetailClient({ incidentId }: { incidentId: string }) {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div>
-        <Link
-          href="/forecast"
-          className="text-xs text-gray-500 hover:text-green-500"
-        >
-          ← Forecast
-        </Link>
-        <div className="mt-1">
-          <PageTitle>
-            {incident ? incident.root_cause.alertname : `Incident ${incidentId}`}
-          </PageTitle>
-          {incident && (
-            <PageSubtitle>
-              Root cause on {incident.root_cause.service} ·{" "}
-              {timeAgo(incident.root_cause.timestamp)}
-            </PageSubtitle>
-          )}
-        </div>
-      </div>
+      <PageHero
+        icon={LuGauge}
+        eyebrow={
+          <Link href="/forecast" className="hover:text-green-700 font-medium">
+            ← Forecast
+          </Link>
+        }
+        title={incident ? incident.root_cause.alertname : `Incident ${incidentId}`}
+        subtitle={
+          incident ? (
+            <>Root cause on {incident.root_cause.service} · {timeAgo(incident.root_cause.timestamp)}</>
+          ) : undefined
+        }
+      />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard

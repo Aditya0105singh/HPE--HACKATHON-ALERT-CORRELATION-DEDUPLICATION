@@ -127,14 +127,6 @@ export interface Forecast {
 }
 
 /** GET /incidents/{incident_id}/comparison */
-export interface SimilarityBreakdown {
-  root_cause: number;
-  affected_services: number;
-  timeline_pattern: number;
-  alert_pattern: number;
-  severity_trend: number;
-}
-
 export interface ComparisonIncidentSummary {
   service: string;
   alertname: string;
@@ -146,16 +138,49 @@ export interface ComparisonIncidentSummary {
   [key: string]: unknown;
 }
 
+/** GET /incidents/{id}/comparison — a row is "info" when the two sides are
+ * genuinely different quantities (e.g. a current estimate vs a past outcome)
+ * and there is no honest match/partial/different verdict to render. */
+export interface ComparisonMetric {
+  field: string;
+  current: string;
+  historical: string;
+  status: "match" | "partial" | "different" | "info";
+}
+
+export interface ComparisonTimelinePoint {
+  time: string;
+  text: string;
+}
+
+export interface HistoricalIncident {
+  incident_id: string;
+  title: string;
+  date: string;
+  symptom_pattern: string;
+  root_cause: string;
+  resolution: string;
+  resolution_minutes: number;
+  services_affected: string[];
+  similarity_pct: number;
+}
+
 export interface IncidentComparison {
   incident_id: string;
   has_match: boolean;
   similarity: number;
   confidence: number;
-  similarity_breakdown: SimilarityBreakdown;
+  /** Two honestly-measured numbers: the TF-IDF cosine similarity AlertDNA
+   * computed, and the current incident's real service overlap with the
+   * matched one. Never a five-way breakdown implying more was measured. */
+  similarity_breakdown: { symptom_similarity: number; service_overlap: number };
   current_incident: ComparisonIncidentSummary;
-  historical_incident: Record<string, unknown> | null;
-  comparison_metrics: Record<string, unknown>;
-  timeline_comparison: unknown;
+  historical_incident: HistoricalIncident | null;
+  comparison_metrics: ComparisonMetric[];
+  timeline_comparison: {
+    current: ComparisonTimelinePoint[];
+    historical: ComparisonTimelinePoint[];
+  };
   historical_resolution: string | null;
   resolution_minutes: number | null;
   suggested_actions: string[];

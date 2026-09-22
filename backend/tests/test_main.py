@@ -212,6 +212,38 @@ class TestIncidentDetailEndpoints:
         resp = client.get("/incidents/nonexistent-id/comparison")
         assert resp.status_code == 404
 
+    def test_comparison_never_fabricates_a_historical_value(self, client):
+        """This endpoint used to hardcode 'CRITICAL' / '91% (HIGH)' / '18 alerts'
+        as the historical side of every single match, regardless of which past
+        incident actually matched — the seed library records no such fields.
+        Assert those literals are gone and every number shown is either real
+        (similarity, service overlap, the library's own resolution_minutes) or
+        explicitly marked as an estimate."""
+        resp = client.post(
+            "/demo/load?scenario=db_connection_exhaustion&seed=1&incidents=3&noise=5"
+        )
+        assert resp.status_code == 200
+        clusters = client.get("/pipeline").json()["clusters"]
+        matched = next(c for c in clusters if c.get("dna_match"))
+        comp = client.get(f"/incidents/{matched['cluster_id']}/comparison").json()
+
+        assert comp["has_match"] is True
+        assert set(comp["similarity_breakdown"]) == {"symptom_similarity", "service_overlap"}
+
+        fields = {m["field"]: m for m in comp["comparison_metrics"]}
+        assert "Severity" not in fields and "Risk Score" not in fields and "Raw Alert Count" not in fields
+        for m in comp["comparison_metrics"]:
+            assert m["historical"] not in ("CRITICAL", "91% (HIGH)", "18 alerts")
+
+        # the historical resolution time must be the matched library entry's
+        # real value, not a fallback constant
+        dna = comp["historical_incident"]
+        assert f"{dna['resolution_minutes']} min" in fields["Estimated triage time saved (now) vs actual resolution time (then)"]["historical"]
+
+        # the historical "timeline" only ever had ordering, never real timestamps
+        for point in comp["timeline_comparison"]["historical"]:
+            assert point["time"].startswith("Symptom ")
+
     def test_root_cause_confidence_success(self, client):
         cluster_id = self._first_cluster_id(client)
         resp = client.get(f"/incidents/{cluster_id}/root_cause_confidence")

@@ -486,37 +486,52 @@ def get_incident_comparison(incident_id: str) -> dict:
             "suggested_actions": [f"Investigate novel symptom pattern on {root.get('service')}."],
         }
 
+    # Everything below is either measured directly off this incident and the
+    # matched library entry, or explicitly marked as an estimate — no field is
+    # a plausible-looking number invented to fill a slot the data doesn't
+    # have. The seed library records only title/date/root_cause/resolution/
+    # resolution_minutes/services_affected, so a past severity, risk score or
+    # alert count simply isn't there to compare against, and this endpoint
+    # used to fabricate "CRITICAL" / "91% (HIGH)" / "18 alerts" for every
+    # single match. That's gone.
     similarity_pct = float(dna.get("similarity_pct", 85.0))
     hist_services = dna.get("services_affected", [])
     overlap = len(set(current_services).intersection(set(hist_services)))
-    svc_match_pct = min(100, int(round((overlap / max(1, len(current_services))) * 100))) if current_services else 80
+    svc_overlap_pct = int(round((overlap / max(1, len(current_services))) * 100)) if current_services else 0
+    root_in_text = bool(root.get("service")) and root.get("service") in dna.get("root_cause", "")
 
-    root_match_pct = 100 if root.get("service") in dna.get("symptom_pattern", "") else 90
-
+    # Real, measured similarity: the TF-IDF cosine AlertDNA actually computed,
+    # and how much of the current incident's service set overlaps with the
+    # matched incident's. Two numbers, both honest, rather than five that
+    # look independently measured but are algebra on one of them.
     breakdown = {
-        "root_cause": root_match_pct,
-        "affected_services": max(75, svc_match_pct),
-        "timeline_pattern": max(70, int(round(similarity_pct * 0.95))),
-        "alert_pattern": max(75, int(round(similarity_pct * 1.02))),
-        "severity_trend": 95 if root.get("severity") == "critical" else 88,
+        "symptom_similarity": round(similarity_pct),
+        "service_overlap": svc_overlap_pct,
     }
 
-    diff_root = "match" if root_match_pct == 100 else "partial"
-    diff_services = "match" if set(current_services) == set(hist_services) else "partial"
+    diff_services = "match" if current_services and set(current_services) == set(hist_services) else (
+        "partial" if overlap else "different"
+    )
 
     metrics = [
-        {"field": "Root Cause", "current": f"{root.get('service')} / {root.get('alertname')}", "historical": dna.get("root_cause", dna.get("title")), "status": diff_root},
-        {"field": "Severity", "current": root.get("severity", "high").upper(), "historical": "CRITICAL", "status": "match" if root.get("severity") == "critical" else "partial"},
-        {"field": "Risk Score", "current": f"{current_risk_pct}% ({risk.get('level', 'high').upper()})", "historical": "91% (HIGH)", "status": "partial"},
-        {"field": "Raw Alert Count", "current": f"{cluster.get('raw_alert_count', len(alerts))} alerts", "historical": "18 alerts", "status": "partial"},
-        {"field": "Affected Services", "current": ", ".join(current_services[:3]), "historical": ", ".join(hist_services[:3]), "status": diff_services},
-        {"field": "Estimated Resolution", "current": f"{cluster.get('est_triage_minutes_saved', 15)} minutes", "historical": f"{dna.get('resolution_minutes', 12)} minutes", "status": "match"},
-        {"field": "Playbook Resolution", "current": "Pending Operator Action", "historical": dna.get("resolution", "N/A"), "status": "different"},
+        {"field": "Root Cause", "current": f"{root.get('service')} / {root.get('alertname')}",
+         "historical": dna.get("root_cause", dna.get("title")),
+         "status": "partial" if root_in_text else "different"},
+        {"field": "Affected Services", "current": ", ".join(current_services[:4]) or "none recorded",
+         "historical": ", ".join(hist_services[:4]) or "none recorded", "status": diff_services},
+        {"field": "Estimated triage time saved (now) vs actual resolution time (then)",
+         "current": f"~{cluster.get('est_triage_minutes_saved', 0)} min", "historical": f"{dna.get('resolution_minutes', 0)} min",
+         "status": "info"},
+        {"field": "Playbook Resolution", "current": "Pending operator action",
+         "historical": dna.get("resolution", "n/a"), "status": "different"},
     ]
 
     current_timeline = [{"time": a.get("timestamp", "")[11:19], "text": f"{a.get('service')}: {a.get('alertname')}"} for a in alerts[:4]]
-    historical_symptoms = [s.strip() for s in dna.get("symptom_pattern", "").split(",")]
-    historical_timeline = [{"time": f"T+{i*2}m", "text": symp} for i, symp in enumerate(historical_symptoms[:4])]
+    # The library never recorded real timestamps for its symptom list, only
+    # their order — labelling them "T+2m" implied a measured cadence that was
+    # never captured, so these are ordinal ("Symptom 1", "Symptom 2", ...).
+    historical_symptoms = [s.strip() for s in dna.get("symptom_pattern", "").split(",") if s.strip()]
+    historical_timeline = [{"time": f"Symptom {i + 1}", "text": symp} for i, symp in enumerate(historical_symptoms[:4])]
 
     return {
         "incident_id": incident_id,
