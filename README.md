@@ -1,5 +1,7 @@
 # AlertLens
 
+[![CI](https://github.com/Aditya0105singh/HPE--HACKATHON-ALERT-CORRELATION-DEDUPLICATION/actions/workflows/ci.yml/badge.svg)](https://github.com/Aditya0105singh/HPE--HACKATHON-ALERT-CORRELATION-DEDUPLICATION/actions/workflows/ci.yml)
+
 **From raw telemetry to a human-approved ticket.** An AIOps system that turns a storm of
 alerts into one explained incident, and never publishes a ticket without a human.
 
@@ -91,6 +93,7 @@ backend/app/                the dataset pipeline used for the BGL / synthetic sc
 frontend-next/             Next.js UI: Overview, Incidents, Review Queue + incident investigation,
                             Correlations, Deduplication, Topology, Evaluation, Pipeline
 docs/                       demo script, deploy notes; the original hackathon README
+.github/workflows/ci.yml    runs both test suites + a production build on every push/PR
 ```
 
 The evidence panels (Correlation Explorer, root-cause candidates, severity and confidence
