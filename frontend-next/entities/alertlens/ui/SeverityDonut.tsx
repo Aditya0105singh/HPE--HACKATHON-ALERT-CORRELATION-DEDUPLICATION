@@ -18,8 +18,11 @@ export function SeverityDonut({ slices }: { slices: SeveritySlice[] }) {
   let offset = 25; // start at 12 o'clock
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-6" onMouseLeave={() => setActive(null)}>
-      <div className="relative w-44 h-44 shrink-0">
+    // Intrinsic layout, no breakpoints: donut and legend sit side by side while
+    // the box has room and the legend wraps under the donut when it doesn't; the
+    // legend grid fits as many columns as its own width allows.
+    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4" onMouseLeave={() => setActive(null)}>
+      <div className="relative w-36 h-36 sm:w-44 sm:h-44 shrink-0">
         <svg viewBox="0 0 36 36" className="w-full h-full" role="img" aria-label={`Alerts by severity, ${total} total`}>
           <circle cx="18" cy="18" r={r} fill="none" stroke="#f3f4f6" strokeWidth="4.5" />
           {slices.map((s, i) => {
@@ -57,7 +60,7 @@ export function SeverityDonut({ slices }: { slices: SeveritySlice[] }) {
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
+      <div className="flex-1 basis-64 min-w-0 flex flex-col gap-4">
         {/* Proportion bar: the same slices as the donut, laid out flat. */}
         <div className="flex h-3 w-full rounded-full overflow-hidden bg-gray-100">
           {slices.map((s) => (
@@ -70,7 +73,10 @@ export function SeverityDonut({ slices }: { slices: SeveritySlice[] }) {
             />
           ))}
         </div>
-        <ul className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-2 text-xs">
+        <ul
+          className="grid gap-2 text-xs"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(7.5rem, 1fr))" }}
+        >
           {slices.map((s) => {
             const pct = Math.round((100 * s.count) / total);
             return (
@@ -87,7 +93,7 @@ export function SeverityDonut({ slices }: { slices: SeveritySlice[] }) {
                   <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
                   {s.severity}
                 </div>
-                <div className="mt-1 flex items-baseline gap-1.5">
+                <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
                   <b className="text-lg text-gray-900 tabular-nums">{s.count.toLocaleString()}</b>
                   <span className="text-gray-500 tabular-nums">{pct}%</span>
                 </div>
