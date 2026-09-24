@@ -28,12 +28,12 @@ export function Topbar({ session }: { session: Session | null }) {
   return (
     // .page-container pads its scroll area by 16px (24px on xl), so a plain
     // `sticky top-0` sticks below that padding and page content shows through
-    // the strip above the bar. The negative margin/top pull the bar over the
-    // padding; the extra top padding keeps its contents where they were.
+    // the strip above the bar. The negative margin/top pull the bar up over
+    // that padding so it sits flush with the top of the scroll area.
     // Solid bg-gray-50 (the page's own background) so nothing scrolling
     // underneath can show through; the gradient below fades content out
     // instead of cutting it off at the bar's edge.
-    <div className="flex items-center gap-3 px-4 pb-3 pt-6 xl:pt-8 -mt-4 xl:-mt-6 -top-4 xl:-top-6 bg-gray-50 sticky z-20">
+    <div className="flex items-center gap-3 px-4 pb-3 pt-3 -mt-4 xl:-mt-6 -top-4 xl:-top-6 bg-gray-50 sticky z-20">
       <div className="flex-1 min-w-0 max-w-xl">
         <Search />
       </div>
