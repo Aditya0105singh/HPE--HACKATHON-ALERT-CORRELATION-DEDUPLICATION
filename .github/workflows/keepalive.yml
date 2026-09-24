@@ -1,0 +1,22 @@
+name: Keep demo warm
+
+# A free Render instance sleeps after ~15 minutes idle and then takes up to a
+# minute to wake. Pinging the backend's health route through the frontend
+# proxy keeps it responsive for anyone opening the demo. GitHub runs scheduled
+# jobs on a best-effort basis (they can be delayed), so still open the site a
+# couple of minutes before a live demo. Disable this workflow after the event.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping the backend through the frontend proxy
+        env:
+          URL: ${{ vars.KEEPALIVE_URL || 'https://hpe-hackathon-alert-correlation-ded-eta.vercel.app/backend/engine/health' }}
+        run: curl -fsS --max-time 90 "$URL" -o /dev/null && echo "warm"

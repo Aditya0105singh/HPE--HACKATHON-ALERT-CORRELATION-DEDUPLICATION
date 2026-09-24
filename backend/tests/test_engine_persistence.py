@@ -95,3 +95,16 @@ def test_replay_does_not_re_page_a_p1_that_already_paged(persisted):
     assert len(events) == 1
     # ...but delivery was suppressed, not sent again
     assert engine_api._state.queue.notifications._transport.sent == []
+
+
+def test_autoseed_creates_the_golden_run_without_paging(persisted):
+    """A host that woke up with an empty disk can re-seed the demo run, but
+    nobody should be paged for the demo seeding itself."""
+    _forget_memory()
+    engine_api.seed_golden_quietly()
+    queue = engine_api._state.queue
+    assert len(queue.items) == 1
+    item = next(iter(queue.items.values()))
+    assert item.draft.priority == "P1"
+    assert len(queue.notifications.events) == 1          # recorded for the audit trail
+    assert queue.notifications._transport.sent == []     # but not delivered

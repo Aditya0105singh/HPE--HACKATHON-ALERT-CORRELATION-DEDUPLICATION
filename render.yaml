@@ -12,6 +12,10 @@ services:
     # the wrong reasons.
     healthCheckPath: /health
     autoDeploy: true
+    # Render attaches persistent disks only to paid instances. On the free plan
+    # the filesystem is wiped whenever the service sleeps, so the engine's event
+    # log is lost; ALERTLENS_AUTOSEED_GOLDEN below re-creates the demo run on
+    # every cold start so visitors never land on an empty engine.
     disk:
       name: alertlens-data
       mountPath: /opt/render/project/src/backend
@@ -24,3 +28,7 @@ services:
       # every non-local request, which is the intended fail-closed default.
       - key: ALERTLENS_API_KEY
         generateValue: true
+      # Re-run the deterministic golden scenario on startup when there is no
+      # event log to restore (see the disk note above). Pages nobody.
+      - key: ALERTLENS_AUTOSEED_GOLDEN
+        value: "1"

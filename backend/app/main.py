@@ -327,7 +327,14 @@ async def lifespan(app: FastAPI):
     # then keep recording. Never blocks startup if the log is stale.
     try:
         engine_api.enable_persistence()
-        engine_api.restore_from_log()
+        restored = engine_api.restore_from_log()
+        # Hosts with an ephemeral disk (e.g. a free Render instance that sleeps)
+        # come back with nothing to replay, so a visitor would land on an empty
+        # engine. Opt-in: re-run the deterministic golden scenario instead, the
+        # same run "Inject failure" produces. Paging is suppressed as with a
+        # replay, because nobody should be paged for a demo seeding itself.
+        if not restored and os.environ.get("ALERTLENS_AUTOSEED_GOLDEN", "").strip() == "1":
+            engine_api.seed_golden_quietly()
     except Exception:
         pass
     # Loading sentence-transformers/torch is real, unavoidable work — on a

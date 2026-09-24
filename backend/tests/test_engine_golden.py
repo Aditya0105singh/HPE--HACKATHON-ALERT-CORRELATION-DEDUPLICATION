@@ -181,3 +181,16 @@ def test_health_never_fabricates_llm_configuration():
     real = [name for name, *_ in summarizer._configured_providers()]
     assert h["llm"]["configured_providers"] == real
     assert h["llm"]["live"] == (len(real) > 0)
+
+
+def test_generic_ingest_fresh_starts_a_new_run_instead_of_attaching():
+    """A whole file must become its own run, not late arrivals on the last one."""
+    client = TestClient(app)
+    client.post("/engine/golden")
+    rows = [{"host": "svc-a", "time": f"2026-09-26T10:00:{i:02d}Z", "level": "error",
+             "description": "connection refused"} for i in range(0, 50, 5)]
+    attached = client.post("/engine/ingest/generic", json=rows).json()
+    assert attached["mode"] == "attached"
+    fresh = client.post("/engine/ingest/generic?fresh=true", json=rows).json()
+    assert fresh["mode"] == "new_batch" and fresh["received"] == len(rows)
+    assert client.get("/engine/health").json()["scenario"] == "live ingest"

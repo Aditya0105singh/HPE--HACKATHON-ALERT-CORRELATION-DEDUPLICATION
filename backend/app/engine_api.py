@@ -128,6 +128,15 @@ def restore_from_log() -> int:
     return applied
 
 
+def seed_golden_quietly() -> None:
+    """Run the golden scenario at startup without paging anyone."""
+    notifications_mod.set_suppressed(True)
+    try:
+        golden()
+    finally:
+        notifications_mod.set_suppressed(False)
+
+
 @dataclass
 class _EngineState:
     result: PipelineResult | None = None
@@ -638,7 +647,7 @@ def ingest_otel_traces(payload: dict) -> dict:
 
 @router.post("/ingest/generic")
 @_recorded("ingest_generic", starts_run=lambda o: o.get("mode") == "new_batch")
-def ingest_generic(payload: Any = Body(...)) -> dict:
+def ingest_generic(payload: Any = Body(...), fresh: bool = False) -> dict:
     """Fallback for an alert export that isn't CloudWatch/Grafana/OTel-shaped.
 
     Accepts a bare list of alert dicts, or an object wrapping them under
@@ -648,8 +657,15 @@ def ingest_generic(payload: Any = Body(...)) -> dict:
     webhook" — whatever the file's exact schema, this endpoint still feeds
     the same real engine (dedup, detect, correlate, causal, severity, draft,
     review, Jira), not a separate toy path.
+
+    `?fresh=true` starts a new run from this payload instead of routing it into
+    the current one as late arrivals, which is what a whole file wants.
     """
-    return _ingest(adapters.from_generic_records(payload))
+    signals = adapters.from_generic_records(payload)
+    if fresh and signals:
+        _state.result = None
+        _state.graph = None
+    return _ingest(signals)
 
 
 @router.get("/audit")
