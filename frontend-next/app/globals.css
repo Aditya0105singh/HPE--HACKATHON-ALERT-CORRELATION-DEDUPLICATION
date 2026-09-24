@@ -21,7 +21,9 @@ For example, tooltip, that should look different from main content */
 }
 
 html.workaround-dark {
-  filter: invert(100%) hue-rotate(180deg) contrast(80%) !important;
+  /* 80% squashed every text/background pair toward the middle; 90% keeps the
+     softened (not pure-black) look while giving light text more separation. */
+  filter: invert(100%) hue-rotate(180deg) contrast(90%) !important;
   background: #fff;
 
   & .line-content {
@@ -199,6 +201,25 @@ html.workaround-dark {
 .tremor-Badge-root.text-stone-600 { color: #44403c; }
 .tremor-Badge-root.text-zinc-600 { color: #3f3f46; }
 .tremor-Badge-root.text-neutral-600 { color: #404040; }
+
+/* Dark mode readability. Dark mode is a page-wide filter (invert + hue-rotate),
+   so a colour written for light mode is drawn inverted: to render a text colour
+   LIGHTER, its source colour must be DARKER. The greys above already pass WCAG
+   AA (5.5:1+) but small grey-on-black text reads dimmer and thinner than the
+   ratio suggests, so secondary text is lifted to roughly 9-11:1. Ordering is
+   kept (meta text stays dimmer than body copy). Rendered colours were computed
+   through the filter, not guessed. */
+html.workaround-dark .text-gray-400,
+html.workaround-dark .text-slate-400,
+html.workaround-dark .text-tremor-content-subtle { color: #3f4654; }   /* -> #aeb4c1 */
+html.workaround-dark .text-gray-500,
+html.workaround-dark .text-gray-600,
+html.workaround-dark .text-slate-500,
+html.workaround-dark .text-slate-600,
+html.workaround-dark .text-tremor-content { color: #2f3744; }          /* -> #bbc2ce */
+html.workaround-dark .text-gray-700,
+html.workaround-dark .text-slate-700,
+html.workaround-dark .text-tremor-content-emphasis { color: #232a37; } /* -> brighter still */
 
 /* Overview KPI cards: entrance + chart animations */
 @keyframes kpi-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
