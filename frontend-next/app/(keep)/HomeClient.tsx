@@ -113,37 +113,6 @@ export function HomeClient() {
   const { loadBgl } = usePipelineActions();
   const autoLoaded = useRef(false);
 
-  // "Alerts by severity" goes in whichever column is shorter. Which one that is
-  // depends on the data (a 10-row incident table makes the main column taller;
-  // a 4-row one leaves the sidebar taller), so a fixed placement always left a
-  // large empty gap in one of the two cases. Heights are compared without the
-  // panel itself, so moving it cannot make the choice flip back and forth.
-  const [leftCol, setLeftCol] = useState<HTMLDivElement | null>(null);
-  const [rightCol, setRightCol] = useState<HTMLDivElement | null>(null);
-  const [severityEl, setSeverityEl] = useState<HTMLDivElement | null>(null);
-  const [severitySide, setSeveritySide] = useState<"left" | "right">("left");
-  useEffect(() => {
-    if (!leftCol || !rightCol) return;
-    const place = () => {
-      const twoColumns =
-        Math.abs(leftCol.getBoundingClientRect().left - rightCol.getBoundingClientRect().left) > 1;
-      if (!twoColumns) {
-        setSeveritySide("left");
-        return;
-      }
-      const own = severityEl ? severityEl.getBoundingClientRect().height + 12 : 0;
-      const left = leftCol.getBoundingClientRect().height - (severityEl && leftCol.contains(severityEl) ? own : 0);
-      const right = rightCol.getBoundingClientRect().height - (severityEl && rightCol.contains(severityEl) ? own : 0);
-      setSeveritySide(left <= right ? "left" : "right");
-    };
-    place();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(place);
-    ro.observe(leftCol);
-    ro.observe(rightCol);
-    return () => ro.disconnect();
-  }, [leftCol, rightCol, severityEl]);
-
   // Two different runs live in the backend at once: the loaded dataset (BGL /
   // synthetic) and the injected engine scenario. Mixing their numbers on one
   // screen made a 9,695-alert dataset and an 18-signal incident look like one
@@ -368,12 +337,6 @@ export function HomeClient() {
     );
   }
 
-  const severityPanel = (
-    <Panel title="Alerts by severity" delay={650}>
-      <SeverityDonut slices={severityCounts.map((s) => ({ ...s, color: severityColor(s.severity) }))} />
-    </Panel>
-  );
-
   const maxBucket = Math.max(1, ...buckets.map((b) => b.total));
   const maxService = Math.max(1, ...topServices.map((s) => s.count));
 
@@ -480,7 +443,7 @@ export function HomeClient() {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-3 items-start">
-        <div ref={setLeftCol} className="min-w-0">
+        <div className="min-w-0">
           {/* Recent incidents */}
           <div className="kpi-card rounded-2xl border border-white/80 overflow-hidden" style={{ background: "linear-gradient(160deg,#fff 60%,#f0fdf4)", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.12)", animationDelay: "400ms" }}>
             <div className="flex items-center justify-between gap-2 flex-wrap p-3.5 border-b border-gray-100">
@@ -687,13 +650,8 @@ export function HomeClient() {
             </Panel>
       </div>
           </div>
-          {severitySide === "left" && (
-            <div ref={setSeverityEl} className="mt-3">
-              {severityPanel}
-            </div>
-          )}
         </div>
-        <div ref={setRightCol} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <Panel title="AI Insights" icon={<HiOutlineSparkles className="text-green-600" size={16} />}>
             <ul className="flex flex-col gap-2">
               {insights.map((it) => (
@@ -787,10 +745,16 @@ export function HomeClient() {
                 View all services <HiOutlineArrowRight size={12} />
               </Link>
             </Panel>
-          {severitySide === "right" && <div ref={setSeverityEl}>{severityPanel}</div>}
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-3 items-start">
+            {/* Alerts by severity */}
+            <Panel title="Alerts by severity" delay={750}>
+              <SeverityDonut slices={severityCounts.map((s) => ({ ...s, color: severityColor(s.severity) }))} />
+            </Panel>
+
+      </div>
         </>
       )}
     </div>
