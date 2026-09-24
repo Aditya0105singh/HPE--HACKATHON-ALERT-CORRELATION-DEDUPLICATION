@@ -1,5 +1,4 @@
 import { InternalConfig } from "@/types/internal-config";
-import { getApiURL } from "@/utils/apiUrl";
 import {
   AuthType,
   MULTI_TENANT,
@@ -24,15 +23,12 @@ export function getConfig(): InternalConfig {
     authType = AuthType.NOAUTH;
   }
 
-  // we want to support preview branches on vercel
-  let API_URL_CLIENT;
-  // if we are on vercel, default to getApiURL() if no API_URL_CLIENT is set
-  if (process.env.VERCEL_GIT_COMMIT_REF) {
-    API_URL_CLIENT = process.env.API_URL_CLIENT || getApiURL();
-    // else, no default since we will use relative URLs
-  } else {
-    API_URL_CLIENT = process.env.API_URL_CLIENT;
-  }
+  // No default, on Vercel or anywhere else: unset means the browser calls the
+  // same-origin `/backend` proxy (middleware.ts), which is the only place the
+  // backend's ALERTLENS_API_KEY is attached. Defaulting this to the backend URL
+  // made browsers call the API directly — blocked by CORS and missing the key.
+  // Preview branches still work: the proxy resolves them through getApiURL().
+  const API_URL_CLIENT = process.env.API_URL_CLIENT;
 
   // Parse alert sidebar fields from environment variable
   // Default includes all standard fields

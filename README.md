@@ -89,7 +89,7 @@ Open http://localhost:3001 and click **Inject failure**. To see scale, click **L
 
 ```bash
 cd backend && python -m pytest -q          # 357 tests
-cd frontend-next && npx jest               # 318 tests
+cd frontend-next && npx jest               # 321 tests
 ```
 
 ## Layout
