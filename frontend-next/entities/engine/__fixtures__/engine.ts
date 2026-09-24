@@ -1,4 +1,4 @@
-import type { DraftDetail, Evaluation, Evidence, PipelineReport, QueueSummary } from "../types";
+import type { DraftDetail, EngineHealth, Evaluation, Evidence, PipelineReport, QueueSummary } from "../types";
 
 /** Shared canned data for engine-entity tests, shaped exactly like the real
  * /engine/* responses (see backend/app/engine_api.py's _queue_summary /
@@ -155,5 +155,25 @@ export const evaluation = (overrides: Partial<Evaluation> = {}): Evaluation => (
   root_cause_total: 1,
   root_cause_accuracy: 1.0,
   noise_precision: 1.0,
+  ...overrides,
+});
+
+export const engineHealth = (overrides: Partial<EngineHealth> = {}): EngineHealth => ({
+  status: "ok",
+  uptime_seconds: 3600,
+  started_at: "2026-09-24T16:00:00Z",
+  persistence_enabled: true,
+  run_loaded: true,
+  scenario: "golden incident",
+  queue: { awaiting_review: 1, awaiting_review_p1: 1, total_drafts: 1, audit_entries: 2 },
+  notifications: { transport: "MockNotificationTransport", live: false, sent: 1, recent: [] },
+  jira: { transport: "MockJiraTransport", live: false, published: 0 },
+  llm: { configured_providers: [], live: false },
+  last_pipeline_run: {
+    signals_ingested: 18,
+    incidents_formed: 1,
+    elapsed_ms: { redact: 1.2, deduplicate: 0.4, correlate: 4.6 },
+    calibration_warning: null,
+  },
   ...overrides,
 });

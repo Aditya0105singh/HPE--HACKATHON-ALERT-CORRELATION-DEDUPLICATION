@@ -5,6 +5,7 @@ import type {
   AuditEntry,
   DemoRunRequest,
   DraftDetail,
+  EngineHealth,
   Evidence,
   FeedbackState,
   LateSignalResult,
@@ -37,6 +38,16 @@ export const useEngineQueue = (options: SWRConfiguration = {}) => {
     api.isReady() ? QUEUE_KEY : null,
     (url: string) => api.get(url),
     { refreshInterval: 0, ...options }
+  );
+};
+
+/** GET /engine/health — polled so the Settings panel reflects the live queue. */
+export const useEngineHealth = (options: SWRConfiguration = {}) => {
+  const api = useApi();
+  return useSWR<EngineHealth>(
+    api.isReady() ? "/engine/health" : null,
+    (url: string) => api.get(url),
+    { refreshInterval: 10_000, ...options }
   );
 };
 

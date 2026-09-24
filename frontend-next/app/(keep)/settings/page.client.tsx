@@ -4,6 +4,7 @@ import { Badge, Button, Card, Text } from "@tremor/react";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { EmptyStateCard, KeepLoader, PageHero } from "@/shared/ui";
 import { useSettingsStatus } from "@/entities/alertlens";
+import { EngineHealthCard } from "@/entities/engine/EngineHealthCard";
 import { useConfig } from "@/utils/hooks/useConfig";
 
 function StatusRow({
@@ -83,6 +84,8 @@ export default function SettingsPage() {
               }
             />
           </Card>
+
+          <EngineHealthCard />
 
           <Card>
             <Text className="text-xs uppercase tracking-wide text-gray-400 mb-2">

@@ -255,3 +255,34 @@ export interface Evidence {
     flap_count: number;
   };
 }
+
+/** GET /engine/health — the engine's own liveness: queue depth, integration
+ * transports (live vs mock) and the last run's per-stage timings. */
+export interface EngineHealth {
+  status: string;
+  uptime_seconds: number;
+  started_at: string;
+  persistence_enabled: boolean;
+  run_loaded: boolean;
+  scenario: string;
+  queue: {
+    awaiting_review: number;
+    awaiting_review_p1: number;
+    total_drafts: number;
+    audit_entries: number;
+  };
+  notifications: {
+    transport: string;
+    live: boolean;
+    sent: number;
+    recent: { at: string; draft_id: string; reason: string; priority: string }[];
+  };
+  jira: { transport: string; live: boolean; published: number };
+  llm: { configured_providers: string[]; live: boolean };
+  last_pipeline_run: {
+    signals_ingested: number;
+    incidents_formed: number;
+    elapsed_ms: Record<string, number>;
+    calibration_warning: string | null;
+  } | null;
+}
