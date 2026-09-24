@@ -75,3 +75,23 @@ def test_a_stale_log_never_blocks_startup(persisted, isolated_db):
     isolated_db.engine_event_add("approve", {"draft_id": "no-such-draft", "body": {"actor": "x"}})
     _forget_memory()
     assert engine_api.restore_from_log() == 0
+
+
+def test_replay_does_not_re_page_a_p1_that_already_paged(persisted):
+    """golden's draft pages once, live. A restart replays the same submit
+    event - that must rebuild the queue, not fire a second real page for an
+    incident a human may already be handling."""
+    c = persisted
+    body = c.post("/engine/golden").json()
+    assert len(engine_api._state.queue.notifications.events) == 1
+    assert engine_api._state.queue.notifications.events[0].reason == "new_p1_incident"
+
+    _forget_memory()
+    assert engine_api._state.queue.notifications.events == []
+    engine_api.restore_from_log()
+
+    # the event is still recorded for audit/history continuity...
+    events = engine_api._state.queue.notifications.events
+    assert len(events) == 1
+    # ...but delivery was suppressed, not sent again
+    assert engine_api._state.queue.notifications._transport.sent == []

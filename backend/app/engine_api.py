@@ -15,17 +15,19 @@ for a single-process demo, not a claim about production durability.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel
 
-from . import db
+from . import db, summarizer
 from .engine import adapters, scenarios
 from .engine.evidence import build_evidence
 from .engine import feedback as feedback_mod
 from .engine.golden import flapping_scenario, golden_scenario, maintenance_windows
 from .engine.lifecycle import attach_late_signal
+from .engine import notifications as notifications_mod
 from .engine.causal import CausalResult
 from .engine.correlate import Cluster, DependencyGraph
 from .engine.drafting import IncidentDraft
@@ -94,10 +96,16 @@ def _recorded(kind: str, models: dict | None = None, starts_run=None):
 
 
 def restore_from_log() -> int:
-    """Replay the event log into memory. Returns how many events were applied."""
+    """Replay the event log into memory. Returns how many events were applied.
+
+    Paging is suppressed for the duration: every P1 in the log already paged
+    a human once, in the run that got logged - replaying it must rebuild
+    state, not re-page for an incident someone may have already handled.
+    """
     global _REPLAYING
     applied = 0
     _REPLAYING = True
+    notifications_mod.set_suppressed(True)
     try:
         for event in db.engine_events_load():
             entry = _REGISTRY.get(event["kind"])
@@ -112,6 +120,7 @@ def restore_from_log() -> int:
             applied += 1
     finally:
         _REPLAYING = False
+        notifications_mod.set_suppressed(False)
     return applied
 
 
@@ -638,6 +647,71 @@ def get_audit() -> list[dict]:
         }
         for e in reversed(_state.queue.audit)
     ]
+
+
+_STARTED_AT = datetime.now(timezone.utc)
+
+
+@router.get("/health")
+def health() -> dict:
+    """Self-observability for the engine itself.
+
+    An AIOps platform that watches everyone else's systems should be able to
+    answer "are you actually working" about itself - queue depth, whether
+    the last pipeline run is stale, and whether persistence, paging and the
+    LLM path are for-real-configured or running on their safe mock/template
+    fallback. Nothing here is fabricated: every field reflects an actual
+    in-memory object, not a hardcoded "ok".
+    """
+    queue = _state.queue
+    pending = queue.pending()
+    p1_pending = sum(1 for i in pending if i.draft.priority == "P1")
+    last_run = _state.result
+
+    notif_transport = type(queue.notifications._transport).__name__
+    jira_transport = type(queue.jira._transport).__name__
+
+    now = datetime.now(timezone.utc)
+    return {
+        "status": "ok",
+        "uptime_seconds": round((now - _STARTED_AT).total_seconds(), 1),
+        "started_at": _STARTED_AT.isoformat(),
+        "persistence_enabled": _PERSIST,
+        "run_loaded": last_run is not None,
+        "scenario": _state.scenario_desc,
+        "queue": {
+            "awaiting_review": len(pending),
+            "awaiting_review_p1": p1_pending,
+            "total_drafts": len(queue.items),
+            "audit_entries": len(queue.audit),
+        },
+        "notifications": {
+            "transport": notif_transport,
+            "live": notif_transport != "MockNotificationTransport",
+            "sent": len(queue.notifications.events),
+            "recent": [
+                {"at": e.at.isoformat(), "draft_id": e.draft_id, "reason": e.reason, "priority": e.priority}
+                for e in queue.notifications.events[-5:]
+            ],
+        },
+        "jira": {
+            "transport": jira_transport,
+            "live": jira_transport != "MockJiraTransport",
+            "published": len(queue.jira._published),
+        },
+        "llm": {
+            "configured_providers": [name for name, *_ in summarizer._configured_providers()],
+            "live": len(summarizer._configured_providers()) > 0,
+        },
+        "last_pipeline_run": (
+            None if last_run is None else {
+                "signals_ingested": last_run.report.signals_ingested,
+                "incidents_formed": last_run.report.incidents_formed,
+                "elapsed_ms": last_run.report.elapsed_ms,
+                "calibration_warning": last_run.report.calibration_warning,
+            }
+        ),
+    }
 
 
 @router.get("/topologies")

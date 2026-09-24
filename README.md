@@ -53,6 +53,7 @@ Two more one-click scenarios sit next to the Inject failure button: the same fai
 | `/engine/ingest/generic` — fallback for an alert export in none of those four shapes | **Real**, field-name best-effort matching (e.g. a hackathon-day sample data file instead of a webhook) |
 | Live CloudWatch polling with a read-only IAM role | Not connected (needs AWS credentials) |
 | Jira | **Mock transport** behind the real client interface; a swap needs URL, email, API token, project key |
+| P1 paging (`/engine/health`, `engine/notifications.py`) | **Real**, fires on every new or escalated P1; **mock transport** by default — set `ALERT_WEBHOOK_URL` to page a real Slack/PagerDuty/webhook endpoint |
 | LLM narrative | Deterministic template fallback; the grounded LLM path is written but needs a key |
 | Historical matches | Seeded demo history (5 illustrative past incidents), not real tickets |
 | Counterfactual check | Rule-based graph ablation, not a trained causal model |
@@ -80,7 +81,7 @@ Open http://localhost:3001 and click **Inject failure**. To see scale, click **L
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q          # 306 tests
+cd backend && python -m pytest -q          # 317 tests
 cd frontend-next && npx jest               # 306 tests
 ```
 

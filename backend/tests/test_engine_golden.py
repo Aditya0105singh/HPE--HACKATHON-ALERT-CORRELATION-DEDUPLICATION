@@ -141,3 +141,33 @@ def test_flapping_service_is_one_incident_with_a_flap_count():
 
 def test_unknown_scenario_is_a_404():
     assert TestClient(app).post("/engine/scenario/nope").status_code == 404
+
+
+def test_health_reflects_a_real_golden_run(run):
+    client, body = run
+    h = client.get("/engine/health").json()
+    assert h["status"] == "ok"
+    assert h["run_loaded"] is True
+    assert h["queue"]["awaiting_review"] == 1
+    assert h["queue"]["awaiting_review_p1"] == 1  # golden is P1
+    assert h["last_pipeline_run"]["signals_ingested"] == 18
+    assert h["last_pipeline_run"]["incidents_formed"] == 1
+    # golden's P1 draft must have paged - the push half of the review gate
+    assert h["notifications"]["sent"] >= 1
+    assert h["notifications"]["recent"][-1]["reason"] == "new_p1_incident"
+    # no ALERT_WEBHOOK_URL configured in this environment -> honestly mock
+    assert h["notifications"]["transport"] == "MockNotificationTransport"
+    assert h["notifications"]["live"] is False
+    assert h["jira"]["transport"] == "MockJiraTransport"
+    assert h["jira"]["live"] is False
+
+
+def test_health_never_fabricates_llm_configuration():
+    """Whatever this environment's real provider keys are, /health must
+    report exactly that - never a hardcoded "configured" or "not configured"."""
+    from app import summarizer
+
+    h = TestClient(app).get("/engine/health").json()
+    real = [name for name, *_ in summarizer._configured_providers()]
+    assert h["llm"]["configured_providers"] == real
+    assert h["llm"]["live"] == (len(real) > 0)

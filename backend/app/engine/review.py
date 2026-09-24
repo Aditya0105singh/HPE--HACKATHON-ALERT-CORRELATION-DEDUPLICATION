@@ -32,6 +32,7 @@ from enum import Enum
 from typing import Any, Callable
 
 from .drafting import IncidentDraft
+from .notifications import NotificationClient
 
 
 class ReviewAction(str, Enum):
@@ -242,9 +243,11 @@ class CorrectionFeedback:
 class ReviewQueue:
     """Holds drafts awaiting a human decision. The only minter of approvals."""
 
-    def __init__(self, transport: Callable[[dict], dict] | None = None) -> None:
+    def __init__(self, transport: Callable[[dict], dict] | None = None,
+                 notify_transport: Callable[[dict], dict] | None = None) -> None:
         self._vault = _TokenVault()
         self.jira = JiraClient(self._vault, transport)
+        self.notifications = NotificationClient(notify_transport)
         self.items: dict[str, QueueItem] = {}
         self.audit: list[AuditEntry] = []
         self.feedback: list[CorrectionFeedback] = []
@@ -259,6 +262,8 @@ class ReviewQueue:
         self.items[draft.draft_id] = item
         self._log("system", "drafted", draft.draft_id,
                   f"{draft.priority} · {len(draft.affected_services)} service(s)")
+        if draft.priority == "P1":
+            self._page(item, "new_p1_incident")
         return item
 
     def pending(self) -> list[QueueItem]:
@@ -338,6 +343,7 @@ class ReviewQueue:
         if item.status in (DraftStatus.REJECTED, DraftStatus.MERGED):
             raise ApprovalRequired(f"draft {draft_id} is {item.status.value}; it accepts no updates")
 
+        was_p1 = item.draft.priority == "P1"
         new_draft.draft_id = draft_id
         new_draft.status = item.draft.status
         item.draft = new_draft
@@ -345,6 +351,9 @@ class ReviewQueue:
         item.history.append({"state": item.lifecycle, "at": datetime.now(timezone.utc).isoformat(),
                              "note": f"late signal attached: {note}"})
         self._log("system", "attached", draft_id, note)
+
+        if item.status == DraftStatus.AWAITING_REVIEW and item.draft.priority == "P1" and not was_p1:
+            self._page(item, "escalated_to_p1")
 
         if item.status == DraftStatus.PUBLISHED:
             comment = self.jira.add_comment(draft_id, f"New evidence attached to this incident: {note}")
@@ -365,6 +374,16 @@ class ReviewQueue:
         return item
 
     # -- internals -------------------------------------------------------
+
+    def _page(self, item: QueueItem, reason: str) -> None:
+        draft = item.draft
+        result = self.notifications.notify_p1(
+            draft_id=draft.draft_id, reason=reason, priority=draft.priority,
+            title=draft.title, root_cause_service=draft.root_cause_service or "unknown",
+            affected_services=draft.affected_services, severity_score=draft.severity_score,
+        )
+        self._log("system", "paged", draft.draft_id,
+                  f"{reason}: {'delivered' if result.get('delivered') else 'not delivered (' + str(result.get('reason', '')) + ')'}")
 
     def _require(self, draft_id: str) -> QueueItem:
         item = self.items.get(draft_id)
