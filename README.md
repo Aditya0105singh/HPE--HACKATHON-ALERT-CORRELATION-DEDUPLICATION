@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
-[![Tests](https://img.shields.io/badge/tests-358_backend_%C2%B7_327_frontend-15803d?style=flat-square)](#testing)
+[![Tests](https://img.shields.io/badge/tests-365_backend_%C2%B7_330_frontend-15803d?style=flat-square)](#testing)
 [![Human approved](https://img.shields.io/badge/auto--publish-structurally_impossible-15803d?style=flat-square)](#guarantees)
 
 **An AIOps system that turns a storm of alerts into one explained incident,<br/>and never publishes a ticket without a named human saying yes.**
@@ -46,9 +46,10 @@ Built by **Team Space-X** for the **Ensylon AIOps Challenge 2026**.
 | **Golden incident** | 18 signals from four sources become **1 incident**; a decoy alarm in the same minute is **rejected** |
 | **Root cause** | `postgres-primary` (93% confidence); three downstream services ruled out by a counterfactual check |
 | **Severity** | **P1 = 0.846**, from blast radius, business criticality, trend and signal diversity |
-| **Scale demo** | 9,695 real supercomputer logs (Loghub BGL) become 1,458 unique signals and **114 incidents** |
+| **Generalisation** | Root cause right in **97%** of 80 held-out generated runs; grouping F1 0.81 when incidents are staggered |
+| **Scale** | The full 9,695-row Loghub BGL file runs through the engine in about 11 s |
 | **Auto-published tickets** | **0**, by construction (see [Guarantees](#guarantees)) |
-| **Tests** | 358 backend · 327 frontend, run on every push by CI |
+| **Tests** | 365 backend · 330 frontend, run on every push by CI |
 
 ## The pipeline
 
@@ -118,18 +119,42 @@ The constraints that matter are enforced in code, and each has a test.
 
 ## Measured, not asserted
 
-The golden incident is a hand-written scenario, so its perfect scores (15 of 15 pairs) are a **sanity check, not an accuracy
-estimate**; the UI says so next to the numbers. Accuracy is measured on the **Evaluation** page against a synthetic generator's
-hidden ground truth across 8 fixed seeds; the pipeline never reads the answers.
+Every number below is scored against an answer key the system never reads. Three measurements, deliberately kept apart:
 
-| Metric | Result |
-|---|---|
-| Incident detection | 91.7% (22 of 24 incidents found) |
-| Cluster purity | 91.4% |
-| Noise correctly excluded | 91.5% |
-| Alert DNA match accuracy | 96.6% (28 of 29) |
+**1. The engine, on held-out estates** (`GET /engine/benchmark`, Evaluation page). The real engine runs on generated estates
+that vary topology, telemetry, incident count, noise and timing. Its thresholds were tuned on seeds 1-20; these are seeds 21-40.
 
-These are the values at the time of writing; the page recomputes and shows a per-seed table.
+| Scenario | Signals | Grouping F1 | Precision | Recall | Root cause | Median time |
+|---|---|---|---|---|---|---|
+| 3 incidents, staggered | ~82 | 0.81 | 0.87 | 0.79 | 54/54 (100%) | 12 ms |
+| 3 incidents, concurrent | ~82 | 0.59 | 0.48 | 0.85 | 37/39 (95%) | 13 ms |
+| 6 incidents, staggered | ~203 | 0.71 | 0.61 | 0.89 | 104/107 (97%) | 26 ms |
+| 6 incidents, concurrent | ~203 | 0.51 | 0.38 | 0.85 | 61/64 (95%) | 32 ms |
+
+**Root cause is right 97% of the time across all 80 runs.** Grouping is strong when incidents are staggered and weaker when
+they are concurrent, which is the known limitation below.
+
+**2. The golden incident** is one hand-written scenario, so its perfect scores (15 of 15 pairs) are a **reproduction check,
+not an accuracy estimate**. The UI labels it that way next to the numbers.
+
+**3. The baseline scale explorer.** The Overview, Incidents, Correlations and Topology pages run on a simpler baseline
+pipeline built for large datasets: DBSCAN over alert text and time, without the engine's gate, causal step or review gate.
+On its own generator across 8 seeds it scores 91.7% incident detection, 91.4% cluster purity and 91.5% noise excluded.
+Those numbers describe the baseline, not the engine, and the two generators differ, so they are not directly comparable.
+
+### Known limitation: concurrent incidents
+
+When two unrelated failures hit the same service, or two directly connected services, in the same minute, both pass the
+shared-context gate and can be drafted as one incident. Precision drops while recall and root cause hold up. The causal
+split recovers some of these. A sweep of its threshold and the clustering radius (18 settings, tuned on seeds 1-20 and
+checked on 21-40) found nothing better than the current values, so the fix is structural rather than a tuning change:
+weigh error-type evidence more heavily when incidents overlap in time. Meanwhile the human review gate is the backstop,
+because a reviewer can split a merged draft with **Merge** or **Reject** before anything reaches Jira.
+
+### Scale
+
+The engine takes the full 9,695-row Loghub BGL file through `/engine/ingest/generic` in about 11 seconds on a laptop
+(1,204 unique signals, 41 incidents, 26 MB peak). Redaction is about two thirds of that time.
 
 ## Honest status: real vs mock
 
@@ -146,7 +171,7 @@ These are the values at the time of writing; the page recomputes and shows a per
 | Counterfactual check | Rule-based graph ablation, not a trained causal model |
 | Reviewer feedback | Rule-based nudge to similarity weights for that service pattern; visible and resettable |
 | API authentication | A shared key, per-client rate limits and body caps. It is not a user directory: the reviewer is a name typed into a form, so the audit log records *who claimed* the approval, not a verified identity |
-| State | The engine run is rebuilt after a restart by replaying an event log in SQLite; audit timestamps become the replay time |
+| State | The engine run is rebuilt after a restart by replaying an event log in SQLite; audit timestamps become the replay time. On a host with no persistent disk, `ALERTLENS_AUTOSEED_GOLDEN=1` re-creates the demo run on startup instead |
 
 The Settings page shows the same live-versus-mock status for the running instance, straight from `/engine/health`.
 
@@ -200,6 +225,9 @@ whether a signal came from a webhook or a file.
 
 Malformed records are skipped, never fatal, and a payload that yields no signals is reported as such instead of silently succeeding.
 
+To rehearse with a file, `backend/scripts/feed_file.py` reads JSON, JSON Lines or CSV and either runs the engine in-process
+(`--local`, any size) or posts it to the running backend with `?fresh=true` so the result appears in the Review Queue.
+
 ## API reference
 
 All engine routes live under `/engine`. Every route except `/health` requires `X-API-Key` unless called from loopback with no key configured.
@@ -214,6 +242,7 @@ All engine routes live under `/engine`. Every route except `/health` requires `X
 | `POST` | `/queue/{id}/late-signal` · `/resolve` | Live attach to an open incident; close it |
 | `GET` | `/report` · `/audit` · `/feedback` | Last run's stats and measured evaluation; audit log; learned corrections |
 | `GET` | `/health` | Queue depth, per-stage latency, and which integrations are live or mock |
+| `GET` | `/benchmark` | The engine scored on held-out generated estates (cached after the first call) |
 | `POST` | `/ingest/*` | See [Built to adapt](#built-to-adapt-to-any-input) |
 
 ## Configuration
@@ -225,14 +254,15 @@ Every variable is optional; see [`.env.example`](.env.example).
 | `ALERTLENS_API_KEY` | Shared API key. Required for any network-reachable deployment; set the same value in the frontend |
 | `ALERT_WEBHOOK_URL` | Pages this URL (Slack, PagerDuty, any JSON POST endpoint) when a P1 forms |
 | `CEREBRAS_API_KEY` · `GROQ_API_KEY` | Enables grounded LLM narratives; without one, drafts use the deterministic template |
+| `ALERTLENS_AUTOSEED_GOLDEN` | Set to `1` to re-run the golden scenario on startup when there is no event log to restore (for hosts without a persistent disk) |
 | `ALERTLENS_ALLOWED_ORIGINS` | Browser origins allowed to call the API cross-origin |
 | `ALERTLENS_RATE_LIMIT` · `ALERTLENS_EXPENSIVE_RATE_LIMIT` · `ALERTLENS_MAX_BODY_BYTES` | Request limits |
 
 ## Testing
 
 ```bash
-cd backend && python -m pytest -q          # 358 tests
-cd frontend-next && npx jest               # 327 tests
+cd backend && python -m pytest -q          # 365 tests
+cd frontend-next && npx jest               # 330 tests
 ```
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs both suites plus a production build (type-check and lint included) on every push and pull request.
