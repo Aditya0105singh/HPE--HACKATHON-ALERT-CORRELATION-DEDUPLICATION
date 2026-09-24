@@ -26,7 +26,11 @@ export function Topbar({ session }: { session: Session | null }) {
   const bellCount = (queue ?? []).filter((q) => q.status === "awaiting_review").length;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-200/70 bg-white sticky top-0 z-20">
+    // .page-container pads its scroll area by 16px (24px on xl), so a plain
+    // `sticky top-0` sticks below that padding and page content shows through
+    // the strip above the bar. The negative margin/top pull the bar over the
+    // padding; the extra top padding keeps its contents where they were.
+    <div className="flex items-center gap-3 px-4 pb-2 pt-6 xl:pt-8 -mt-4 xl:-mt-6 -top-4 xl:-top-6 border-b border-gray-200/70 bg-white/90 backdrop-blur-md sticky z-20">
       <div className="flex-1 min-w-0 max-w-xl">
         <Search />
       </div>
