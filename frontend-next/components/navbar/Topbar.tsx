@@ -30,37 +30,58 @@ export function Topbar({ session }: { session: Session | null }) {
     // `sticky top-0` sticks below that padding and page content shows through
     // the strip above the bar. The negative margin/top pull the bar over the
     // padding; the extra top padding keeps its contents where they were.
-    <div className="flex items-center gap-3 px-4 pb-2 pt-6 xl:pt-8 -mt-4 xl:-mt-6 -top-4 xl:-top-6 border-b border-gray-200/70 bg-white/90 backdrop-blur-md sticky z-20">
+    // Solid bg-gray-50 (the page's own background) so nothing scrolling
+    // underneath can show through; the gradient below fades content out
+    // instead of cutting it off at the bar's edge.
+    <div className="flex items-center gap-3 px-4 pb-3 pt-6 xl:pt-8 -mt-4 xl:-mt-6 -top-4 xl:-top-6 bg-gray-50 sticky z-20">
       <div className="flex-1 min-w-0 max-w-xl">
         <Search />
       </div>
 
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-2.5 ml-auto">
         <Link
           href="/settings"
-          className="hidden sm:inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+          className="hidden sm:inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-shadow hover:shadow-md"
           style={
             healthy
-              ? { borderColor: "#bbf7d0", background: "#f0fdf4", color: "#15803d" }
-              : { borderColor: "#e5e7eb", background: "#f9fafb", color: "#6b7280" }
+              ? {
+                  borderColor: "#bbf7d0",
+                  background: "linear-gradient(135deg,#f0fdf4,#dcfce7)",
+                  color: "#15803d",
+                  boxShadow: "0 1px 2px rgba(21,128,61,0.10)",
+                }
+              : {
+                  borderColor: "#e5e7eb",
+                  background: "#ffffff",
+                  color: "#6b7280",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                }
           }
         >
-          <span
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ background: healthy ? "#22c55e" : "#9ca3af" }}
-          />
+          <span className="relative flex w-2 h-2">
+            {healthy && (
+              <span
+                className="absolute inline-flex w-full h-full rounded-full opacity-60 animate-ping"
+                style={{ background: "#22c55e" }}
+              />
+            )}
+            <span
+              className="relative inline-flex w-2 h-2 rounded-full"
+              style={{ background: healthy ? "#22c55e" : "#9ca3af" }}
+            />
+          </span>
           {healthy ? "Pipeline healthy" : "No data loaded"}
         </Link>
 
         <Link
           href="/review"
-          className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 text-gray-500 hover:text-green-700 transition-colors"
+          className="relative flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:shadow-md hover:text-green-700 hover:border-green-200 transition-all"
           title={`${bellCount} incident draft(s) awaiting human review`}
         >
           <HiOutlineBell size={18} />
           {bellCount > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
+              className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white ring-2 ring-gray-50"
               style={{ background: "#15803d" }}
             >
               {bellCount > 99 ? "99+" : bellCount}
@@ -68,10 +89,13 @@ export function Topbar({ session }: { session: Session | null }) {
           )}
         </Link>
 
-        <div className="pl-1">
-          <UserInfo session={session} inline />
-        </div>
+        <UserInfo session={session} inline />
       </div>
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b from-gray-50 to-transparent"
+      />
     </div>
   );
 }
