@@ -285,6 +285,7 @@ function ReportSummary() {
         <StatCard
           label="Noise reduction"
           value={`${report.noise_reduction_pct}%`}
+          sub={`1 − ${report.incidents_formed} ÷ ${report.signals_ingested} signals`}
           accent="emerald"
           delay={160}
         />
@@ -298,24 +299,65 @@ function ReportSummary() {
         />
       </div>
       {ev && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCard label="Pair precision" value={ev.pair_precision.toFixed(3)} accent="purple" delay={240} />
-          <StatCard label="Pair recall" value={ev.pair_recall.toFixed(3)} accent="purple" delay={260} />
-          <StatCard label="Cluster purity" value={ev.cluster_purity.toFixed(3)} accent="purple" delay={280} />
-          <StatCard
-            label="Root cause accuracy"
-            value={`${ev.root_cause_correct}/${ev.root_cause_total}`}
-            accent="purple"
-            delay={300}
-          />
-          <StatCard
-            label="Blocking saved"
-            value={`${report.blocking_saved_pct}%`}
-            sub={`${report.candidate_pairs} / ${report.possible_pairs} pairs scored`}
-            accent="purple"
-            delay={320}
-          />
-        </div>
+        <>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs text-gray-700">
+            <b>Ground-truth check on this one run</b> ({report.signals_ingested} signals,{" "}
+            {ev.incidents_expected} expected incident{ev.incidents_expected === 1 ? "" : "s"}
+            {ev.true_pairs !== undefined && <>, {ev.true_pairs} true pairs</>}). The scenario
+            carries its own correct answer, so this confirms the engine reproduces it — a
+            sanity check, not an accuracy estimate. Measured accuracy across several seeds is
+            on the{" "}
+            <Link href="/evaluation" className="font-semibold text-green-700 underline">
+              Evaluation page
+            </Link>
+            .
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <StatCard
+              label="Pair precision"
+              value={ev.pair_precision.toFixed(3)}
+              sub={
+                ev.predicted_pairs !== undefined
+                  ? `${ev.correct_pairs} of ${ev.predicted_pairs} predicted pairs`
+                  : undefined
+              }
+              accent="purple"
+              delay={240}
+            />
+            <StatCard
+              label="Pair recall"
+              value={ev.pair_recall.toFixed(3)}
+              sub={
+                ev.true_pairs !== undefined
+                  ? `${ev.correct_pairs} of ${ev.true_pairs} true pairs`
+                  : undefined
+              }
+              accent="purple"
+              delay={260}
+            />
+            <StatCard
+              label="Cluster purity"
+              value={ev.cluster_purity.toFixed(3)}
+              sub={`${ev.incidents_formed} incident${ev.incidents_formed === 1 ? "" : "s"} formed`}
+              accent="purple"
+              delay={280}
+            />
+            <StatCard
+              label="Root cause accuracy"
+              value={`${ev.root_cause_correct}/${ev.root_cause_total}`}
+              sub={`${ev.root_cause_total} incident${ev.root_cause_total === 1 ? "" : "s"} checked`}
+              accent="purple"
+              delay={300}
+            />
+            <StatCard
+              label="Blocking saved"
+              value={`${report.blocking_saved_pct}%`}
+              sub={`${report.candidate_pairs} / ${report.possible_pairs} pairs scored`}
+              accent="purple"
+              delay={320}
+            />
+          </div>
+        </>
       )}
       {report.calibration_warning && (
         <div className="animate-fadeInUp rounded-xl border border-amber-200 bg-amber-50 p-3.5">

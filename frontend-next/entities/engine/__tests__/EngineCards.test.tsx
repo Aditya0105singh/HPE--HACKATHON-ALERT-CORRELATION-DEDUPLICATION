@@ -93,6 +93,17 @@ describe("EngineEvaluationCard", () => {
     expect(await screen.findByText("2 of 1 expected")).toBeInTheDocument();
   });
 
+  it("says a single run is a sanity check and shows the pair counts behind the ratios", async () => {
+    mockApi({
+      "/engine/report": pipelineReport({
+        evaluation: evaluation({ true_pairs: 15, predicted_pairs: 15, correct_pairs: 15 }),
+      }),
+    });
+    render(withFreshSWR(<EngineEvaluationCard />));
+    expect(await screen.findByText(/One run is a sanity check/i)).toBeInTheDocument();
+    expect(screen.getByText(/15 of 15 true pairs/)).toBeInTheDocument();
+  });
+
   it("replaying the golden incident posts to the scenario endpoint", async () => {
     const post = jest.fn().mockResolvedValue({ report: pipelineReport(), queue: [] });
     mockApi({ "/engine/report": pipelineReport({ evaluation: evaluation() }) }, post);

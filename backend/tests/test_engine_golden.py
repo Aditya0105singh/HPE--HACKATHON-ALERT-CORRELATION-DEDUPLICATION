@@ -33,6 +33,16 @@ def test_seventeen_signals_become_one_incident(run):
     assert len(body["queue"]) == 1
 
 
+def test_report_exposes_the_pair_counts_behind_the_ratios(run):
+    """A 1.000 precision is only meaningful next to how many pairs it covers."""
+    _, body = run
+    ev = body["report"]["evaluation"]
+    assert ev["true_pairs"] > 0 and ev["predicted_pairs"] > 0
+    assert ev["correct_pairs"] <= min(ev["true_pairs"], ev["predicted_pairs"])
+    assert ev["pair_precision"] == round(ev["correct_pairs"] / ev["predicted_pairs"], 3)
+    assert ev["pair_recall"] == round(ev["correct_pairs"] / ev["true_pairs"], 3)
+
+
 def test_root_cause_is_postgres_not_the_loudest_symptom(run):
     client, body = run
     ev = client.get(f"/engine/queue/{body['queue'][0]['draft_id']}/evidence").json()

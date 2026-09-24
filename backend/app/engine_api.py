@@ -274,6 +274,11 @@ def _report_dict() -> dict:
     if _state.evaluation is not None:
         ev = _state.evaluation
         out["evaluation"] = {
+            # The denominators behind the ratios below: a 1.000 over 15 pairs
+            # and a 1.000 over 15,000 are not the same claim, so the UI shows both.
+            "true_pairs": ev.true_pairs,
+            "predicted_pairs": ev.predicted_pairs,
+            "correct_pairs": ev.correct_pairs,
             "pair_precision": ev.pair_precision,
             "pair_recall": ev.pair_recall,
             "pair_f1": ev.pair_f1,

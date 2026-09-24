@@ -97,6 +97,10 @@ export interface LateSignalResult {
 }
 
 export interface Evaluation {
+  // The pair counts behind the ratios below (absent on older backends).
+  true_pairs?: number;
+  predicted_pairs?: number;
+  correct_pairs?: number;
   pair_precision: number;
   pair_recall: number;
   pair_f1: number;
