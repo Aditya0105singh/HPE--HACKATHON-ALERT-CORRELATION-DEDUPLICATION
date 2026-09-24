@@ -7,8 +7,8 @@ import { useEngineQueue, useEngineReport } from "./useEngine";
 /**
  * Latest engine run, in the same eight-stage order the pipeline executes. Every
  * number is read from the run's own report, so this and the incident page can
- * never disagree. The KPI cards on Overview describe the loaded dataset; this
- * card describes the injected run, and says so.
+ * never disagree. Overview shows this or the loaded dataset's KPIs, never both
+ * at once — they are different runs with different totals.
  */
 export function EngineRunCard() {
   const { data: report } = useEngineReport();
@@ -35,7 +35,7 @@ export function EngineRunCard() {
         <div>
           <div className="text-sm font-bold text-gray-900">Latest engine run</div>
           <div className="text-xs text-gray-600">
-            Live pipeline on injected telemetry: {report.scenario}. The KPI cards below describe the loaded dataset instead.
+            Live pipeline on injected telemetry: {report.scenario}.
           </div>
         </div>
         {target && (

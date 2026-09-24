@@ -34,6 +34,8 @@ import { VolumeChart } from "@/entities/alertlens/ui/VolumeChart";
 import { KpiCards } from "@/entities/alertlens/ui/KpiCards";
 import { InjectFailureButton } from "@/entities/engine/InjectFailureButton";
 import { EngineRunCard } from "@/entities/engine/EngineRunCard";
+import { EngineIncidentsCard } from "@/entities/engine/EngineCards";
+import { useEngineQueue, useEngineReport } from "@/entities/engine/useEngine";
 import { timeAgo } from "@/entities/alertlens/lib/format";
 
 // ---------------------------------------------------------------------------
@@ -110,6 +112,27 @@ export function HomeClient() {
   const [showAll, setShowAll] = useState(false);
   const { loadBgl } = usePipelineActions();
   const autoLoaded = useRef(false);
+
+  // Two different runs live in the backend at once: the loaded dataset (BGL /
+  // synthetic) and the injected engine scenario. Mixing their numbers on one
+  // screen made a 9,695-alert dataset and an 18-signal incident look like one
+  // story, so the page shows exactly one of them, chosen here.
+  const { data: engineReport } = useEngineReport();
+  const { data: engineQueue } = useEngineQueue();
+  const hasEngineRun = !!engineReport?.scenario;
+  const [view, setView] = useState<"dataset" | "engine">("dataset");
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("overview-view") === "engine") setView("engine");
+    } catch {}
+  }, []);
+  const chooseView = (v: "dataset" | "engine") => {
+    setView(v);
+    try {
+      sessionStorage.setItem("overview-view", v);
+    } catch {}
+  };
+  const effView = view === "engine" && hasEngineRun ? "engine" : "dataset";
 
   // First visit with nothing loaded: load the BGL sample once instead of
   // leaving a blank page. Only when the backend truly reports no dataset.
@@ -327,12 +350,20 @@ export function HomeClient() {
         <div className="relative min-w-0">
           {heading}
           <div className="flex flex-wrap items-center gap-2 mt-3">
-            {[
-              [`Dataset: ${status?.dataset === "restored-from-db" ? "last session" : (status?.dataset ?? "none")}`, "bg-gray-50 text-gray-700 border-gray-200"],
-              [`${summary.raw.toLocaleString()} alerts`, "bg-white text-gray-700 border-gray-200"],
-              [`${clusters.length} incidents`, "bg-white text-gray-700 border-gray-200"],
-              ...(clusters.length ? [[`${summary.noise}% less noise`, "bg-green-100 text-green-800 border-green-200"]] : []),
-            ].map(([t, c]) => (
+            {(effView === "engine" && engineReport
+              ? [
+                  [`Engine run: ${engineReport.scenario.split(":")[0]}`, "bg-gray-50 text-gray-700 border-gray-200"],
+                  [`${engineReport.signals_ingested} signals`, "bg-white text-gray-700 border-gray-200"],
+                  [`${engineReport.incidents_formed} incident${engineReport.incidents_formed === 1 ? "" : "s"}`, "bg-white text-gray-700 border-gray-200"],
+                  [`${(engineQueue ?? []).filter((q) => q.status === "awaiting_review").length} awaiting review`, "bg-green-100 text-green-800 border-green-200"],
+                ]
+              : [
+                  [`Dataset: ${status?.dataset === "restored-from-db" ? "last session" : (status?.dataset ?? "none")}`, "bg-gray-50 text-gray-700 border-gray-200"],
+                  [`${summary.raw.toLocaleString()} alerts`, "bg-white text-gray-700 border-gray-200"],
+                  [`${clusters.length} incidents`, "bg-white text-gray-700 border-gray-200"],
+                  ...(clusters.length ? [[`${summary.noise}% less noise`, "bg-green-100 text-green-800 border-green-200"]] : []),
+                ]
+            ).map(([t, c]) => (
               <span key={t} className={clsx("rounded-full border px-2.5 py-1 text-xs font-semibold", c)}>
                 {t}
               </span>
@@ -351,8 +382,42 @@ export function HomeClient() {
         </div>
       </div>
 
-      <EngineRunCard />
+      {hasEngineRun && (
+        <div
+          role="tablist"
+          aria-label="What this page shows"
+          className="inline-flex self-start rounded-full border border-gray-200 bg-white p-1 text-xs font-semibold shadow-sm"
+        >
+          {(
+            [
+              ["dataset", "Loaded dataset", status?.dataset && status.dataset !== "none" ? (status.dataset === "restored-from-db" ? "last session" : status.dataset) : ""],
+              ["engine", "Live engine run", ""],
+            ] as const
+          ).map(([key, label, hint]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={effView === key}
+              onClick={() => chooseView(key)}
+              className={clsx(
+                "rounded-full px-3.5 py-1.5 transition-colors",
+                effView === key ? "bg-green-700 text-white" : "text-gray-600 hover:text-green-700"
+              )}
+            >
+              {label}
+              {hint && <span className={clsx("ml-1.5 font-normal", effView === key ? "text-green-100" : "text-gray-400")}>{hint}</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
+      {effView === "engine" ? (
+        <>
+          <EngineRunCard />
+          <EngineIncidentsCard note="Drafts from the injected run. Nothing is published until a named person approves." />
+        </>
+      ) : (
+        <>
       <KpiCards
         d={{
           raw: summary.raw,
@@ -674,6 +739,8 @@ export function HomeClient() {
             </Panel>
 
       </div>
+        </>
+      )}
     </div>
   );
 }
