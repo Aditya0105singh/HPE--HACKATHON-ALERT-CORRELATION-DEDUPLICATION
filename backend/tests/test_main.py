@@ -346,6 +346,8 @@ class TestSettingsStatus:
         assert status["persisted_alert_count"] > 0
         assert "llm_configured" in status
         assert "db_path" in status
+        # a bare file name, never an absolute path that would leak the host layout
+        assert "/" not in status["db_path"] and "\\" not in status["db_path"]
 
 
 class TestMaintenanceWindowsCRUD:

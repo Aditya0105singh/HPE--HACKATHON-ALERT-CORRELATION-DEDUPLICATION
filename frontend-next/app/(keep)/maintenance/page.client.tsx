@@ -6,8 +6,7 @@ import { MdOutlineEventBusy, MdOutlineDeleteOutline } from "react-icons/md";
 import {
   EmptyStateCard,
   KeepLoader,
-  PageSubtitle,
-  PageTitle,
+  PageHero,
   showErrorToast,
   showSuccessToast,
 } from "@/shared/ui";
@@ -205,15 +204,12 @@ export default function MaintenancePage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <PageTitle>Maintenance</PageTitle>
-        <PageSubtitle>
-          Real time windows that suppress alerts from a service — evaluated
-          against the clock on every pipeline run, not a manual per-alert
-          dismiss.
-        </PageSubtitle>
-      </div>
+    <div className="flex flex-col gap-4 p-4">
+      <PageHero
+        icon={MdOutlineEventBusy}
+        title="Maintenance"
+        subtitle="Real time windows that suppress alerts from a service — evaluated against the clock on every pipeline run, not a manual per-alert dismiss."
+      />
 
       <AddWindowForm onAdd={handleAdd} />
 

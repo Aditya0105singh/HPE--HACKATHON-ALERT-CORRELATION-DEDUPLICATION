@@ -759,7 +759,8 @@ def settings_status() -> dict:
         "active_incident_count": len(_state.get("clusters", [])),
         "llm_configured": bool(configured),
         "llm_provider": configured[0][0] if configured else None,
-        "db_path": str(db.DB_PATH),
+        # File name only: the absolute path would expose the host's directory layout.
+        "db_path": db.DB_PATH.name,
     }
 
 

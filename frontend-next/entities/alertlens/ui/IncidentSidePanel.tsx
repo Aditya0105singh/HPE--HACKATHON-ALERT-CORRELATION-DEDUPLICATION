@@ -204,8 +204,11 @@ export function IncidentSidePanel({
         <div className="border-b border-green-100 px-5 pt-4 shrink-0" style={{ background: "linear-gradient(135deg,#f0fdf4 0%,#ffffff 60%,#ecfdf5 100%)" }}>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-gray-600">#{id}</span>
-            <span className={clsx("text-[11px] font-semibold px-2 py-0.5 rounded-md ring-1 capitalize", SEVERITY_PILL[sev] ?? "bg-gray-50 text-gray-600 ring-gray-100")}>
-              {sev}
+            <span
+              title="Severity of the first (root-cause) alert. The incident's priority, which also weighs blast radius and trend, is shown below."
+              className={clsx("text-[11px] font-semibold px-2 py-0.5 rounded-md ring-1", SEVERITY_PILL[sev] ?? "bg-gray-50 text-gray-600 ring-gray-100")}
+            >
+              Root alert: <span className="capitalize">{sev}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600">
               <span className={clsx("w-1.5 h-1.5 rounded-full", status === "Open" ? "bg-red-500" : status === "Investigating" ? "bg-orange-500" : "bg-blue-500")} />
@@ -288,7 +291,7 @@ export function IncidentSidePanel({
           {tab === "overview" && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card title="Root Cause (AI)">
+                <Card title="Root cause (rule-based)">
                   <div className="flex items-start gap-3">
                     <span className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
                       <HiOutlineCircleStack size={19} />

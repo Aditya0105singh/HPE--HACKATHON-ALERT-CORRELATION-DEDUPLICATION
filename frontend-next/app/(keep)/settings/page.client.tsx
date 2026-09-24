@@ -2,7 +2,7 @@
 
 import { Badge, Button, Card, Text } from "@tremor/react";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
-import { EmptyStateCard, KeepLoader, PageSubtitle, PageTitle } from "@/shared/ui";
+import { EmptyStateCard, KeepLoader, PageHero } from "@/shared/ui";
 import { useSettingsStatus } from "@/entities/alertlens";
 import { useConfig } from "@/utils/hooks/useConfig";
 
@@ -25,19 +25,21 @@ function StatusRow({
   );
 }
 
+// The backend reports an absolute path; showing it would leak the host's
+// directory layout to anyone who can open this page.
+const fileName = (path: string) => path.split(/[\\/]/).pop() || path;
+
 export default function SettingsPage() {
   const { data: status, isLoading, error } = useSettingsStatus();
   const { data: config } = useConfig();
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <PageTitle>Settings</PageTitle>
-        <PageSubtitle>
-          Real system status — what&apos;s actually running right now, not a
-          settings form for accounts this backend doesn&apos;t have.
-        </PageSubtitle>
-      </div>
+    <div className="flex flex-col gap-4 p-4">
+      <PageHero
+        icon={HiOutlineCog6Tooth}
+        title="Settings"
+        subtitle="Real system status — what's actually running right now, not a settings form for accounts this backend doesn't have."
+      />
 
       {isLoading ? (
         <KeepLoader includeMinHeight={false} loadingText="Loading status..." />
@@ -59,7 +61,7 @@ export default function SettingsPage() {
             />
             <StatusRow label="Persisted alerts" value={status.persisted_alert_count} />
             <StatusRow label="Active incidents" value={status.active_incident_count} />
-            <StatusRow label="Database file" value={status.db_path} mono />
+            <StatusRow label="Database file" value={fileName(status.db_path)} mono />
           </Card>
 
           <Card>

@@ -5,8 +5,7 @@ import { Badge, Card, Text, Title } from "@tremor/react";
 import {
   EmptyStateCard,
   KeepLoader,
-  PageSubtitle,
-  PageTitle,
+  PageHero,
 } from "@/shared/ui";
 import { LuWorkflow, LuChevronDown } from "react-icons/lu";
 import { usePipelineState } from "@/entities/alertlens";
@@ -123,19 +122,16 @@ export function PipelineClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <PageTitle>Pipeline</PageTitle>
-          <PageSubtitle>
-            How raw alerts become actionable incidents. Select a stage to see
-            its algorithm and parameters.
-          </PageSubtitle>
-        </div>
+      <PageHero
+        icon={LuWorkflow}
+        title="Pipeline"
+        subtitle="How raw alerts become actionable incidents. Select a stage to see its algorithm and parameters."
+      >
         <div className="flex flex-col items-end gap-1">
-          <Text className="text-xs text-gray-500">Load a dataset</Text>
+          <Text className="text-xs text-gray-600">Load a dataset</Text>
           <DataSourceButtons />
         </div>
-      </div>
+      </PageHero>
 
       <EnginePipelineSection />
 
