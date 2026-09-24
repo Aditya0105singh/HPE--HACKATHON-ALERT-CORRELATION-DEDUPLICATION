@@ -14,6 +14,8 @@ export const MinimizeMenuButton = () => {
     <div className="hidden lg:flex items-center h-full jusity-center">
       <button
         className="flex items-center justify-center"
+        aria-label={isMenuMinimized ? "Expand sidebar" : "Collapse sidebar"}
+        title={isMenuMinimized ? "Expand sidebar ( [ )" : "Collapse sidebar ( [ )"}
         onClick={() => setisMenuMinimized(!isMenuMinimized)}
       >
         <Icon

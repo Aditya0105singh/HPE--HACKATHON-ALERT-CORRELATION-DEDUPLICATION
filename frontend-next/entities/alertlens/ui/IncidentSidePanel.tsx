@@ -413,8 +413,8 @@ export function IncidentSidePanel({
                       >
                         <span className={clsx("w-2 h-2 rounded-full shrink-0", SEVERITY_DOT[a.severity] ?? "bg-gray-300")} />
                         <span className="font-mono text-[11px] text-gray-400 shrink-0">{clockOf(a.timestamp)}</span>
-                        <span className="text-gray-700 truncate flex-1">{a.alertname}</span>
-                        <span className="text-[11px] text-gray-400 shrink-0 truncate max-w-[90px]">{a.service}</span>
+                        <span className="text-gray-700 truncate flex-1" title={a.alertname}>{a.alertname}</span>
+                        <span className="text-[11px] text-gray-400 shrink-0 truncate max-w-[90px]" title={a.service}>{a.service}</span>
                       </button>
                     </li>
                   ))}
@@ -896,7 +896,7 @@ function GraphNode({
         >
           {primary ? <HiOutlineCircleStack size={13} /> : <HiOutlineExclamationTriangle size={13} />}
         </span>
-        <span className="text-xs font-bold text-gray-900 truncate">{name}</span>
+        <span className="text-xs font-bold text-gray-900 truncate" title={name}>{name}</span>
       </div>
       <div className={clsx("text-[10px] mt-1.5 font-medium", primary ? "text-red-600" : "text-amber-700")}>{role}</div>
       <div className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">

@@ -47,7 +47,7 @@ export function EngineIncidentsCard({ note }: { note?: string }) {
                 {q.priority}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-gray-900 truncate">{q.title}</span>
+                <span className="block text-sm font-semibold text-gray-900 truncate" title={q.title}>{q.title}</span>
                 <span className="block text-[11px] text-gray-600">
                   {q.signal_count} signals · {q.affected_services.length} services · confidence {q.correlation_confidence.toFixed(2)} · root cause {q.causal_confidence}%
                 </span>

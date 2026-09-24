@@ -159,6 +159,9 @@ const MenuComponent = React.forwardRef<
         data-nested={isNested ? "" : undefined}
         data-focus-inside={hasFocusInside ? "" : undefined}
         data-testid="dropdown-menu-button"
+        // Passed explicitly: outside a parent menu, getItemProps returns {} and
+        // drops extra props, which left icon-only triggers with no accessible name.
+        aria-label={(props as { "aria-label"?: string })["aria-label"] || undefined}
         className={clsx(
           isNested ? "DropdownMenuItem" : "DropdownMenuButton",
           "group",

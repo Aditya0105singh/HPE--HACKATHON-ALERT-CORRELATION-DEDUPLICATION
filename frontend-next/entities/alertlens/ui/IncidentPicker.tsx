@@ -198,7 +198,10 @@ export function IncidentPicker({
                     className="mt-0.5"
                   />
                   <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 truncate">
+                    <div
+                      className="font-semibold text-gray-900 truncate"
+                      title={c.root_cause.alertname}
+                    >
                       {c.root_cause.alertname}
                     </div>
                     <Text className="text-xs text-gray-600 truncate">

@@ -34,6 +34,7 @@ export function ThemeControl({ className }: { className?: string }) {
 
   return (
     <DropdownMenu.Menu
+      aria-label="Change colour theme"
       icon={() => (
         <>
           <span className="workaround-dark-hidden">

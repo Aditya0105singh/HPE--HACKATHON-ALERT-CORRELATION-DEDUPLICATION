@@ -196,7 +196,7 @@ export const Search = () => {
   return (
     <div className="flex items-center w-full gap-1">
       <div className="flex-shrink-0 flex items-center">
-        <Link href="/" className="flex items-center">
+        <Link href="/" aria-label="AlertLens home" className="flex items-center">
           <AlertLensMark className="w-8 h-8" />
         </Link>
       </div>

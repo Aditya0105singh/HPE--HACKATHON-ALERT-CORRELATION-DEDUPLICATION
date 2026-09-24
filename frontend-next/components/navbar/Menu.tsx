@@ -50,7 +50,7 @@ export const Menu = ({ children, session }: MenuButtonProps) => {
       {({ close: closeMenu }) => (
         <>
           <div className="p-3 w-full block lg:hidden">
-            <Popover.Button className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-green-600 focus:ring focus:ring-green-300">
+            <Popover.Button aria-label="Open navigation menu" className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-green-600 focus:ring focus:ring-green-300">
               <Icon icon={AiOutlineMenu} color="emerald" />
             </Popover.Button>
           </div>
@@ -71,7 +71,7 @@ export const Menu = ({ children, session }: MenuButtonProps) => {
             as="nav"
           >
             <div className="p-3 fixed top-0 right-0 ">
-              <Popover.Button className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-green-600 focus:ring focus:ring-green-300">
+              <Popover.Button aria-label="Close navigation menu" className="p-1 hover:bg-stone-200/50 font-medium rounded-lg hover:text-green-600 focus:ring focus:ring-green-300">
                 <Icon icon={AiOutlineClose} color="emerald" />
               </Popover.Button>
             </div>

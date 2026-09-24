@@ -85,6 +85,10 @@ html.workaround-dark {
   @screen xl {
     @apply p-6 pl-1;
   }
+  /* Room for the floating "Ask AlertLens" button: without it the button sat
+     over the last row of every page (measured on /incidents and the
+     investigation page) and there was no way to scroll that row clear. */
+  padding-bottom: 6rem;
 }
 
 .card-container {
@@ -292,9 +296,26 @@ html.workaround-dark .border-emerald-200 { border-color: #6ee7b7; }
    The react-select page-size box gets its border from emotion-generated
    classes ("css-<hash>-control"), so it is matched by that shape. */
 html.workaround-dark [class^="css-"][class$="-control"],
-html.workaround-dark :is(input, select, textarea),
+/* :not() raises specificity above the [class*="border-gray-200"] card rule,
+   which otherwise gave text inputs the weaker card-outline tone. */
+html.workaround-dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]),
 html.workaround-dark [class*="border-gray-300"],
 html.workaround-dark :is(.tremor-TextInput-root, .tremor-NumberInput-root, .tremor-Select-root, .tremor-Textarea-root, .tremor-DateRangePicker-root) { border-color: #a9a9a9; }
+
+/* Keyboard focus. Measured at 1280x720: 12 of 15 buttons and links on
+   /incidents (9 of 11 on the investigation page) showed no focus indicator,
+   because Tailwind's preflight and several components drop the outline. A
+   visible ring only for keyboard focus (:focus-visible), never for mouse clicks,
+   so the look for pointer users is unchanged. */
+:is(a, button, [role="button"], [role="tab"], summary, select, input, textarea):focus-visible {
+  outline: 2px solid #15803d;
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Status pills (Open / Resolved) sit at 10px in the source and 11px after the
+   readability layer; on a projector that is the smallest text on the screen. */
+.rounded-full.text-\[10px\] { font-size: 11.5px; }
 
 /* Overview KPI cards: entrance + chart animations */
 @keyframes kpi-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }

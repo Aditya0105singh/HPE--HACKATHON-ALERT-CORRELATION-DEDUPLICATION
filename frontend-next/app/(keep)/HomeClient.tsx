@@ -566,7 +566,15 @@ export function HomeClient() {
                                 <HiOutlineExclamationTriangle size={16} />
                               </span>
                               <div className="min-w-0">
-                                <div className="font-semibold text-gray-900 truncate max-w-[120px]">{c.root_cause.alertname}</div>
+                                {/* Two lines, not a 120px one-liner: BGL titles share long
+                                    prefixes ("KERNTERM: rts: kernel terminated..."), so a hard
+                                    single-line cut made rows look identical. Full text on hover. */}
+                                <div
+                                  className="font-semibold text-gray-900 line-clamp-2 break-words max-w-[260px] leading-snug"
+                                  title={c.root_cause.alertname}
+                                >
+                                  {c.root_cause.alertname}
+                                </div>
                                 <div className="text-[11px] text-gray-400">#{c.cluster_id}</div>
                               </div>
                             </div>
@@ -653,7 +661,7 @@ export function HomeClient() {
                       <it.icon size={14} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-xs font-semibold text-gray-800 truncate">{it.title}</span>
+                      <span className="block text-xs font-semibold text-gray-800 truncate" title={it.title}>{it.title}</span>
                       <span className="block text-[11px] text-gray-400 line-clamp-2">{it.body}</span>
                     </span>
                     <HiOutlineChevronRight size={13} className="text-gray-300 shrink-0" />
@@ -724,7 +732,7 @@ export function HomeClient() {
                 {topServices.map((s) => (
                   <li key={s.service} className="text-xs">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-gray-600 truncate">{s.service}</span>
+                      <span className="text-gray-600 truncate" title={s.service}>{s.service}</span>
                       <span className="font-semibold text-gray-800">{s.count}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-green-50 overflow-hidden">
