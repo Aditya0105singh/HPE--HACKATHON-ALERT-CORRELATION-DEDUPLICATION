@@ -3,7 +3,6 @@
 import { ElementRef, Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Icon, List, ListItem, Subtitle } from "@tremor/react";
 import {
   Combobox,
   ComboboxInput,
@@ -12,9 +11,9 @@ import {
   Transition,
 } from "@headlessui/react";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
-import { VscDebugDisconnect } from "react-icons/vsc";
+import { HiOutlineMagnifyingGlass } from "react-icons/hi2";
 import { LuWorkflow, LuGauge, LuBrainCircuit } from "react-icons/lu";
-import { AiOutlineAlert, AiOutlineGroup } from "react-icons/ai";
+import { AiOutlineAlert } from "react-icons/ai";
 import {
   MdOutlineSearchOff,
   MdOutlineNotificationsActive,
@@ -86,9 +85,56 @@ const NAVIGATION_OPTIONS = [
   },
 ];
 
+function ResultRow({
+  option,
+  active,
+}: {
+  option: (typeof NAVIGATION_OPTIONS)[number];
+  active: boolean;
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 cursor-default select-none rounded-xl px-2.5 py-2 transition-colors duration-100"
+      style={active ? { background: "#ecfdf5" } : undefined}
+    >
+      <span
+        className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-colors duration-100"
+        style={
+          active
+            ? { background: "#15803d", color: "#fff" }
+            : { background: "#f3f4f6", color: "#4b5563" }
+        }
+      >
+        <option.icon size={15} />
+      </span>
+      <span
+        className="text-sm font-medium text-left flex-1 truncate"
+        style={{ color: active ? "#065f46" : "#1f2937" }}
+      >
+        {option.label}
+      </span>
+      <span className="hidden sm:flex items-center gap-0.5">
+        {option.shortcut.map((k) => (
+          <kbd
+            key={k}
+            className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+            style={
+              active
+                ? { borderColor: "#a7f3d0", background: "#d1fae5", color: "#15803d" }
+                : { borderColor: "#e5e7eb", background: "#f9fafb", color: "#9ca3af" }
+            }
+          >
+            {k}
+          </kbd>
+        ))}
+      </span>
+    </div>
+  );
+}
+
 export const Search = () => {
   const [query, setQuery] = useState<string>("");
-  const [, setSelectedOption] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
   const comboboxInputRef = useRef<ElementRef<"input">>(null);
   const OPTIONS = NAVIGATION_OPTIONS;
@@ -108,7 +154,6 @@ export const Search = () => {
   }, []);
 
   const onOptionSelection = (value: string | null) => {
-    setSelectedOption(value);
     if (value && comboboxInputRef.current) {
       comboboxInputRef.current.blur();
       router.push(value);
@@ -132,86 +177,6 @@ export const Search = () => {
       )
     : OPTIONS;
 
-  const NoQueriesFoundResult = () => {
-    if (query.length && queriedOptions.length === 0) {
-      return (
-        <ListItem className="flex flex-col items-center justify-center cursor-default select-none px-4 py-2 text-gray-700 h-72">
-          <Icon color="emerald" size="xl" icon={MdOutlineSearchOff} />
-          Nothing found.
-        </ListItem>
-      );
-    }
-
-    return null;
-  };
-
-  const FilteredResults = () => {
-    if (query.length && queriedOptions.length) {
-      return (
-        <>
-          {queriedOptions.map((option) => (
-            <ComboboxOption
-              key={option.label}
-              as={Fragment}
-              value={option.navigate}
-            >
-              {({ active }) => (
-                <ListItem className="flex items-center justify-start space-x-3 cursor-default select-none p-2 ui-active:bg-green-400 ui-active:text-white ui-not-active:text-gray-900">
-                  <Icon
-                    className={`py-2 px-0 ${
-                      active ? "bg-green-400 text-white" : "text-gray-900"
-                    }`}
-                    icon={option.icon}
-                    color="emerald"
-                  />
-                  <span className="text-left">{option.label}</span>
-                </ListItem>
-              )}
-            </ComboboxOption>
-          ))}
-        </>
-      );
-    }
-
-    return null;
-  };
-
-  const DefaultResults = () => {
-    if (query.length) {
-      return null;
-    }
-
-    return (
-      <ListItem className="flex flex-col">
-        <List>
-          <ListItem className="pl-2">
-            <Subtitle>Navigate</Subtitle>
-          </ListItem>
-          {NAVIGATION_OPTIONS.map((option) => (
-            <ComboboxOption
-              key={option.label}
-              as={Fragment}
-              value={option.navigate}
-            >
-              {({ active }) => (
-                <ListItem className="flex items-center justify-start space-x-3 cursor-default select-none p-2 ui-active:bg-green-400 ui-active:text-white ui-not-active:text-gray-900">
-                  <Icon
-                    className={`py-2 px-0 ${
-                      active ? "bg-green-400 text-white" : "text-gray-900"
-                    }`}
-                    icon={option.icon}
-                    color="emerald"
-                  />
-                  <span className="text-left">{option.label}</span>
-                </ListItem>
-              )}
-            </ComboboxOption>
-          ))}
-        </List>
-      </ListItem>
-    );
-  };
-
   const isMac = () => {
     const platform = navigator.platform.toLowerCase();
     const userAgent = navigator.userAgent.toLowerCase();
@@ -221,14 +186,11 @@ export const Search = () => {
     );
   };
 
-  const [placeholderText, setPlaceholderText] = useState("Search");
+  const [shortcutLabel, setShortcutLabel] = useState("Ctrl K");
 
   // Using effect to avoid mismatch on hydration. TODO: context provider for user agent
-  useEffect(function updatePlaceholderText() {
-    if (!isMac()) {
-      return;
-    }
-    setPlaceholderText("Search (or ⌘K)");
+  useEffect(function updateShortcutLabel() {
+    if (isMac()) setShortcutLabel("⌘K");
   }, []);
 
   return (
@@ -251,34 +213,91 @@ export const Search = () => {
             <>
               {open && (
                 <div
-                  className="fixed inset-0 bg-black/40 z-10"
+                  className="fixed inset-0 bg-gray-900/20 backdrop-blur-[1px] z-10"
                   aria-hidden="true"
                 />
               )}
 
-              <ComboboxInput
-                className="z-20 !rounded-full !bg-gray-50 !border-gray-200 focus:!border-green-400 tremor-TextInput-root relative flex items-center w-full outline-none rounded-tremor-default transition duration-100 border shadow-tremor-input dark:shadow-dark-tremor-input bg-tremor-background dark:bg-dark-tremor-background hover:bg-tremor-background-muted dark:hover:bg-dark-tremor-background-muted text-tremor-content dark:text-dark-tremor-content border-tremor-border dark:border-dark-tremor-border tremor-TextInput-input bg-transparent focus:outline-none focus:ring-0 text-tremor-default py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-3 pl-3 placeholder:text-tremor-content dark:placeholder:text-dark-tremor-content"
-                placeholder={placeholderText}
-                color="emerald"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                ref={comboboxInputRef}
-              />
+              <div
+                className="relative z-20 flex items-center w-full rounded-2xl border bg-white transition-all duration-150"
+                style={
+                  isFocused
+                    ? {
+                        borderColor: "#6ee7b7",
+                        boxShadow: "0 0 0 4px rgba(16,185,129,0.14), 0 2px 8px rgba(0,0,0,0.04)",
+                      }
+                    : { borderColor: "#e5e7eb", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }
+                }
+              >
+                <HiOutlineMagnifyingGlass
+                  size={17}
+                  className="ml-3.5 shrink-0"
+                  style={{ color: isFocused ? "#15803d" : "#9ca3af" }}
+                />
+                <ComboboxInput
+                  className="peer flex-1 min-w-0 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-sm text-gray-800 placeholder:text-gray-400 py-2.5 px-2.5"
+                  placeholder="Search or jump to a page..."
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  ref={comboboxInputRef}
+                />
+                {!query.length && (
+                  <kbd
+                    className="hidden sm:inline-flex mr-2.5 shrink-0 items-center rounded-lg border px-1.5 py-1 text-[10px] font-semibold tracking-wide text-gray-400 bg-gray-50"
+                    style={{ borderColor: "#e5e7eb" }}
+                  >
+                    {shortcutLabel}
+                  </kbd>
+                )}
+              </div>
 
               <Transition
                 as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="opacity-0 scale-95 -translate-y-1"
+                enterTo="opacity-100 scale-100 translate-y-0"
+                leave="transition ease-in duration-75"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
                 beforeLeave={onLeave}
-                leave="transition ease-in duration-100"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
               >
                 <ComboboxOptions
-                  className="absolute mt-1 max-h-screen overflow-auto rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none z-20 w-96"
-                  as={List}
+                  className="absolute mt-2 max-h-[70vh] overflow-auto rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5 focus:outline-none z-20 w-full sm:w-96 origin-top"
                 >
-                  <NoQueriesFoundResult />
-                  <FilteredResults />
-                  <DefaultResults />
+                  {query.length > 0 && queriedOptions.length === 0 && (
+                    <div className="flex flex-col items-center justify-center gap-2 py-12 text-gray-400">
+                      <span
+                        className="flex items-center justify-center w-10 h-10 rounded-full"
+                        style={{ background: "#f3f4f6" }}
+                      >
+                        <MdOutlineSearchOff size={20} />
+                      </span>
+                      <span className="text-sm">Nothing matches &ldquo;{query}&rdquo;</span>
+                    </div>
+                  )}
+
+                  {!!queriedOptions.length && (
+                    <>
+                      <div className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        {query.length ? "Matching pages" : "Navigate"}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        {queriedOptions.map((option) => (
+                          <ComboboxOption
+                            key={option.label}
+                            as={Fragment}
+                            value={option.navigate}
+                          >
+                            {({ active }) => (
+                              <ResultRow option={option} active={active} />
+                            )}
+                          </ComboboxOption>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </ComboboxOptions>
               </Transition>
             </>
