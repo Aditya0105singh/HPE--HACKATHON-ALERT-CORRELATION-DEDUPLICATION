@@ -1,67 +1,154 @@
-# AlertLens
+<div align="center">
 
-[![CI](https://github.com/Aditya0105singh/HPE--HACKATHON-ALERT-CORRELATION-DEDUPLICATION/actions/workflows/ci.yml/badge.svg)](https://github.com/Aditya0105singh/HPE--HACKATHON-ALERT-CORRELATION-DEDUPLICATION/actions/workflows/ci.yml)
+<img src="docs/assets/banner.svg" alt="AlertLens: from raw telemetry to a human-approved ticket" width="100%"/>
 
-**From raw telemetry to a human-approved ticket.** An AIOps system that turns a storm of
-alerts into one explained incident, and never publishes a ticket without a human.
+<br/>
 
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Tests](https://img.shields.io/badge/tests-358_backend_%C2%B7_327_frontend-15803d?style=flat-square)](#testing)
+[![Human approved](https://img.shields.io/badge/auto--publish-structurally_impossible-15803d?style=flat-square)](#guarantees)
+
+**An AIOps system that turns a storm of alerts into one explained incident,<br/>and never publishes a ticket without a named human saying yes.**
+
+[The 90-second story](#the-90-second-story) ·
+[Pipeline](#the-pipeline) ·
+[Guarantees](#guarantees) ·
+[Honest status](#honest-status-real-vs-mock) ·
+[Run it](#run-it) ·
+[API](#api-reference)
+
+</div>
+
+<br/>
+
+## Why AlertLens
+
+On-call engineers do not lack alerts; they lack *an answer*. A single failing database can raise hundreds
+of alarms across a dozen services, and someone has to work out that they are one incident, find the actual
+cause, decide how bad it is, and write it up, at 3 a.m., under pressure.
+
+AlertLens does that work and shows its reasoning at every step:
+
+- **Groups** related signals into one incident, and never groups on time alone.
+- **Finds the root cause**, not the loudest symptom, and proves the symptoms are symptoms.
+- **Scores severity** from four visible, weighted factors, with no black box.
+- **Drafts the ticket** with computed facts and AI prose kept visibly separate.
+- **Waits for a human.** Nothing reaches Jira until a named reviewer approves it.
+
+Built by **Team Space-X** for the **Ensylon AIOps Challenge 2026**.
+
+## At a glance
+
+| | |
+|---|---|
+| **Golden incident** | 18 signals from four sources become **1 incident**; a decoy alarm in the same minute is **rejected** |
+| **Root cause** | `postgres-primary` (93% confidence); three downstream services ruled out by a counterfactual check |
+| **Severity** | **P1 = 0.846**, from blast radius, business criticality, trend and signal diversity |
+| **Scale demo** | 9,695 real supercomputer logs (Loghub BGL) become 1,458 unique signals and **114 incidents** |
+| **Auto-published tickets** | **0**, by construction (see [Guarantees](#guarantees)) |
+| **Tests** | 358 backend · 327 frontend, run on every push by CI |
+
+## The pipeline
+
+```mermaid
+flowchart LR
+    A["Ingest<br/>CloudWatch, Grafana,<br/>OpenTelemetry, any file"] --> B["Redact<br/>PII and PCI stripped first"]
+    B --> C["Deduplicate<br/>repeats collapse"]
+    C --> D["Detect<br/>baselines and templates"]
+    D --> E["Correlate<br/>shared-context gate"]
+    E --> F["Causal<br/>root cause vs symptom"]
+    F --> G["Score<br/>P1 / P2 / P3"]
+    G --> H["Draft<br/>facts + AI prose"]
+    H --> I{{"Human review<br/>named approver"}}
+    I -->|approve| J["Jira<br/>one ticket"]
+    I -->|reject or merge| K["Feedback<br/>tunes grouping"]
+    K -.-> E
 ```
-INGEST -> REDACT -> DEDUPLICATE -> DETECT -> CORRELATE -> CAUSAL -> SCORE -> DRAFT -> HUMAN REVIEW -> JIRA
-```
 
-Built for the Ensylon AIOps hackathon. The design lives in the Phase 1 submission; this repo
-is the working system behind it.
+| Stage | What it does |
+|---|---|
+| **Redact** | Regex (plus optional Presidio NER) removes PII/PCI *before* dedup, storage or any LLM call |
+| **Deduplicate** | Fingerprints repeated firings, e.g. 12 identical "connection pool exhausted" errors become 1 signal |
+| **Detect** | EWMA baselines and z-scores for metrics; Drain3 template mining for logs; trusts pre-flagged alarms |
+| **Correlate** | Groups signals only when they share a service, a dependency edge, or a trace id |
+| **Causal** | Ranks candidates by precedence and reach, then removes each in turn to see what is still explained |
+| **Score** | Weighted composite (blast radius, criticality, trend, diversity) with maintenance-window and flap handling |
+| **Draft** | Jira-ready ticket; computed facts and generated narrative are visibly separated |
+| **Review** | Approve, edit, reject or merge, each recorded with the reviewer's name |
 
-## The 90-second story (the golden incident)
+## The 90-second story
 
-Click **Inject failure** on the Overview. A fixed, deterministic failure runs through the real
-engine:
+Click **Inject failure** on the Overview. A fixed, deterministic failure runs through the real engine:
 
 | Step | What you see |
 |---|---|
-| Ingest | 18 signals from CloudWatch metrics and logs, Grafana, OpenTelemetry traces |
+| Ingest | 18 signals from CloudWatch metrics and logs, Grafana, and OpenTelemetry traces |
 | Deduplicate | 12 identical "connection pool exhausted" errors collapse into 1 signal |
 | Correlate | 17 signals become **1 incident**; an unrelated disk-usage alarm in the same minute is **rejected** |
 | Explain | Per signal: which shared-context link joined it, its similarity score, and what was rejected and why |
 | Root cause | `postgres-primary` (0.89), not the loudest symptom; downstream services ruled out by a counterfactual check |
-| Score | P1 = 0.846 from four visible weighted factors (blast radius, criticality, trend, diversity) |
+| Score | P1 = 0.846 from four visible weighted factors |
 | Draft | Computed facts and AI prose shown separately; the LLM cannot add evidence |
-| Review | "AWAITING HUMAN REVIEW - Jira not created" until a named person approves |
-| Act | Approve -> single-use approval token -> one (mock) Jira issue |
+| Review | "AWAITING HUMAN REVIEW: Jira not created" until a named person approves |
+| Page | The P1 fires a notification the moment it forms (mock transport unless a webhook is configured) |
+| Act | Approve → single-use approval token → one (mock) Jira issue |
 | Live | A late related alert attaches to the same incident, or becomes a comment on the same Jira issue |
 | Context | Resembles seeded past incident INC-0417 (90% similar) and shows how it was resolved; context only, never forces a grouping |
 
-Two more one-click scenarios sit next to the Inject failure button: the same failure inside a declared **maintenance window** (still drafted, not escalated as a page) and a **flapping** service (4 threshold crossings become 1 incident with a flap count).
+Two more one-click scenarios sit beside it: the same failure inside a declared **maintenance window**
+(still drafted, but not escalated as a page) and a **flapping** service (4 threshold crossings become 1 incident
+with a flap count).
 
-## Hard constraints and where they are enforced
+## Guarantees
 
-| Constraint | Enforcement | Test |
+The constraints that matter are enforced in code, and each has a test.
+
+| Guarantee | How it is enforced | Test |
 |---|---|---|
-| No auto-publish | `JiraClient.create_issue` requires an `ApprovalToken`, minted only in `ReviewQueue.approve`; tokens are single-use and draft-bound (`backend/app/engine/review.py`) | `test_engine_review_gate.py`, `test_engine_golden.py` |
-| One Jira write path | `add_comment` only extends an issue that already consumed an approval token | `test_engine_lifecycle.py` |
-| No duplicate tickets | idempotency key = draft id; a second approve is rejected | `test_engine_lifecycle.py` |
-| Read-only infrastructure | telemetry is only received or parsed; nothing writes to a customer environment | design + adapters |
-| No PII/PCI stored | regex (plus optional Presidio NER) redaction runs first, before dedup, storage or the LLM — in **both** pipelines, including the one that persists alerts to SQLite (`engine/redaction.py`) | `test_engine_adapters.py`, `test_security.py` |
-| Time alone never groups | shared-context gate: same service, dependency edge, or common trace (`engine/correlate.py`) | `test_engine_golden.py` |
-| The API is not open to strangers | shared-key auth on every route but `/health`; with no key set the backend serves loopback only and refuses remote requests, so an unconfigured deployment fails closed (`app/security.py`) | `test_security.py` |
-| A malformed request is not a destructive one | `/ingest` is validated before the pipeline clears the alerts table | `test_security.py` |
+| **No auto-publish** | `JiraClient.create_issue` requires an `ApprovalToken`, minted only in `ReviewQueue.approve`; tokens are single-use and bound to one draft (`backend/app/engine/review.py`) | `test_engine_review_gate.py`, `test_engine_golden.py` |
+| **One Jira write path** | `add_comment` can only extend an issue that already consumed an approval token | `test_engine_lifecycle.py` |
+| **No duplicate tickets** | Idempotency key = draft id; a second approve is rejected | `test_engine_lifecycle.py` |
+| **Time alone never groups** | Shared-context gate: same service, dependency edge, or common trace (`engine/correlate.py`) | `test_engine_golden.py` |
+| **No PII/PCI stored** | Redaction runs first, before dedup, storage or the LLM, in both pipelines (`engine/redaction.py`) | `test_engine_adapters.py`, `test_security.py` |
+| **Read-only infrastructure** | Telemetry is only received or parsed; nothing writes to a customer environment | design + adapters |
+| **API not open to strangers** | Shared-key auth on every route but `/health`; with no key set the backend serves loopback only, so an unconfigured deployment fails closed (`app/security.py`) | `test_security.py` |
+| **A bad request is not destructive** | `/ingest` is validated *before* the pipeline clears the alerts table | `test_security.py` |
 
-## Mock vs real (honest status)
+## Measured, not asserted
+
+The golden incident is a hand-written scenario, so its perfect scores (15 of 15 pairs) are a **sanity check, not an accuracy
+estimate**; the UI says so next to the numbers. Accuracy is measured on the **Evaluation** page against a synthetic generator's
+hidden ground truth across 8 fixed seeds; the pipeline never reads the answers.
+
+| Metric | Result |
+|---|---|
+| Incident detection | 91.7% (22 of 24 incidents found) |
+| Cluster purity | 91.4% |
+| Noise correctly excluded | 91.5% |
+| Alert DNA match accuracy | 96.6% (28 of 29) |
+
+These are the values at the time of writing; the page recomputes and shows a per-seed table.
+
+## Honest status: real vs mock
 
 | Piece | Status |
 |---|---|
 | Correlation, causal ranking, severity, drafting, review gate, lifecycle | **Real, tested code** |
 | CloudWatch / Grafana / OTel parsers and push endpoints (`/engine/ingest/*`) | **Real parsers**, fed by generated payloads |
-| `/engine/ingest/generic` — fallback for an alert export in none of those four shapes | **Real**, field-name best-effort matching (e.g. a hackathon-day sample data file instead of a webhook) |
+| `/engine/ingest/generic` (fallback for any alert export in another shape) | **Real**, field-name best-effort matching |
 | Live CloudWatch polling with a read-only IAM role | Not connected (needs AWS credentials) |
-| Jira | **Mock transport** behind the real client interface; a swap needs URL, email, API token, project key |
-| P1 paging (`/engine/health`, `engine/notifications.py`) | **Real**, fires on every new or escalated P1; **mock transport** by default — set `ALERT_WEBHOOK_URL` to page a real Slack/PagerDuty/webhook endpoint |
-| LLM narrative | Deterministic template fallback; the grounded LLM path is written but needs a key |
+| Jira | **Mock transport** behind the real client interface; a swap needs URL, email, API token and project key |
+| P1 paging | **Real** (fires on every new or escalated P1); **mock transport** until `ALERT_WEBHOOK_URL` is set |
+| LLM narrative | Deterministic template fallback; the grounded LLM path needs a provider key |
 | Historical matches | Seeded demo history (5 illustrative past incidents), not real tickets |
 | Counterfactual check | Rule-based graph ablation, not a trained causal model |
 | Reviewer feedback | Rule-based nudge to similarity weights for that service pattern; visible and resettable |
-| API authentication | **Real**: a shared key (`ALERTLENS_API_KEY`) enforced on every route but `/health`, plus per-client rate limits and body caps. It is not a user directory — the approving reviewer is still a name typed into a form, so the audit log records *who claimed* the approval, not a verified identity |
-| State | The engine run is rebuilt after a backend restart by replaying an event log in SQLite (scenarios are deterministic, so incidents, decisions and the Jira key come back); audit timestamps become the replay time |
+| API authentication | A shared key, per-client rate limits and body caps. It is not a user directory: the reviewer is a name typed into a form, so the audit log records *who claimed* the approval, not a verified identity |
+| State | The engine run is rebuilt after a restart by replaying an event log in SQLite; audit timestamps become the replay time |
+
+The Settings page shows the same live-versus-mock status for the running instance, straight from `/engine/health`.
 
 ## Run it
 
@@ -74,39 +161,108 @@ python -m uvicorn app.main:app --port 8001
 # frontend (Node 20+), in a second terminal
 cd frontend-next
 npm install
-# .env.local: API_URL=http://127.0.0.1:8001  AUTH_TYPE=NO_AUTH  NEXTAUTH_SECRET=<any random string>
+# .env.local:  API_URL=http://127.0.0.1:8001   AUTH_TYPE=NO_AUTH   NEXTAUTH_SECRET=<any random string>
 npm run dev -- -p 3001
 ```
 
-Nothing else to configure locally: with no `ALERTLENS_API_KEY` set the backend serves
-the loopback interface only, and refuses remote callers. Deploying it anywhere reachable
-needs a key on both sides — see [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Open <http://localhost:3001> and click **Inject failure**. For scale, click **Loghub BGL** on the same page.
 
-Open http://localhost:3001 and click **Inject failure**. To see scale, click **Loghub BGL**
-(9,695 real supercomputer log alerts, 114 incidents) on the same page.
+Nothing else is needed locally: with no `ALERTLENS_API_KEY` set the backend serves the loopback interface only and refuses
+remote callers. Deploying anywhere reachable needs a key on both sides; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-## Tests
+## A tour of the UI
+
+| Page | Purpose |
+|---|---|
+| **Overview** | Headline KPIs for the loaded dataset, or the live engine run, switched explicitly so the two are never mixed |
+| **Alert Feed** | Every ingested alert with facet filters |
+| **Incidents** | Correlated incidents with root cause, blast radius, playbook and ticket draft |
+| **Review Queue** | Human approval gate, audit log, and the investigation view (correlation explorer, root-cause candidates, severity breakdown) |
+| **Time Machine** | Compares a live incident with its closest historical match |
+| **Correlations · Deduplication** | The chaos-to-order animation and the fingerprint collapse table |
+| **Service Topology** | Dependency graph inferred from correlated incidents |
+| **Forecast** | Blast-radius prediction, cross-checked against the services actually seen |
+| **Maintenance** | Time windows that suppress escalation for a service |
+| **Evaluation · Pipeline** | Measured accuracy, and every stage's algorithm and parameters |
+| **Settings** | Real system status, including engine health and mock-vs-live integrations |
+
+## Built to adapt to any input
+
+Real telemetry rarely arrives in the shape you assumed. Ingestion is a thin adapter layer, so the engine downstream does not care
+whether a signal came from a webhook or a file.
+
+| Endpoint | Accepts |
+|---|---|
+| `POST /engine/ingest/cloudwatch/alarm` | CloudWatch alarm state change (SNS) |
+| `POST /engine/ingest/grafana` | Grafana unified-alerting webhook |
+| `POST /engine/ingest/otel/logs` · `/otel/traces` | OTLP/JSON logs and traces (spans also teach the dependency graph) |
+| `POST /engine/ingest/generic` | **Any** list of alert-shaped records: matches common field names for service, severity, timestamp and message |
+
+Malformed records are skipped, never fatal, and a payload that yields no signals is reported as such instead of silently succeeding.
+
+## API reference
+
+All engine routes live under `/engine`. Every route except `/health` requires `X-API-Key` unless called from loopback with no key configured.
+
+| Method | Route | Purpose |
+|---|---|---|
+| `POST` | `/golden` · `/scenario/{name}` | Run the golden, `maintenance` or `flapping` scenario |
+| `POST` | `/demo/run` | Generate and run a random fault-injected scenario |
+| `GET` | `/queue` · `/queue/{id}` | Drafts awaiting or past review; one full ticket |
+| `GET` | `/queue/{id}/evidence` | Why this incident: joins, exclusions, root-cause candidates, severity |
+| `POST` | `/queue/{id}/approve` · `/reject` · `/merge` | The review gate (each needs a named `actor`) |
+| `POST` | `/queue/{id}/late-signal` · `/resolve` | Live attach to an open incident; close it |
+| `GET` | `/report` · `/audit` · `/feedback` | Last run's stats and measured evaluation; audit log; learned corrections |
+| `GET` | `/health` | Queue depth, per-stage latency, and which integrations are live or mock |
+| `POST` | `/ingest/*` | See [Built to adapt](#built-to-adapt-to-any-input) |
+
+## Configuration
+
+Every variable is optional; see [`.env.example`](.env.example).
+
+| Variable | Effect |
+|---|---|
+| `ALERTLENS_API_KEY` | Shared API key. Required for any network-reachable deployment; set the same value in the frontend |
+| `ALERT_WEBHOOK_URL` | Pages this URL (Slack, PagerDuty, any JSON POST endpoint) when a P1 forms |
+| `CEREBRAS_API_KEY` · `GROQ_API_KEY` | Enables grounded LLM narratives; without one, drafts use the deterministic template |
+| `ALERTLENS_ALLOWED_ORIGINS` | Browser origins allowed to call the API cross-origin |
+| `ALERTLENS_RATE_LIMIT` · `ALERTLENS_EXPENSIVE_RATE_LIMIT` · `ALERTLENS_MAX_BODY_BYTES` | Request limits |
+
+## Testing
 
 ```bash
-cd backend && python -m pytest -q          # 357 tests
-cd frontend-next && npx jest               # 321 tests
+cd backend && python -m pytest -q          # 358 tests
+cd frontend-next && npx jest               # 327 tests
 ```
 
-## Layout
+GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs both suites plus a production build (type-check and lint included) on every push and pull request.
+
+## Repository layout
 
 ```
-backend/app/engine/         the pipeline: adapters, redaction, dedup, detect, correlate, causal,
-                            severity, drafting, review gate, lifecycle, feedback, evidence, golden scenario
-backend/app/engine_api.py   HTTP surface: /engine/golden, /queue, /ingest/*, /feedback ...
-backend/app/                the dataset pipeline used for the BGL / synthetic scale demo
-frontend-next/             Next.js UI: Overview, Incidents, Review Queue + incident investigation,
-                            Correlations, Deduplication, Topology, Evaluation, Pipeline
-docs/                       demo script, deploy notes; the original hackathon README
-.github/workflows/ci.yml    runs both test suites + a production build on every push/PR
+backend/app/engine/         the pipeline: adapters, redaction, dedup, detect, correlate, causal, severity,
+                            drafting, review gate, notifications, lifecycle, feedback, evidence, scenarios
+backend/app/engine_api.py   HTTP surface for the engine (/engine/*)
+backend/app/security.py     auth, rate limits and size caps: the whole trust boundary in one file
+backend/app/                the dataset pipeline behind the BGL / synthetic scale demo
+frontend-next/              Next.js 15 UI (Tremor, Tailwind, SWR)
+data/                       synthetic generator and the Loghub BGL sample
+docs/                       demo script, deployment notes, brand assets
+render.yaml                 backend deployment blueprint
 ```
 
-The evidence panels (Correlation Explorer, root-cause candidates, severity and confidence
-breakdowns) are served by `GET /engine/queue/{draft_id}/evidence`, computed with the same
-functions the correlator used, so what you see is what the engine acted on.
+## Deploying
 
-See [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) for the click path.
+Two processes: the FastAPI backend (which holds the engine) and the Next.js frontend. The backend deploys from
+[`render.yaml`](render.yaml); the frontend deploys to Vercel. Full steps, including the shared key, are in [`docs/DEPLOY.md`](docs/DEPLOY.md);
+the click path for a demo is in [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
+
+<br/>
+
+<div align="center">
+
+**Team Space-X** · Ensylon AIOps Challenge 2026
+
+<sub>Less noise. Faster answers. Happier on-calls.</sub>
+
+</div>

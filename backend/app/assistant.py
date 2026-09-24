@@ -31,7 +31,7 @@ MAX_CONVERSATION_TURNS = 8
 # zero pipeline data loaded (e.g. backend just started, no dataset yet).
 PROJECT_BRIEF = (
     "AlertLens is an AI-powered alert correlation and deduplication engine for SRE teams "
-    "(HPE hackathon project, Team Synergy 2026, Problem Statement #10). Pipeline stages: "
+    "(built by Team Space-X for the Ensylon AIOps Challenge 2026). Pipeline stages: "
     "dedup (fingerprint duplicate alerts) -> embed -> cluster (correlate related alerts into "
     "incidents) -> risk scoring -> Alert DNA (match against historical incidents for known "
     "fixes). It ingests alerts from sources like prometheus, datadog, gcp-monitoring, grafana, "
