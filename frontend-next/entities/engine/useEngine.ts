@@ -5,6 +5,7 @@ import type {
   AuditEntry,
   DemoRunRequest,
   DraftDetail,
+  EngineBenchmark,
   EngineHealth,
   Evidence,
   FeedbackState,
@@ -48,6 +49,16 @@ export const useEngineHealth = (options: SWRConfiguration = {}) => {
     api.isReady() ? "/engine/health" : null,
     (url: string) => api.get(url),
     { refreshInterval: 10_000, ...options }
+  );
+};
+
+/** GET /engine/benchmark — deterministic, so fetched once and never revalidated. */
+export const useEngineBenchmark = (options: SWRConfiguration = {}) => {
+  const api = useApi();
+  return useSWR<EngineBenchmark>(
+    api.isReady() ? "/engine/benchmark" : null,
+    (url: string) => api.get(url),
+    { revalidateOnFocus: false, revalidateIfStale: false, ...options }
   );
 };
 

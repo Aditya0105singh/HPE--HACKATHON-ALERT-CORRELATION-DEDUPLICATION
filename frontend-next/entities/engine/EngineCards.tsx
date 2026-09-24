@@ -116,7 +116,7 @@ export function EngineEvaluationCard() {
           <p className="text-[11px] text-gray-600 mt-2">Scenario: {report?.scenario}</p>
           <p className="text-[11px] text-gray-600">
             One run is a sanity check{ev.true_pairs !== undefined && <> ({ev.correct_pairs} of {ev.true_pairs} true pairs)</>}, not an
-            accuracy estimate — the per-seed results below are.
+            accuracy estimate — the held-out engine benchmark above is.
           </p>
         </>
       )}

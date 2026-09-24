@@ -22,7 +22,7 @@ from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel
 
 from . import db, security, summarizer
-from .engine import adapters, scenarios
+from .engine import adapters, benchmark as benchmark_mod, scenarios
 from .engine.evidence import build_evidence
 from .engine import feedback as feedback_mod
 from .engine.golden import flapping_scenario, golden_scenario, maintenance_windows
@@ -726,6 +726,17 @@ def health() -> dict:
             }
         ),
     }
+
+
+@router.get("/benchmark")
+def engine_benchmark() -> dict:
+    """The engine scored across generated estates on held-out seeds.
+
+    The golden run proves the engine reproduces one known answer; this is the
+    generalisation measurement. Computed once per process (deterministic), so
+    the first call takes a few seconds and later calls are instant.
+    """
+    return benchmark_mod.benchmark()
 
 
 @router.get("/topologies")

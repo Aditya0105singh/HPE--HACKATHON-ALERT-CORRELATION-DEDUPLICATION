@@ -290,3 +290,36 @@ export interface EngineHealth {
     calibration_warning: string | null;
   } | null;
 }
+
+/** GET /engine/benchmark — the engine scored on held-out generated estates. */
+export interface BenchmarkRow {
+  key: string;
+  label: string;
+  concurrent: boolean;
+  runs: number;
+  avg_signals: number;
+  pair_precision: number;
+  pair_recall: number;
+  pair_f1: number;
+  worst_pair_f1: number;
+  cluster_purity: number;
+  noise_precision: number;
+  root_cause_correct: number;
+  root_cause_total: number;
+  root_cause_accuracy: number;
+  exact_incident_count_runs: number;
+  median_runtime_ms: number;
+}
+
+export interface EngineBenchmark {
+  seeds: number[];
+  held_out: boolean;
+  configs: BenchmarkRow[];
+  overall: {
+    runs: number;
+    pair_f1: number;
+    pair_precision: number;
+    pair_recall: number;
+    root_cause_accuracy: number;
+  };
+}
