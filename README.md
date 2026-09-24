@@ -41,8 +41,10 @@ Two more one-click scenarios sit next to the Inject failure button: the same fai
 | One Jira write path | `add_comment` only extends an issue that already consumed an approval token | `test_engine_lifecycle.py` |
 | No duplicate tickets | idempotency key = draft id; a second approve is rejected | `test_engine_lifecycle.py` |
 | Read-only infrastructure | telemetry is only received or parsed; nothing writes to a customer environment | design + adapters |
-| No PII/PCI stored | regex (plus optional Presidio NER) redaction runs first, before dedup, storage or the LLM (`engine/redaction.py`) | `test_engine_adapters.py` |
+| No PII/PCI stored | regex (plus optional Presidio NER) redaction runs first, before dedup, storage or the LLM — in **both** pipelines, including the one that persists alerts to SQLite (`engine/redaction.py`) | `test_engine_adapters.py`, `test_security.py` |
 | Time alone never groups | shared-context gate: same service, dependency edge, or common trace (`engine/correlate.py`) | `test_engine_golden.py` |
+| The API is not open to strangers | shared-key auth on every route but `/health`; with no key set the backend serves loopback only and refuses remote requests, so an unconfigured deployment fails closed (`app/security.py`) | `test_security.py` |
+| A malformed request is not a destructive one | `/ingest` is validated before the pipeline clears the alerts table | `test_security.py` |
 
 ## Mock vs real (honest status)
 
@@ -58,6 +60,7 @@ Two more one-click scenarios sit next to the Inject failure button: the same fai
 | Historical matches | Seeded demo history (5 illustrative past incidents), not real tickets |
 | Counterfactual check | Rule-based graph ablation, not a trained causal model |
 | Reviewer feedback | Rule-based nudge to similarity weights for that service pattern; visible and resettable |
+| API authentication | **Real**: a shared key (`ALERTLENS_API_KEY`) enforced on every route but `/health`, plus per-client rate limits and body caps. It is not a user directory — the approving reviewer is still a name typed into a form, so the audit log records *who claimed* the approval, not a verified identity |
 | State | The engine run is rebuilt after a backend restart by replaying an event log in SQLite (scenarios are deterministic, so incidents, decisions and the Jira key come back); audit timestamps become the replay time |
 
 ## Run it
@@ -75,14 +78,18 @@ npm install
 npm run dev -- -p 3001
 ```
 
+Nothing else to configure locally: with no `ALERTLENS_API_KEY` set the backend serves
+the loopback interface only, and refuses remote callers. Deploying it anywhere reachable
+needs a key on both sides — see [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
 Open http://localhost:3001 and click **Inject failure**. To see scale, click **Loghub BGL**
 (9,695 real supercomputer log alerts, 114 incidents) on the same page.
 
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q          # 317 tests
-cd frontend-next && npx jest               # 306 tests
+cd backend && python -m pytest -q          # 357 tests
+cd frontend-next && npx jest               # 318 tests
 ```
 
 ## Layout

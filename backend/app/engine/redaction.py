@@ -201,3 +201,60 @@ def redact_all(signals: list[Any]) -> tuple[list[Any], dict[str, int]]:
         for kind in signal.redacted_fields:
             counts[kind] = counts.get(kind, 0) + 1
     return signals, counts
+
+
+# --------------------------------------------------------------------------
+# Plain-dict alerts
+# --------------------------------------------------------------------------
+
+# Fields the pipeline and the UI key off. They are identifiers and enums, not
+# prose, and rewriting them would break correlation, the DB primary key or the
+# action-to-alert mapping — so they are passed through untouched and everything
+# else is treated as potentially free text.
+_STRUCTURAL_FIELDS = frozenset({
+    "id", "timestamp", "status", "severity", "source", "service", "component",
+    "fingerprint", "ground_truth", "duplicate_count", "cluster_id", "acked",
+    "escalated", "assignee", "status_override", "incident_key",
+})
+
+
+def _redact_value(value: Any, found: list[str]) -> Any:
+    """Redact strings anywhere inside a nested alert payload."""
+    if isinstance(value, str):
+        clean, kinds = redact_text(value)
+        found.extend(kinds)
+        return clean
+    if isinstance(value, dict):
+        return {k: _redact_value(v, found) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_redact_value(v, found) for v in value]
+    return value
+
+
+def redact_alert_dict(alert: dict) -> tuple[dict, list[str]]:
+    """Redact one plain-dict alert, returning it plus the kinds removed.
+
+    Allowlisted on the *structural* fields rather than the text ones: a new
+    free-text field added later is redacted automatically, where an allowlist
+    of text fields would silently stop covering it. Getting that default
+    backwards is how a redaction layer quietly decays into decoration.
+    """
+    found: list[str] = []
+    for key in list(alert.keys()):
+        if key in _STRUCTURAL_FIELDS:
+            continue
+        alert[key] = _redact_value(alert[key], found)
+    kinds = list(dict.fromkeys(found))
+    if kinds:
+        alert["redacted_fields"] = kinds
+    return alert, kinds
+
+
+def redact_alert_dicts(alerts: list[dict]) -> tuple[list[dict], dict[str, int]]:
+    """Redact a batch of dict alerts in place, with per-kind counts."""
+    counts: dict[str, int] = {}
+    for alert in alerts:
+        _, kinds = redact_alert_dict(alert)
+        for kind in kinds:
+            counts[kind] = counts.get(kind, 0) + 1
+    return alerts, counts

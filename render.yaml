@@ -7,7 +7,10 @@ services:
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /pipeline
+    # /health, not /pipeline: every other route requires the API key, and a
+    # health check that has to authenticate is a health check that fails for
+    # the wrong reasons.
+    healthCheckPath: /health
     autoDeploy: true
     disk:
       name: alertlens-data
@@ -16,3 +19,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      # Generated once by Render, then copied into the frontend's
+      # ALERTLENS_API_KEY. Without it this service is reachable but refuses
+      # every non-local request, which is the intended fail-closed default.
+      - key: ALERTLENS_API_KEY
+        generateValue: true

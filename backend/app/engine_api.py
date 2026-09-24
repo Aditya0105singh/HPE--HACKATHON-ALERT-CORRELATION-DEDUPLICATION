@@ -21,7 +21,7 @@ from typing import Any
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel
 
-from . import db, summarizer
+from . import db, security, summarizer
 from .engine import adapters, scenarios
 from .engine.evidence import build_evidence
 from .engine import feedback as feedback_mod
@@ -36,6 +36,10 @@ from .engine.review import DraftStatus, QueueItem, ReviewQueue
 from .engine.severity import SeverityBreakdown
 
 router = APIRouter(prefix="/engine", tags=["engine"])
+
+# Upper bound on signals accepted from a single pushed payload. Generous next to
+# the golden scenario's 18, deliberately far below what would stall correlation.
+MAX_INGEST_SIGNALS = 5_000
 
 # --------------------------------------------------------------------------
 # persistence: an event log that is replayed on startup
@@ -567,6 +571,11 @@ def _ingest(signals: list, edges: set | None = None) -> dict:
     """
     if not signals:
         return {"received": 0, "mode": "empty"}
+
+    # A webhook body is arbitrary client JSON, and one payload can normalize
+    # into many signals. Correlation is superlinear in signal count, so an
+    # uncapped push is a cheap way to make the engine expensive.
+    security.require_items(signals, MAX_INGEST_SIGNALS, "signals")
 
     if _state.result is None or _state.graph is None:
         graph = DependencyGraph(edges or set())

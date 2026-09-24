@@ -18,7 +18,7 @@ import urllib.request
 from typing import Any, Literal
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 UNAVAILABLE_MESSAGE = "AI Assistant unavailable."
 RATE_LIMIT_MESSAGE = "AI Assistant is temporarily rate limited. Please try again in a moment."
@@ -68,15 +68,29 @@ def _load_env_file() -> None:
 _load_env_file()
 
 
+# Every character accepted here is a character billed as LLM input, on routes
+# that spend an upstream provider's quota. The prompt builder already trims the
+# conversation to MAX_CONVERSATION_TURNS, but that trims what is *sent*, not
+# what is *accepted* — without these caps a single request could carry megabytes
+# of text into a paid context window.
+MAX_QUESTION_CHARS = 2_000
+MAX_TURN_CHARS = 4_000
+MAX_CONVERSATION_ITEMS = 40
+MAX_INCIDENT_ID_CHARS = 128
+MAX_WORKSPACE_CONTEXT_CHARS = 8_000
+
+
 class ConversationTurn(BaseModel):
     role: Literal["user", "assistant"]
-    content: str
+    content: str = Field(max_length=MAX_TURN_CHARS)
 
 
 class IncidentAssistantRequest(BaseModel):
-    incident_id: str
-    question: str
-    conversation: list[ConversationTurn] = Field(default_factory=list)
+    incident_id: str = Field(max_length=MAX_INCIDENT_ID_CHARS)
+    question: str = Field(max_length=MAX_QUESTION_CHARS)
+    conversation: list[ConversationTurn] = Field(
+        default_factory=list, max_length=MAX_CONVERSATION_ITEMS
+    )
 
 
 class WorkspaceAssistantRequest(BaseModel):
@@ -87,10 +101,26 @@ class WorkspaceAssistantRequest(BaseModel):
     from the live pipeline state, optionally enriched by any extra
     workspace_context dict the frontend passes in.
     """
-    incident_id: str | None = None
-    question: str
-    conversation: list[ConversationTurn] = Field(default_factory=list)
+    incident_id: str | None = Field(default=None, max_length=MAX_INCIDENT_ID_CHARS)
+    question: str = Field(max_length=MAX_QUESTION_CHARS)
+    conversation: list[ConversationTurn] = Field(
+        default_factory=list, max_length=MAX_CONVERSATION_ITEMS
+    )
     workspace_context: dict | None = None   # live page snapshot from frontend
+
+    @field_validator("workspace_context")
+    @classmethod
+    def _bound_context(cls, value: dict | None) -> dict | None:
+        """The frontend sends a page snapshot here, so the shape is open-ended —
+        but an open-ended dict on an LLM route is an open-ended bill. Bounded by
+        serialized size, since that is what actually reaches the prompt."""
+        if value is None:
+            return None
+        if len(json.dumps(value, default=str)) > MAX_WORKSPACE_CONTEXT_CHARS:
+            raise ValueError(
+                f"workspace_context exceeds {MAX_WORKSPACE_CONTEXT_CHARS} serialized characters"
+            )
+        return value
 
 
 def find_incident(state: dict[str, Any], incident_id: str) -> dict[str, Any] | None:

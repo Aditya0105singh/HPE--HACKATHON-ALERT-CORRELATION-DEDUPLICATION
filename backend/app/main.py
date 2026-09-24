@@ -29,8 +29,9 @@ from pydantic import BaseModel
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "data"))
 from synthetic_alert_generator import generate_batch  # noqa: E402
 
-from . import clustering, db, dedup
+from . import clustering, db, dedup, security
 from .assistant import IncidentAssistantRequest, WorkspaceAssistantRequest, ask_incident_assistant, ask_workspace_assistant
+from .engine.redaction import redact_alert_dicts
 from .alert_dna import AlertDNA
 from .clustering import cluster_alerts, group_by_label, pick_root_cause
 from .correlation_explain import build_correlation_explanation
@@ -44,7 +45,11 @@ from .risk_score import escalation_risk
 from .summarizer import summarize, summarize_with_source
 
 _dna: AlertDNA | None = None
-_state: dict = {"dedup_stats": None, "clusters": [], "noise": [], "raw_alerts": [], "evaluation": None, "dataset": "none"}
+_state: dict = {"dedup_stats": None, "clusters": [], "noise": [], "raw_alerts": [], "evaluation": None, "dataset": "none", "redaction_counts": {}}
+
+# An /ingest payload is arbitrary client JSON. These caps bound what a single
+# request can turn into memory, DB rows and clustering work.
+MAX_INGEST_ALERTS = 20_000
 
 # Rough triage-time model for the MTTR framing: minutes an on-call engineer
 # would spend manually reading and grouping this many raw alerts (~30s each),
@@ -132,6 +137,12 @@ def run_pipeline(alerts: list[dict], dataset: str | None = None) -> dict:
 def _run_pipeline(alerts: list[dict]) -> dict:
     get_dna()
 
+    # Redaction runs before the first write, for the same reason it does in
+    # engine/pipeline.py: a store that never received PII cannot leak it. This
+    # pipeline persists raw alerts to SQLite, so without this the "no PII
+    # stored" constraint would hold on one pipeline and not the other.
+    alerts, redaction_counts = redact_alert_dicts(alerts)
+
     # The DB always mirrors exactly the batch currently shown — each call
     # here represents a full replacement of "the current view" (a fresh demo
     # batch, a dataset switch, or a full /ingest payload), so persisted
@@ -188,6 +199,7 @@ def _run_pipeline(alerts: list[dict]) -> dict:
         "clusters": clusters,
         "noise": groups.get(-1, []),
         "raw_alerts": sorted(alerts, key=lambda a: a["timestamp"], reverse=True),
+        "redaction_counts": redaction_counts,
     })
     # Manual escalations persist straight to the DB, bypassing the alerts list
     # already built into _state - patch the escalated flag onto it in place so
@@ -332,8 +344,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Alert Correlation & Dedup Engine", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"],
-                   allow_methods=["*"], allow_headers=["*"])
+
+# Order matters: the last middleware added is the outermost, so CORS answers a
+# preflight before the security layer sees it. A browser preflight carries no
+# X-API-Key by design, and rejecting it would break every legitimate call.
+app.add_middleware(security.SecurityMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=security.allowed_origins(),
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
+)
 
 # AIOps engine (app/engine/) — a separate pipeline exposed under
 # its own prefix rather than folded into the routes above, so it can evolve
@@ -343,8 +364,51 @@ from .engine_api import router as engine_router  # noqa: E402
 app.include_router(engine_router)
 
 
+def _validate_ingest(alerts: list[dict]) -> None:
+    """Reject a malformed batch before the pipeline touches the database.
+
+    `_run_pipeline` clears the alerts table before writing the new batch, and
+    `db.save_alerts` indexes `id` and `timestamp` directly. Validating here
+    rather than there is the whole point: without it, a single POST of `[{}]`
+    wiped the table and *then* raised, so a malformed anonymous request was a
+    destructive one.
+    """
+    security.require_items(alerts, MAX_INGEST_ALERTS, "alerts")
+    for index, alert in enumerate(alerts):
+        if not isinstance(alert, dict):
+            raise HTTPException(status_code=422, detail=f"alert {index} is not an object")
+        for required in ("id", "timestamp"):
+            if required not in alert:
+                raise HTTPException(
+                    status_code=422, detail=f"alert {index} is missing required field '{required}'"
+                )
+        if not isinstance(alert["id"], str) or not alert["id"].strip():
+            raise HTTPException(
+                status_code=422, detail=f"alert {index} has a non-string or empty 'id'"
+            )
+        stamp = alert["timestamp"]
+        if isinstance(stamp, datetime):
+            continue
+        if not isinstance(stamp, str):
+            raise HTTPException(
+                status_code=422, detail=f"alert {index} has a non-string 'timestamp'"
+            )
+        try:
+            datetime.fromisoformat(stamp)
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail=f"alert {index} has a 'timestamp' that is not ISO-8601: {stamp!r}",
+            )
+
+    ids = [a["id"] for a in alerts]
+    if len(set(ids)) != len(ids):
+        raise HTTPException(status_code=422, detail="alert ids must be unique within a batch")
+
+
 @app.post("/ingest")
 def ingest(alerts: list[dict]) -> dict:
+    _validate_ingest(alerts)
     return run_pipeline(alerts, dataset="custom-ingest")
 
 
@@ -371,6 +435,17 @@ def demo_inject_chaos(scenario: str = "db_connection_exhaustion") -> dict:
     return run_pipeline(generate_batch(n_incidents=4, n_noise=60, window_minutes=30,
                                        force_scenario=scenario, noise_window_hours=24))
 
+
+
+@app.get("/health")
+def health() -> dict:
+    """Liveness probe — the one route reachable without a key.
+
+    Deliberately says nothing about incidents, alerts or configuration: an
+    orchestrator needs to know the process is up, and an anonymous caller
+    should learn nothing else.
+    """
+    return {"status": "ok"}
 
 
 @app.get("/pipeline")
