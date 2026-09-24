@@ -26,7 +26,7 @@ function StageCard({
 }) {
   return (
     <Card
-      className={`p-4 cursor-pointer transition-shadow ${
+      className={`p-4 h-full flex flex-col cursor-pointer transition-shadow ${
         isOpen ? "ring-2 ring-green-400" : "hover:shadow-md"
       }`}
       onClick={onToggle}
@@ -41,11 +41,15 @@ function StageCard({
           </div>
           <div className="mt-2 text-2xl font-semibold">{stage.metric}</div>
           <Text className="text-xs text-gray-500">{stage.metricLabel}</Text>
-          {stage.subMetric && (
-            <Badge size="xs" color="emerald" className="mt-1">
-              {stage.subMetric}
-            </Badge>
-          )}
+          {/* Always reserve this row: stages without a badge otherwise start
+              their detail sections higher than their neighbours'. */}
+          <div className="mt-1 h-[22px]">
+            {stage.subMetric && (
+              <Badge size="xs" color="emerald">
+                {stage.subMetric}
+              </Badge>
+            )}
+          </div>
         </div>
         <LuChevronDown
           className={`w-4 h-4 text-gray-400 shrink-0 mt-1 transition-transform ${
@@ -55,7 +59,7 @@ function StageCard({
       </div>
 
       {isOpen && (
-        <div className="mt-3 pt-3 border-t border-gray-200 flex flex-col gap-2 text-sm">
+        <div className="mt-3 pt-3 border-t border-gray-200 flex flex-col gap-2 text-sm flex-1">
           <div>
             <Text className="text-xs uppercase tracking-wide text-gray-500">
               Purpose
@@ -76,7 +80,9 @@ function StageCard({
               <div className="font-mono text-xs">{stage.detail.parameters}</div>
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* mt-auto pins Inputs/Outputs to the card bottom so they line up
+              across a row of equal-height cards. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-auto pt-2">
             <div>
               <Text className="text-xs uppercase tracking-wide text-gray-500">
                 Inputs
@@ -148,11 +154,28 @@ export function PipelineClient() {
         </Card>
       ) : (
         <>
-          {/* items-start: without it, a grid row stretches every card to
-              match its tallest sibling, so expanding one stage left the
-              others in its row showing a wall of empty space below their
-              stat instead of just staying their natural (short) height. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
+          <div className="flex items-center justify-between -mb-1">
+            <Text className="text-xs text-gray-600">
+              {openStages.size} of {stages.length} stages expanded
+            </Text>
+            <button
+              onClick={() =>
+                setOpenStages(
+                  openStages.size === stages.length
+                    ? new Set()
+                    : new Set(stages.map((s) => s.id))
+                )
+              }
+              className="rounded-full border border-green-200 bg-white px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-50 transition-colors"
+            >
+              {openStages.size === stages.length ? "Collapse all" : "Expand all"}
+            </button>
+          </div>
+
+          {/* Equal-height cards per row (the default grid stretch) so rows
+              read as a table, not a ragged masonry. Expand all to see the
+              aligned layout; a single expanded card stretches its row-mates. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {stages.map((stage, i) => (
               <StageCard
                 key={stage.id}
