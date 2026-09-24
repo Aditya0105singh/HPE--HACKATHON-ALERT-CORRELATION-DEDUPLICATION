@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import clsx from "clsx";
+import { anchorAt, labelIndices, useElementWidth } from "./axisLabels";
 
 export interface TrendPoint {
   label: string;
@@ -15,6 +16,7 @@ const GREEN = "#15803d";
 /** Cumulative noise reduction over time, with axes, gridlines and a hover tooltip. */
 export function TrendChart({ points }: { points: TrendPoint[] }) {
   const [hover, setHover] = useState<number | null>(null);
+  const { ref: axisRef, width: axisWidth } = useElementWidth<HTMLDivElement>();
   const n = points.length;
   const H = 200;
   const W = 600;
@@ -24,7 +26,7 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
   const px = (i: number) => (i / (n - 1)) * W;
   const py = (v: number) => H - (Math.min(100, Math.max(0, v)) / 100) * H;
   const line = points.map((p, i) => `${i ? "L" : "M"}${px(i).toFixed(1)},${py(p.noise).toFixed(1)}`).join(" ");
-  const labelEvery = Math.max(1, Math.ceil(n / 3));
+  const labelled = new Set(labelIndices(n, axisWidth));
   const last = points[n - 1];
   const hp = hover !== null ? points[hover] : null;
   const hx = hover !== null ? (hover / (n - 1)) * 100 : 0;
@@ -67,7 +69,7 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
               />
             ))}
             {points.map((_, i) =>
-              i % labelEvery === 0 ? (
+              labelled.has(i) ? (
                 <div key={i} className="absolute inset-y-0 border-l border-dashed border-gray-100 pointer-events-none" style={{ left: `${(i / (n - 1)) * 100}%` }} />
               ) : null
             )}
@@ -115,13 +117,13 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
             )}
           </div>
 
-          <div className="relative h-5 mt-1.5 text-[11px] text-gray-600">
+          <div ref={axisRef} className="relative h-5 mt-1.5 text-[11px] text-gray-600">
             {points.map((p, i) =>
-              i % labelEvery === 0 ? (
+              labelled.has(i) ? (
                 <span
                   key={i}
                   className="absolute top-0 whitespace-nowrap"
-                  style={{ left: `${(i / (n - 1)) * 100}%`, transform: i === 0 ? "none" : i / n > 0.8 ? "translateX(-100%)" : "translateX(-50%)" }}
+                  style={{ left: `${(i / (n - 1)) * 100}%`, transform: anchorAt(i / (n - 1)) }}
                 >
                   {p.label}
                 </span>

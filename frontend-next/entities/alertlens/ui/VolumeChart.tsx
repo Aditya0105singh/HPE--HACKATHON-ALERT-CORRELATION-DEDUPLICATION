@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import clsx from "clsx";
+import { anchorAt, labelIndices, useElementWidth } from "./axisLabels";
 
 export interface VolumeBucket {
   label: string;
@@ -26,7 +27,8 @@ export function VolumeChart({ buckets }: { buckets: VolumeBucket[] }) {
   const { step, max } = niceMax(peak);
   const ticks = [0, 1, 2, 3, 4].map((i) => i * step);
   const n = buckets.length;
-  const labelEvery = Math.max(1, Math.ceil(n / 6));
+  const { ref: axisRef, width: axisWidth } = useElementWidth<HTMLDivElement>();
+  const labelled = new Set(labelIndices(n, axisWidth));
   const H = 200;
   const hb = hover !== null ? buckets[hover] : null;
   const hx = hover !== null ? ((hover + 0.5) / n) * 100 : 0;
@@ -65,7 +67,7 @@ export function VolumeChart({ buckets }: { buckets: VolumeBucket[] }) {
               />
             ))}
             {buckets.map((b, i) =>
-              i % labelEvery === 0 ? (
+              labelled.has(i) ? (
                 <div key={i} className="absolute inset-y-0 border-l border-dashed border-gray-100 pointer-events-none" style={{ left: `${((i + 0.5) / n) * 100}%` }} />
               ) : null
             )}
@@ -116,13 +118,13 @@ export function VolumeChart({ buckets }: { buckets: VolumeBucket[] }) {
             )}
           </div>
 
-          <div className="relative h-5 mt-1.5 text-[11px] text-gray-600">
+          <div ref={axisRef} className="relative h-5 mt-1.5 text-[11px] text-gray-600">
             {buckets.map((b, i) =>
-              i % labelEvery === 0 ? (
+              labelled.has(i) ? (
                 <span
                   key={i}
                   className="absolute top-0 whitespace-nowrap"
-                  style={{ left: `${((i + 0.5) / n) * 100}%`, transform: i / n > 0.8 ? "translateX(-100%)" : i === 0 ? "none" : "translateX(-50%)" }}
+                  style={{ left: `${((i + 0.5) / n) * 100}%`, transform: anchorAt((i + 0.5) / n) }}
                 >
                   {b.label}
                 </span>
