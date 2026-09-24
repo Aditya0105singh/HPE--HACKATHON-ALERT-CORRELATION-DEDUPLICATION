@@ -56,7 +56,7 @@ export const Menu = ({ children, session }: MenuButtonProps) => {
           </div>
 
           <aside
-            className='relative bg-white col-span-1 border-r border-gray-200 h-full hidden lg:block [&[data-minimized="true"]>nav]:invisible'
+            className='relative bg-gradient-to-b from-white to-green-50/50 col-span-1 border-r border-gray-200/80 shadow-[2px_0_12px_-6px_rgba(16,24,40,0.10)] h-full hidden lg:block [&[data-minimized="true"]>nav]:invisible'
             data-minimized={isMenuMinimized}
           >
             <nav className="flex flex-col h-full">

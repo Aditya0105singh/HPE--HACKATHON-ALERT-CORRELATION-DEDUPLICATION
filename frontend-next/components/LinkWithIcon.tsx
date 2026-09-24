@@ -47,13 +47,15 @@ export const LinkWithIcon = ({
         restOfLinkProps.href?.toString() || ""
       );
 
-  // Active state needs to actually read as "selected" at a glance, not a
-  // faint tint that's easy to miss against inactive items' hover color -
-  // a light green pill with green icon/text, matching the brand.
+  // Active state needs to actually read as "selected" at a glance: a green
+  // gradient row with a left accent bar, and the icon in a solid green tile.
+  // Inactive icons sit in a soft grey tile that tints green on hover.
   const iconClasses = clsx(
+    "!p-1 rounded-lg transition-colors duration-150",
     {
-      "text-green-700": isActive,
-      "text-gray-500 group-hover:text-green-600": !isActive,
+      "bg-green-600 !text-white": isActive,
+      "bg-gray-100 text-gray-500 group-hover:bg-green-100 group-hover:text-green-700":
+        !isActive,
     },
     iconClassName
   );
@@ -83,10 +85,11 @@ export const LinkWithIcon = ({
   return (
     <div
       className={clsx(
-        "flex items-center justify-between py-1.5 px-2.5 font-medium rounded-lg focus:ring focus:ring-green-300 group w-full min-w-0",
+        "relative flex items-center justify-between py-1 px-2 font-medium rounded-xl focus:ring focus:ring-green-300 group w-full min-w-0 transition-colors duration-150",
         {
-          "bg-green-50": isActive,
-          "hover:bg-gray-100": !isActive,
+          "bg-gradient-to-r from-green-100/80 to-green-50/30 shadow-[inset_0_0_0_1px_rgba(22,163,74,0.12)]":
+            isActive,
+          "hover:bg-gray-100/80": !isActive,
         },
         className
       )}
@@ -94,10 +97,16 @@ export const LinkWithIcon = ({
       onMouseLeave={handleMouseLeave}
       data-testid={`${testId}-link-container`}
     >
+      {isActive && (
+        <span
+          aria-hidden="true"
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-green-600"
+        />
+      )}
       <Link
         tabIndex={tabIndex}
         {...restOfLinkProps}
-        className="flex items-center space-x-1 flex-1 min-w-0"
+        className="flex items-center space-x-2 flex-1 min-w-0"
         onClick={onClick}
         data-testid={`${testId}-link`}
       >

@@ -2,6 +2,7 @@
 
 import { Subtitle } from "@tremor/react";
 import { LinkWithIcon } from "components/LinkWithIcon";
+import { useEngineQueue } from "@/entities/engine/useEngine";
 import { Disclosure } from "@headlessui/react";
 import { IoChevronUp } from "react-icons/io5";
 import { IconType } from "react-icons/lib";
@@ -82,16 +83,24 @@ const SECTIONS: NavSection[] = [
   },
 ];
 
-const NavGroup = ({ title, links }: NavSection) => (
+const NavGroup = ({
+  title,
+  links,
+  counts,
+}: NavSection & { counts: Record<string, number> }) => (
   <Disclosure as="div" className="space-y-0.5" defaultOpen>
-    <Disclosure.Button className="w-full flex justify-between items-center px-2">
+    <Disclosure.Button className="w-full flex items-center gap-2 px-3 pt-1 group/head">
       {({ open }) => (
         <>
-          <Subtitle className="text-[10.5px] ml-2 text-gray-400 font-semibold uppercase tracking-wider">
+          <Subtitle className="text-[10.5px] text-gray-400 font-semibold uppercase tracking-wider group-hover/head:text-green-700 transition-colors">
             {title}
           </Subtitle>
+          <span aria-hidden="true" className="h-px flex-1 bg-gray-200/80" />
           <IoChevronUp
-            className={clsx({ "rotate-180": open }, "mr-2 text-gray-300 w-3 h-3")}
+            className={clsx(
+              { "rotate-180": open },
+              "text-gray-300 w-3 h-3 transition-transform duration-200"
+            )}
           />
         </>
       )}
@@ -105,6 +114,7 @@ const NavGroup = ({ title, links }: NavSection) => (
             testId={link.testId}
             isExact={link.isExact}
             isBeta={link.isDemo}
+            count={counts[link.href] > 0 ? counts[link.href] : undefined}
           >
             <Subtitle className="text-xs">{link.label}</Subtitle>
           </LinkWithIcon>
@@ -114,19 +124,27 @@ const NavGroup = ({ title, links }: NavSection) => (
   </Disclosure>
 );
 
-export const AlertLensLinks = () => (
-  <>
-    <ul className="space-y-0.5 p-1 pr-1">
-      {TOP_LINKS.map((link) => (
-        <li key={link.href}>
-          <LinkWithIcon href={link.href} icon={link.icon} testId={link.testId} isExact={link.isExact}>
-            <Subtitle className="text-xs">{link.label}</Subtitle>
-          </LinkWithIcon>
-        </li>
+export const AlertLensLinks = () => {
+  // The one live number worth surfacing in the nav: drafts waiting on a human.
+  const { data: queue } = useEngineQueue();
+  const counts = {
+    "/review": (queue ?? []).filter((q) => q.status === "awaiting_review").length,
+  };
+
+  return (
+    <>
+      <ul className="space-y-0.5 p-1 pr-1">
+        {TOP_LINKS.map((link) => (
+          <li key={link.href}>
+            <LinkWithIcon href={link.href} icon={link.icon} testId={link.testId} isExact={link.isExact}>
+              <Subtitle className="text-xs">{link.label}</Subtitle>
+            </LinkWithIcon>
+          </li>
+        ))}
+      </ul>
+      {SECTIONS.map((section) => (
+        <NavGroup key={section.title} {...section} counts={counts} />
       ))}
-    </ul>
-    {SECTIONS.map((section) => (
-      <NavGroup key={section.title} {...section} />
-    ))}
-  </>
-);
+    </>
+  );
+};
