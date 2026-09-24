@@ -92,24 +92,25 @@ function ResultRow({
   option: (typeof NAVIGATION_OPTIONS)[number];
   active: boolean;
 }) {
+  // Colours are classes, not inline styles, so dark mode's border and surface
+  // overrides can reach them.
   return (
     <div
-      className="flex items-center gap-3 cursor-default select-none rounded-xl px-2.5 py-2 transition-colors duration-100"
-      style={active ? { background: "#ecfdf5" } : undefined}
+      className={`flex items-center gap-3 cursor-default select-none rounded-xl px-2.5 py-2 transition-colors duration-100 ${
+        active ? "bg-green-50" : ""
+      }`}
     >
       <span
-        className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-colors duration-100"
-        style={
-          active
-            ? { background: "#15803d", color: "#fff" }
-            : { background: "#f3f4f6", color: "#4b5563" }
-        }
+        className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-colors duration-100 ${
+          active ? "bg-green-700 text-white" : "bg-gray-100 text-gray-600"
+        }`}
       >
         <option.icon size={15} />
       </span>
       <span
-        className="text-sm font-medium text-left flex-1 truncate"
-        style={{ color: active ? "#065f46" : "#1f2937" }}
+        className={`text-sm font-medium text-left flex-1 truncate ${
+          active ? "text-green-900" : "text-gray-800"
+        }`}
       >
         {option.label}
       </span>
@@ -117,12 +118,11 @@ function ResultRow({
         {option.shortcut.map((k) => (
           <kbd
             key={k}
-            className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-            style={
+            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
               active
-                ? { borderColor: "#a7f3d0", background: "#d1fae5", color: "#15803d" }
-                : { borderColor: "#e5e7eb", background: "#f9fafb", color: "#9ca3af" }
-            }
+                ? "border-green-200 bg-green-100 text-green-700"
+                : "border-gray-300 bg-gray-50 text-gray-400"
+            }`}
           >
             {k}
           </kbd>
@@ -219,14 +219,16 @@ export const Search = () => {
               )}
 
               <div
-                className="relative z-20 flex items-center w-full rounded-2xl border bg-white transition-all duration-150"
+                className={`relative z-20 flex items-center w-full rounded-2xl border bg-white transition-all duration-150 ${
+                  isFocused ? "" : "border-gray-300"
+                }`}
                 style={
                   isFocused
                     ? {
                         borderColor: "#6ee7b7",
                         boxShadow: "0 0 0 4px rgba(16,185,129,0.14), 0 2px 8px rgba(0,0,0,0.04)",
                       }
-                    : { borderColor: "#e5e7eb", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }
+                    : { boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }
                 }
               >
                 <HiOutlineMagnifyingGlass
@@ -245,8 +247,7 @@ export const Search = () => {
                 />
                 {!query.length && (
                   <kbd
-                    className="hidden sm:inline-flex mr-2.5 shrink-0 items-center rounded-lg border px-1.5 py-1 text-[10px] font-semibold tracking-wide text-gray-400 bg-gray-50"
-                    style={{ borderColor: "#e5e7eb" }}
+                    className="hidden sm:inline-flex mr-2.5 shrink-0 items-center rounded-lg border border-gray-300 px-1.5 py-1 text-[10px] font-semibold tracking-wide text-gray-400 bg-gray-50"
                   >
                     {shortcutLabel}
                   </kbd>

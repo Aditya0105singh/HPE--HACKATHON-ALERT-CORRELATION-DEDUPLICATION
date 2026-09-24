@@ -41,17 +41,15 @@ export function Topbar({ session }: { session: Session | null }) {
       <div className="flex items-center gap-2.5 ml-auto">
         <Link
           href="/settings"
-          className="hidden sm:inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-shadow hover:shadow-md"
+          className={`hidden sm:inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-shadow hover:shadow-md ${healthy ? "border-green-200" : "border-gray-200"}`}
           style={
             healthy
               ? {
-                  borderColor: "#bbf7d0",
                   background: "linear-gradient(135deg,#f0fdf4,#dcfce7)",
                   color: "#15803d",
                   boxShadow: "0 1px 2px rgba(21,128,61,0.10)",
                 }
               : {
-                  borderColor: "#e5e7eb",
                   background: "#ffffff",
                   color: "#6b7280",
                   boxShadow: "0 1px 2px rgba(0,0,0,0.04)",

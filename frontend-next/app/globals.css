@@ -24,7 +24,10 @@ html.workaround-dark {
   /* 80% squashed every text/background pair toward the middle; 90% keeps the
      softened (not pure-black) look while giving light text more separation. */
   filter: invert(100%) hue-rotate(180deg) contrast(90%) !important;
-  background: #fff;
+  /* Was #fff, which rendered the page the same near-black as every white card,
+     so cards had no edge at all. A slightly darker source renders a lighter
+     canvas that cards sit on (see the dark surface ladder below). */
+  background: #efefef;
 
   & .line-content {
     background-color: #fefefe;
@@ -220,6 +223,78 @@ html.workaround-dark .text-tremor-content { color: #2f3744; }          /* -> #bb
 html.workaround-dark .text-gray-700,
 html.workaround-dark .text-slate-700,
 html.workaround-dark .text-tremor-content-emphasis { color: #232a37; } /* -> brighter still */
+
+/* Dark mode surfaces and borders.
+   Measured on the live page: every card, gradient and the page itself rendered
+   as the same #0d0d0d (1.0:1), and card outlines sat at 1.0-1.2:1 - so cards had
+   no edge and nothing separated one region from the next. Because dark mode is
+   an inverting filter, a LIGHT source colour renders DARK; these values were
+   solved through the filter (invert, hue-rotate, contrast 90%) to render as:
+     canvas / gray-50  #1b1b1b   gray-100 / hover  #232323   gray-200  #2d2d2d
+     divider           #303030   card border       #404040   control   #5a5a5a
+   Cards stay the darkest surface (#0d0d0d) on that lighter canvas. */
+html.workaround-dark .bg-gray-50 { background-color: #efefef; }
+html.workaround-dark .bg-gray-100,
+html.workaround-dark .hover\:bg-gray-100:hover,
+html.workaround-dark .hover\:bg-gray-50:hover { background-color: #e6e6e6; }
+html.workaround-dark .bg-gray-200 { background-color: #dbdbdb; }
+/* Tailwind gradient stops and rings are variables, not background-color. */
+html.workaround-dark .from-gray-50 {
+  --tw-gradient-from: #efefef var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(239 239 239 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+html.workaround-dark .ring-gray-50 { --tw-ring-color: #efefef; }
+
+/* Default border colour (Tailwind preflight sets #e5e7eb on everything). Zero
+   specificity, so any explicit border-* colour utility still wins over it. */
+:where(html.workaround-dark) *,
+:where(html.workaround-dark) ::before,
+:where(html.workaround-dark) ::after { border-color: #d8d8d8; }
+
+/* Row/section dividers. border-gray-50 is matched as a whole class token (a bare
+   [class*="border-gray-50"] would also hit border-gray-500). */
+html.workaround-dark .border-gray-50,
+html.workaround-dark [class*="border-gray-50/"],
+html.workaround-dark [class*="border-gray-50 "],
+html.workaround-dark [class*="border-gray-100"],
+html.workaround-dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+html.workaround-dark [class*="divide-gray-50/"] > :not([hidden]) ~ :not([hidden]),
+html.workaround-dark [class*="divide-gray-100"] > :not([hidden]) ~ :not([hidden]),
+html.workaround-dark [class*="divide-gray-200"] > :not([hidden]) ~ :not([hidden]),
+html.workaround-dark [class*="divide-tremor-border"] > :not([hidden]) ~ :not([hidden]) { border-color: #d8d8d8; }
+
+/* Card / panel outlines. The top side is left to any border-t-* accent colour
+   (e.g. the red/amber risk stripe on picker cards). */
+html.workaround-dark :is([class*="border-white"], [class*="border-gray-200"], [class*="border-green-100"], [class*="border-green-200"], [class*="border-slate-200"], .border-tremor-border) {
+  border-left-color: #c6c6c6;
+  border-right-color: #c6c6c6;
+  border-bottom-color: #c6c6c6;
+}
+html.workaround-dark :is([class*="border-white"], [class*="border-gray-200"], [class*="border-green-100"], [class*="border-green-200"], [class*="border-slate-200"], .border-tremor-border):not([class*="border-t-"]) {
+  border-top-color: #c6c6c6;
+}
+html.workaround-dark .tremor-Card-root,
+html.workaround-dark div.rounded-xl.border.bg-white { border-color: #c6c6c6; }
+
+/* Coloured chips keep their hue: the -200 tint borders invert to a barely-there
+   1.2:1 line, so use the -300 shade, which renders a clearly visible dim edge. */
+html.workaround-dark .border-amber-200 { border-color: #fcd34d; }
+html.workaround-dark .border-red-200 { border-color: #fca5a5; }
+html.workaround-dark .border-orange-200 { border-color: #fdba74; }
+html.workaround-dark .border-yellow-200 { border-color: #fde047; }
+html.workaround-dark .border-blue-200 { border-color: #93c5fd; }
+html.workaround-dark .border-purple-200 { border-color: #d8b4fe; }
+html.workaround-dark .border-indigo-200 { border-color: #a5b4fc; }
+html.workaround-dark .border-emerald-200 { border-color: #6ee7b7; }
+
+/* Form controls need a clearly visible edge (WCAG 1.4.11 asks for 3:1).
+   The react-select page-size box gets its border from emotion-generated
+   classes ("css-<hash>-control"), so it is matched by that shape. */
+html.workaround-dark [class^="css-"][class$="-control"],
+html.workaround-dark :is(input, select, textarea),
+html.workaround-dark [class*="border-gray-300"],
+html.workaround-dark :is(.tremor-TextInput-root, .tremor-NumberInput-root, .tremor-Select-root, .tremor-Textarea-root, .tremor-DateRangePicker-root) { border-color: #a9a9a9; }
 
 /* Overview KPI cards: entrance + chart animations */
 @keyframes kpi-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
