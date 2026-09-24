@@ -86,7 +86,7 @@ export function CorrelationsClient() {
       <PageHero
         icon={TbChartDots3}
         title="Correlations"
-        subtitle="Deduplicated alerts grouped into incidents by the correlation engine. Each group shares a suspected root cause."
+        subtitle="The loaded dataset, deduplicated and grouped by the baseline scale pipeline. Open a live engine incident for the shared-context evidence behind every join."
       />
 
       <EngineIncidentsCard note="Open an incident to see the Correlation Explorer: for every signal, which shared-context link joined it, its similarity score, and what was rejected." />

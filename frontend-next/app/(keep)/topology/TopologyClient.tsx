@@ -274,7 +274,7 @@ export function TopologyClient() {
       <PageHero
         icon={TbTopologyRing}
         title="Service Topology"
-        subtitle="Service dependencies inferred from correlated incidents — links are drawn from a root-cause service to the other services in its incident."
+        subtitle="Service dependencies inferred from the loaded dataset's incidents (baseline scale pipeline): links run from a root-cause service to the other services in its incident."
       >
         <span
           className={clsx(

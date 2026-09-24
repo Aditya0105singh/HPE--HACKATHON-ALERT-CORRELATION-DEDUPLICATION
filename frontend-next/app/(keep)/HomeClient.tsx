@@ -411,6 +411,14 @@ export function HomeClient() {
         </div>
       )}
 
+      {hasEngineRun && (
+        <p className="-mt-2 text-xs text-gray-600">
+          {effView === "engine"
+            ? "The full engine: shared-context correlation, causal root cause, severity scoring and the human review gate."
+            : "The baseline scale explorer: the loaded dataset grouped by alert text and time. Switch to the live engine run for full causal analysis."}
+        </p>
+      )}
+
       {effView === "engine" ? (
         <>
           <EngineRunCard />

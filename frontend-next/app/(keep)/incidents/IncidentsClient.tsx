@@ -109,7 +109,7 @@ export function IncidentsClient() {
       <PageHero
         icon={MdOutlineNotificationsActive}
         title="Incidents"
-        subtitle="Correlated incidents with root cause, impact and recommended actions."
+        subtitle="The loaded dataset, grouped by the baseline scale pipeline. Live engine incidents (full causal analysis and review gate) are listed first."
       />
 
       <EngineIncidentsCard />
