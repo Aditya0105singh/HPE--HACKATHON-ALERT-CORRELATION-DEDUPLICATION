@@ -338,13 +338,20 @@ export function TopologyClient() {
           </div>
           <div className="flex-1 min-h-0">
             <ReactFlowProvider>
+              {/* React Flow's default minZoom (0.5) stops fitView short for a tall
+                  chain of services, leaving the graph clipped. A lower floor lets
+                  it actually fit, and keying on the node count re-fits when a
+                  different dataset changes the graph's size. */}
               <ReactFlow
+                key={flowNodes.length}
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
                 fitView
+                fitViewOptions={{ padding: 0.15 }}
+                minZoom={0.1}
                 proOptions={{ hideAttribution: true }}
               >
                 <Background />

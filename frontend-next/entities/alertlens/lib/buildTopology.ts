@@ -143,7 +143,9 @@ export function layoutTopology(
   const idle = nodes.filter((n) => !n.cluster);
 
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: "TB", nodesep: 48, ranksep: 110, align: "UL" });
+  // Left-to-right: dependency chains are long and the canvas is wide, so a
+  // top-to-bottom layout forced a zoom-out that shrank every node to a speck.
+  g.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 90, align: "UL" });
   g.setDefaultEdgeLabel(() => ({}));
 
   connected.forEach((n) =>
